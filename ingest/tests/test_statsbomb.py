@@ -2,7 +2,7 @@
 
 import pytest
 
-from ingest import load, statsbomb
+from ingest import command, load, statsbomb
 
 ARSENAL = {"id": 1, "name": "Arsenal"}
 EVERTON = {"id": 29, "name": "Everton"}
@@ -112,7 +112,7 @@ def test_a_failed_download_leaves_no_file_that_looks_cached(tmp_path):
     def fetch_matches():
         raise OSError("connection reset")
 
-    with pytest.raises(statsbomb.FetchError):
+    with pytest.raises(command.FetchError):
         statsbomb.fetch_season(tmp_path, fetch_matches, None, None)
 
     assert list(tmp_path.rglob("*.json")) == []
@@ -391,7 +391,8 @@ def test_a_season_that_fails_the_sanity_check_is_not_committed(tmp_path, db, ing
 
     # One match can never be the 38-match season the command expects.
     with pytest.raises(load.SanityError):
-        statsbomb.run(db.ingest_url, tmp_path, fetchers)
+        rows = statsbomb.build_rows(statsbomb.fetch_season(tmp_path, *fetchers))
+        command.load_season(db.ingest_url, rows, statsbomb.FACTS)
 
     assert set(load.table_counts(ingest).values()) == {0}
 

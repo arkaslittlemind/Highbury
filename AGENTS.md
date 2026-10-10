@@ -68,6 +68,7 @@ Run Python and database commands from the repository root.
 - Python install: `uv sync --all-packages` (plain `uv sync` skips the workspace members)
 - Migrate: `uv run --env-file .env python -m ingest.migrate` (applies pending files in `db/migrations`)
 - Ingest 2003-04: `uv run --env-file .env python -m ingest.statsbomb` (StatsBomb; caches raw files in `ingest/raw/statsbomb/`, safe to re-run)
+- Ingest 2025-26: `uv run --env-file .env python -m ingest.understat` (Understat; caches raw files in `ingest/raw/understat/`, safe to re-run)
 - Python lint: `uv run ruff check .`
 - Python format: `uv run ruff format .`
 - Test: `uv run --env-file .env pytest` (Python only; needs the local database running)

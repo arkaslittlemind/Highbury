@@ -22,6 +22,11 @@ SEASON_TABLES = (
     "player_match_stats",
 )
 
+
+class CoordinateError(ValueError):
+    """A source record has a location outside the 120 x 80 pitch."""
+
+
 # Rows name their match, player, and team by the source's own ids and names. The
 # loader swaps them for database ids, so a source module needs no database access.
 
@@ -299,15 +304,18 @@ class SeasonFacts:
     draws: int
     losses: int
     points: int
+    goals_for: int
     top_scorer: str
     top_scorer_goals: int
 
 
 def check_season(conn: psycopg.Connection, facts: SeasonFacts) -> None:
     """Raise SanityError naming every loaded total that differs from the facts."""
-    matches, wins, draws, losses = conn.execute(
+    matches, wins, draws, losses, goals_for = conn.execute(
         "SELECT count(*), count(*) FILTER (WHERE scored > conceded),"
-        " count(*) FILTER (WHERE scored = conceded), count(*) FILTER (WHERE scored < conceded)"
+        " count(*) FILTER (WHERE scored = conceded), count(*) FILTER (WHERE scored < conceded),"
+        # From the match scores, so that own goals by the opponent count.
+        " coalesce(sum(scored), 0)"
         " FROM ("
         "  SELECT CASE WHEN home.name = %(team)s THEN m.home_goals ELSE m.away_goals END"
         "   AS scored,"
@@ -336,6 +344,7 @@ def check_season(conn: psycopg.Connection, facts: SeasonFacts) -> None:
         ("draws", facts.draws, draws),
         ("losses", facts.losses, losses),
         ("points", facts.points, 3 * wins + draws),
+        ("goals for", facts.goals_for, goals_for),
         (f"{facts.top_scorer} goals", facts.top_scorer_goals, goals),
     ]
     mismatches = [

@@ -4,8 +4,6 @@ Run from the repository root:
     uv run --env-file .env python -m ingest.statsbomb
 """
 
-import json
-import os
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Callable
@@ -14,11 +12,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import psycopg
-
-from ingest import load
-from ingest.load import EventRow, MatchRow, PlayerRow, SeasonRows, ShotRow, StatRow
-from ingest.migrate import SettingsError
+from ingest import command, load
+from ingest.load import CoordinateError, EventRow, MatchRow, PlayerRow, SeasonRows, ShotRow, StatRow
 
 RAW_DIR = Path(__file__).resolve().parents[2] / "raw" / "statsbomb"
 
@@ -52,8 +47,6 @@ SHOT_OUTCOMES = {
 EVENT_TYPES = {"Pass": "pass", "Carry": "carry", "Pressure": "pressure"}
 REGULAR_PERIODS = (1, 2)
 SENDING_OFF_CARDS = ("Red Card", "Second Yellow")
-# Without a limit, an unreachable database makes the command wait with no end.
-CONNECT_TIMEOUT_SECONDS = 10
 
 # The Invincibles: unbeaten in the league, from the MVP plan's sanity asserts.
 FACTS = load.SeasonFacts(
@@ -64,17 +57,10 @@ FACTS = load.SeasonFacts(
     draws=12,
     losses=0,
     points=90,
+    goals_for=73,
     top_scorer="Thierry Henry",
     top_scorer_goals=30,
 )
-
-
-class FetchError(Exception):
-    """A raw file could not be downloaded."""
-
-
-class CoordinateError(ValueError):
-    """An event has a location outside the 120 x 80 pitch."""
 
 
 @dataclass(frozen=True)
@@ -87,18 +73,8 @@ class RawSeason:
 
 
 def cached(path: Path, fetch: Callable[[], dict]) -> list[dict]:
-    """Return the records in the cache file, downloading it first when it is absent."""
-    if not path.exists():
-        try:
-            data = fetch()
-        except (OSError, ValueError) as error:
-            raise FetchError(f"cannot download {path.stem}: {type(error).__name__}") from error
-        path.parent.mkdir(parents=True, exist_ok=True)
-        # A rename is atomic, so an interrupted download never looks cached.
-        partial = path.with_suffix(".tmp")
-        partial.write_text(json.dumps(data), encoding="utf-8")
-        partial.replace(path)
-    return list(json.loads(path.read_text(encoding="utf-8")).values())
+    """Return the records in the cache file. StatsBomb keys each response by id."""
+    return list(command.cached_json(path, fetch).values())
 
 
 def fetch_season(
@@ -355,59 +331,11 @@ def build_rows(raw: RawSeason) -> SeasonRows:
     )
 
 
-def run(
-    url: str,
-    raw_dir: Path,
-    fetchers: tuple[Callable[..., Any], Callable[..., Any], Callable[..., Any]],
-) -> dict[str, int]:
-    """Fetch, load, and check the season in one transaction. Return the table row counts."""
-    # Every download and transform ends before the connection opens.
-    rows = build_rows(fetch_season(raw_dir, *fetchers))
-    # The connection block commits on a clean exit and rolls back on an error, so a
-    # season that fails the check never reaches the database.
-    with psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS) as conn:
-        load.load(conn, rows)
-        load.check_season(conn, FACTS)
-        return load.table_counts(conn)
-
-
 def main() -> int:
-    try:
-        counts = run(load.ingest_url(os.environ), RAW_DIR, statsbomb_fetchers())
-    except SettingsError as error:
-        print(f"Settings error: {error}", file=sys.stderr)
-        return 1
-    except FetchError as error:
-        print(f"Download failed: {error}", file=sys.stderr)
-        return 1
-    except load.SanityError as error:
-        print(f"Sanity check failed, nothing was loaded: {error}", file=sys.stderr)
-        return 1
-    except (KeyError, ValueError) as error:
-        # A record that does not have the expected shape or values.
-        print(
-            f"Unexpected source data, nothing was loaded: {type(error).__name__}: {error}",
-            file=sys.stderr,
-        )
-        return 1
-    except OSError as error:
-        print(f"Cannot read or write the raw cache: {error}", file=sys.stderr)
-        return 1
-    except psycopg.Error as error:
-        # The text of a client-side error can repeat the URL, password included, so
-        # only the server's own message is printed.
-        message = error.diag.message_primary or type(error).__name__
-        print(f"Load failed, nothing was loaded: {message}", file=sys.stderr)
-        return 1
-
-    for table, count in counts.items():
-        print(f"{table}: {count}")
-    print(
-        f"{FACTS.season} {FACTS.team}: {FACTS.matches} matches,"
-        f" {FACTS.wins} W {FACTS.draws} D {FACTS.losses} L, {FACTS.points} points,"
-        f" {FACTS.top_scorer} {FACTS.top_scorer_goals} goals"
+    return command.run(
+        lambda: build_rows(fetch_season(RAW_DIR, *statsbomb_fetchers())),
+        FACTS,
     )
-    return 0
 
 
 if __name__ == "__main__":

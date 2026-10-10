@@ -179,6 +179,7 @@ TWO_MATCH_FACTS = load.SeasonFacts(
     draws=1,
     losses=0,
     points=4,
+    goals_for=3,
     top_scorer="Thierry Henry",
     top_scorer_goals=2,
 )
@@ -212,3 +213,10 @@ def test_a_season_that_differs_from_its_facts_names_every_mismatch(ingest):
 def test_an_empty_season_fails_the_check(ingest):
     with pytest.raises(load.SanityError, match="matches: expected 2, found 0"):
         load.check_season(ingest, TWO_MATCH_FACTS)
+
+
+def test_a_wrong_team_goal_total_fails_the_check(ingest):
+    load.load(ingest, two_matches())
+
+    with pytest.raises(load.SanityError, match="goals for: expected 73, found 3"):
+        load.check_season(ingest, replace(TWO_MATCH_FACTS, goals_for=73))
