@@ -9,7 +9,7 @@ import psycopg
 import pytest
 from psycopg import sql
 
-from ingest import migrate
+from ingest import load, migrate
 
 
 @dataclass(frozen=True)
@@ -53,6 +53,27 @@ def empty_db(settings) -> Iterator[str]:
     admin_url, _ = settings
     with temporary_database(admin_url) as name:
         yield with_database(admin_url, name)
+
+
+@pytest.fixture
+def ingest(db) -> Iterator[psycopg.Connection]:
+    """A connection as the ingest role that leaves the shared database empty."""
+    with psycopg.connect(db.ingest_url) as conn:
+        yield conn
+        conn.rollback()
+        # Some tests commit so that analyst_ro can read the rows. The database is
+        # shared by the whole session, so every test that loads data empties it.
+        conn.execute(
+            sql.SQL("TRUNCATE {}").format(
+                sql.SQL(", ").join(map(sql.Identifier, (*load.SEASON_TABLES, "data_catalog")))
+            )
+        )
+
+
+@pytest.fixture
+def analyst(db) -> Iterator[psycopg.Connection]:
+    with psycopg.connect(db.analyst_url, autocommit=True) as conn:
+        yield conn
 
 
 @pytest.fixture(scope="session")
