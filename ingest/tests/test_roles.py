@@ -1,6 +1,8 @@
 import psycopg
 import pytest
 
+from ingest import migrate
+
 WRITE_DENIED = (psycopg.errors.InsufficientPrivilege, psycopg.errors.ReadOnlySqlTransaction)
 
 
@@ -44,6 +46,13 @@ def test_analyst_cannot_create_a_table(analyst):
         analyst.execute("CREATE TABLE scratch (id int)")
 
 
+def test_analyst_cannot_create_a_temporary_table(analyst):
+    analyst.execute("SET default_transaction_read_only = off")
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        analyst.execute("CREATE TEMP TABLE scratch (id int)")
+
+
 def test_analyst_cannot_read_the_migration_log(analyst):
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         analyst.execute("SELECT * FROM schema_migrations")
@@ -70,3 +79,41 @@ def test_ingest_cannot_create_a_table(ingest):
 def test_ingest_cannot_touch_the_migration_log(ingest):
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         ingest.execute("DELETE FROM schema_migrations")
+
+
+def test_ingest_can_use_the_id_sequences(ingest):
+    value = ingest.execute("SELECT nextval(pg_get_serial_sequence('teams', 'id'))").fetchone()[0]
+
+    assert value >= 1
+
+
+def analyst_defaults(url: str) -> tuple[str, str]:
+    with psycopg.connect(url, autocommit=True) as conn:
+        timeout = conn.execute("SHOW statement_timeout").fetchone()[0]
+        read_only = conn.execute("SHOW default_transaction_read_only").fetchone()[0]
+    return timeout, read_only
+
+
+ROLE_WIDE = "ALTER ROLE analyst_ro SET {} = {}"
+ONE_DATABASE = "ALTER ROLE analyst_ro IN DATABASE {database} SET {} = {}"
+
+
+@pytest.mark.parametrize("statement", [ROLE_WIDE, ONE_DATABASE], ids=["role-wide", "one-database"])
+def test_runner_restores_analyst_defaults_the_role_removed(db, settings, statement):
+    _, passwords = settings
+    try:
+        with psycopg.connect(db.analyst_url, autocommit=True) as conn:
+            database = conn.execute("SELECT current_database()").fetchone()[0]
+            conn.execute("SET default_transaction_read_only = off")
+            conn.execute(statement.format("statement_timeout", "0", database=database))
+            conn.execute(
+                statement.format("default_transaction_read_only", "off", database=database)
+            )
+        assert analyst_defaults(db.analyst_url) == ("0", "off")
+
+        migrate.apply(db.admin_url, passwords)
+
+        assert analyst_defaults(db.analyst_url) == ("5s", "on")
+    finally:
+        # The role is shared with the developer database, so never leave it open.
+        migrate.apply(db.admin_url, passwords)

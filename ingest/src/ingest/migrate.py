@@ -19,6 +19,10 @@ MIGRATION_NAME = re.compile(r"^\d{4}_.+\.sql$")
 ADMIN_URL_VAR = "DATABASE_ADMIN_URL"
 ROLE_URL_VARS = {"ingest": "INGEST_DATABASE_URL", "analyst_ro": "ANALYST_DATABASE_URL"}
 
+# A role can change its own defaults, so every run puts these back.
+ANALYST_ROLE = "analyst_ro"
+ANALYST_DEFAULTS = {"default_transaction_read_only": "on", "statement_timeout": "5s"}
+
 
 class SettingsError(Exception):
     """A required environment variable is missing or unusable."""
@@ -66,7 +70,7 @@ def apply(
     role_passwords: dict[str, str],
     directory: Path = MIGRATIONS_DIR,
 ) -> list[str]:
-    """Apply every pending migration, then set the role passwords.
+    """Apply every pending migration, then set the role passwords and analyst defaults.
 
     Each file runs in its own transaction, so a failing file leaves nothing behind.
     Returns the names of the files applied in this run.
@@ -91,6 +95,24 @@ def apply(
                     sql.Identifier(role), sql.Literal(password)
                 )
             )
+
+        has_analyst = conn.execute(
+            "SELECT 1 FROM pg_roles WHERE rolname = %s", (ANALYST_ROLE,)
+        ).fetchone()
+        if has_analyst:
+            # Settings for one database override the role-wide ones, so clear them first.
+            database = conn.execute("SELECT current_database()").fetchone()[0]
+            conn.execute(
+                sql.SQL("ALTER ROLE {} IN DATABASE {} RESET ALL").format(
+                    sql.Identifier(ANALYST_ROLE), sql.Identifier(database)
+                )
+            )
+            for setting, value in ANALYST_DEFAULTS.items():
+                conn.execute(
+                    sql.SQL("ALTER ROLE {} SET {} = {}").format(
+                        sql.Identifier(ANALYST_ROLE), sql.Identifier(setting), sql.Literal(value)
+                    )
+                )
     return done
 
 

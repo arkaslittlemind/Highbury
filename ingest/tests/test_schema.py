@@ -28,11 +28,20 @@ def insert_match(conn) -> dict[str, int]:
     return {"home": home, "away": away, "player": player, "match": match}
 
 
-def insert_shot(conn, ids, *, x=108.0, y=40.0, xg=0.3, outcome="goal", source_id="s1"):
+def insert_shot(conn, ids, *, x=108.0, y=40.0, xg=0.3, outcome="goal", source_id="s1", team="home"):
     conn.execute(
         "INSERT INTO shots (match_id, player_id, team_id, minute, x, y, xg, outcome, source,"
         " source_shot_id) VALUES (%s, %s, %s, 27, %s, %s, %s, %s, 'statsbomb', %s)",
-        (ids["match"], ids["player"], ids["home"], x, y, xg, outcome, source_id),
+        (ids["match"], ids["player"], ids[team], x, y, xg, outcome, source_id),
+    )
+
+
+def insert_event(conn, ids, *, event_type="pass", source_id="e1", team="home", **position):
+    coords = {"x": None, "y": None, "end_x": None, "end_y": None} | position
+    conn.execute(
+        "INSERT INTO events (match_id, player_id, team_id, type, minute, second, x, y, end_x,"
+        " end_y, source_event_id) VALUES (%s, %s, %s, %s, 1, 0, %s, %s, %s, %s, %s)",
+        (ids["match"], ids["player"], ids[team], event_type, *coords.values(), source_id),
     )
 
 
@@ -117,13 +126,107 @@ def test_player_season_view_totals_stats_and_shots(conn):
 
 def test_passes_view_holds_only_pass_events(conn):
     ids = insert_match(conn)
-    for event_type, source_id in [("pass", "e1"), ("carry", "e2")]:
-        conn.execute(
-            "INSERT INTO events (match_id, player_id, team_id, type, minute, second,"
-            " source_event_id) VALUES (%s, %s, %s, %s, 1, 0, %s)",
-            (ids["match"], ids["player"], ids["home"], event_type, source_id),
-        )
+    insert_event(conn, ids, event_type="pass", source_id="e1")
+    insert_event(conn, ids, event_type="carry", source_id="e2")
 
     rows = conn.execute("SELECT player, recipient, opponent FROM v_passes").fetchall()
 
     assert rows == [("Thierry Henry", None, "Leeds")]
+
+
+def test_shot_rejects_an_outcome_that_is_not_lowercase(conn):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        insert_shot(conn, ids, outcome="Goal")
+
+
+def test_event_rejects_a_type_that_is_not_lowercase(conn):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        insert_event(conn, ids, event_type="Pass")
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [("x", 121), ("y", 81), ("end_x", -1), ("end_y", 80.5)]
+)
+def test_event_rejects_positions_outside_the_pitch(conn, field, value):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        insert_event(conn, ids, **{field: value})
+
+
+def test_event_source_id_is_unique(conn):
+    ids = insert_match(conn)
+    insert_event(conn, ids)
+
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        insert_event(conn, ids)
+
+
+def test_match_source_id_is_unique_per_source(conn):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        conn.execute(
+            "INSERT INTO matches (season_id, match_date, home_team_id, away_team_id, home_goals,"
+            " away_goals, source, source_match_id)"
+            " VALUES (2003, '2004-05-15', %s, %s, 2, 1, 'statsbomb', 'm1')",
+            (ids["home"], ids["away"]),
+        )
+
+
+def test_alias_name_is_unique_per_source(conn):
+    ids = insert_match(conn)
+    alias = (
+        "INSERT INTO player_aliases (player_id, source, source_name) VALUES (%s, 'manual', 'Titi')"
+    )
+    conn.execute(alias, (ids["player"],))
+
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        conn.execute(alias, (ids["player"],))
+
+
+def test_shot_view_names_the_home_team_as_opponent_for_an_away_shot(conn):
+    ids = insert_match(conn)
+    insert_shot(conn, ids, team="away")
+
+    assert conn.execute("SELECT team, opponent FROM v_shots").fetchall() == [("Leeds", "Arsenal")]
+
+
+def test_passes_view_names_the_home_team_as_opponent_for_an_away_pass(conn):
+    ids = insert_match(conn)
+    insert_event(conn, ids, team="away")
+
+    assert conn.execute("SELECT team, opponent FROM v_passes").fetchall() == [("Leeds", "Arsenal")]
+
+
+def test_matches_view_shows_names_and_score(conn):
+    insert_match(conn)
+
+    row = conn.execute(
+        "SELECT season, match_date::text, home_team, away_team, home_goals, away_goals"
+        " FROM v_matches"
+    ).fetchone()
+
+    assert row == ("2003-04", "2004-04-16", "Arsenal", "Leeds", 5, 0)
+
+
+@pytest.mark.parametrize(
+    ("team", "expected"), [("home", ("Arsenal", "Leeds")), ("away", ("Leeds", "Arsenal"))]
+)
+def test_player_match_view_names_team_and_opponent(conn, team, expected):
+    ids = insert_match(conn)
+    conn.execute(
+        "INSERT INTO player_match_stats (player_id, match_id, team_id, minutes, goals)"
+        " VALUES (%s, %s, %s, 90, 1)",
+        (ids["player"], ids["match"], ids[team]),
+    )
+
+    row = conn.execute(
+        "SELECT player, team, opponent, minutes, goals FROM v_player_match"
+    ).fetchone()
+
+    assert row == ("Thierry Henry", *expected, 90, 1)
