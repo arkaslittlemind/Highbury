@@ -25,6 +25,7 @@ against the data before showing it.
 ```bash
 cp .env.example .env
 docker compose up -d          # Postgres on localhost:5433
-uv sync                       # Python workspace
+uv sync --all-packages        # Python workspace
+uv run --env-file .env python -m ingest.migrate   # create tables, views, roles
 cd apps/web && pnpm install && pnpm dev
 ```

@@ -65,10 +65,11 @@ Run Python and database commands from the repository root.
 
 - Local database: `docker compose up -d` (Postgres 17 on `localhost:5433`)
 - Environment: `cp .env.example .env`
-- Python install: `uv sync`
+- Python install: `uv sync --all-packages` (plain `uv sync` skips the workspace members)
+- Migrate: `uv run --env-file .env python -m ingest.migrate` (applies pending files in `db/migrations`)
 - Python lint: `uv run ruff check .`
 - Python format: `uv run ruff format .`
-- Test: `uv run pytest` (Python only; collects `services/analyst/tests` and `ingest/tests`)
+- Test: `uv run --env-file .env pytest` (Python only; needs the local database running)
 
 Run web commands from `apps/web`.
 
@@ -83,9 +84,9 @@ combined `Verify` command, an analyst service start command, and CI.
 
 ## Testing
 
-- Python logic is gated by `uv run pytest`. A step that adds Python logic ships a
-  passing test in the same diff. No tests exist yet, and an empty run fails
-  rather than passes.
+- Python logic is gated by the Test command. A step that adds Python logic ships
+  a passing test in the same diff. Database tests create a throwaway database
+  and fail, not skip, when Postgres is unreachable.
 - The web app has no test runner. Verify web work with `pnpm lint`, `pnpm build`,
   and the running app until one is added deliberately.
 
