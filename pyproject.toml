@@ -16,5 +16,9 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 
+[tool.ruff.lint.isort]
+# ruff finds ingest by its folder at the root, but not a package under services.
+known-first-party = ["analyst", "ingest"]
+
 [tool.pytest.ini_options]
 testpaths = ["services/analyst/tests", "ingest/tests"]

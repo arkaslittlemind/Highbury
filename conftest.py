@@ -1,6 +1,6 @@
 import os
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
@@ -9,6 +9,7 @@ import psycopg
 import pytest
 from psycopg import sql
 
+from analyst.settings import get_settings
 from ingest import load, migrate
 
 
@@ -87,3 +88,26 @@ def db(settings) -> Iterator[Database]:
             ingest_url=with_database(os.environ["INGEST_DATABASE_URL"], name),
             analyst_url=with_database(os.environ["ANALYST_DATABASE_URL"], name),
         )
+
+
+@pytest.fixture
+def analyst_url(monkeypatch) -> Iterator[Callable[[str | None], None]]:
+    """Set the database URL that the analyst service reads, for one test."""
+
+    def use(url: str | None) -> None:
+        if url is None:
+            monkeypatch.delenv("ANALYST_DATABASE_URL", raising=False)
+        else:
+            monkeypatch.setenv("ANALYST_DATABASE_URL", url)
+        # The settings are read one time and kept, so drop the kept ones.
+        get_settings.cache_clear()
+
+    yield use
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def analyst_env(db, analyst_url) -> Database:
+    """Point the analyst service at the test database."""
+    analyst_url(db.analyst_url)
+    return db
