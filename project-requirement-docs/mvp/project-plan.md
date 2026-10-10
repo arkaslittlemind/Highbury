@@ -75,7 +75,10 @@ are flat and pre-joined, with player name, season label, and opponent. Column
 comments are written for the LLM.
 
 ### Rules
-- Coordinates normalized to 120 × 80, attacking left → right (tested)
+- Coordinates normalized to 120 × 80, attacking left → right, with y = 0 at the
+  attacking team's left touchline (tested). StatsBomb is already in this system.
+  Understat is 0–1 and counts Y from the attacker's right, so x = X × 120 and
+  y = (1 − Y) × 80
 - The agent connects as `analyst_ro`: read-only transaction, 5 s statement timeout, row cap
 - `run_sql` accepts only a single SELECT (sqlglot) and enforces a LIMIT
 - Derived numbers (per 90, %, differences) are computed in SQL, never by the model

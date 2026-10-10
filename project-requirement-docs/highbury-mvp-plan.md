@@ -151,9 +151,12 @@ LLM; `get_schema` returns them.
 
 ### Coordinates
 
-Everything goes to 120 × 80, attacking left→right. StatsBomb is already in
-that system; Understat is 0–1 normalized, so scale it (x × 120, y × 80). One
-unit test per source, and a visual check of Henry's and Saka's shot maps.
+Everything goes to 120 × 80, attacking left→right, with y = 0 at the attacking
+team's left touchline. StatsBomb is already in that system. Understat is 0–1
+normalized and counts Y from the attacker's right, so scale x and mirror y
+(x = X × 120, y = (1 − Y) × 80). The real 2025–26 data showed the mirror:
+with y = Y × 80, right-sided players came out on the left. One unit test per
+source, and a visual check of Henry's and Saka's shot maps.
 
 ### Sanity asserts (run after ingest)
 
