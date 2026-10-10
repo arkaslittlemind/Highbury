@@ -1,0 +1,107 @@
+# AGENTS.md
+
+Instructions for AI coding agents working in this project. This is the cross-tool
+entry point: any tool that reads `AGENTS.md` gets the same project description,
+commands, and conventions.
+
+AI tools must not add AI attribution to commits or pull requests, including AI
+`Co-Authored-By` trailers or generated-by signatures. Preserve genuine human
+attribution.
+
+## What this is
+
+**Highbury** is an AI football analyst for Arsenal's 2003-04 (Invincibles) and
+2025-26 seasons. A user asks a question in plain English; an agent queries a
+curated Postgres database through tools, returns a short answer with an
+interactive pitch chart, and checks every number against the data before showing
+it. When the data cannot answer, it says so.
+
+Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the
+Premier League. No club crests, logos, or player photos. Raw source data is
+never committed.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `apps/web` | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, shadcn/ui. Package manager: pnpm |
+| `services/analyst` | Analyst service (Python 3.12): FastAPI, agent, data tools |
+| `ingest` | Offline loaders for StatsBomb and Understat (Python 3.12) |
+| `db/migrations` | SQL schema, views, and roles |
+| `project-requirement-docs` | Product and build plans |
+| `design-docs` | One study document per finished feature, in Simplified Technical English |
+
+The Python side is one uv workspace rooted at `pyproject.toml` with members
+`services/analyst` and `ingest`. The web app is a standalone pnpm project in
+`apps/web`; there is no root `package.json`.
+
+`apps/web/AGENTS.md` carries Next.js-specific rules. Read it, and the docs it
+points to in `node_modules/next/dist/docs/`, before writing web code.
+
+## Proportional engineering
+
+Build for established requirements, not hypothetical scale, threats, or future
+flexibility. Reuse existing code, the standard library, native platform features,
+and installed dependencies before adding machinery.
+
+- Unknown scale or extensibility defaults to the smaller reversible design. Do
+  not infer enterprise, multi-tenant, hostile-user, or compliance requirements.
+- Derive trust and data-integrity boundaries from actual reachability: untrusted
+  input, auth/session/ownership, shared persisted data, destructive operations,
+  payments, secrets, and sensitive data.
+- Ask only when an unknown materially changes behavior, architecture, persisted
+  data, interoperability, a real security boundary, or cost. Otherwise choose the
+  simplest repository-native implementation.
+- Add an abstraction, dependency, service, configuration surface, compatibility
+  layer, or security mechanism only for a current requirement.
+- Simplicity never removes real trust-boundary validation, data-loss prevention,
+  accessibility, explicit security requirements, configured tests, or project rules.
+- Stack-specific template standards apply only when the project uses that stack.
+
+
+## Commands
+
+Run Python and database commands from the repository root.
+
+- Local database: `docker compose up -d` (Postgres 17 on `localhost:5433`)
+- Environment: `cp .env.example .env`
+- Python install: `uv sync`
+- Python lint: `uv run ruff check .`
+- Python format: `uv run ruff format .`
+- Test: `uv run pytest` (Python only; collects `services/analyst/tests` and `ingest/tests`)
+
+Run web commands from `apps/web`.
+
+- Web install: `pnpm install`
+- Dev server: `pnpm dev` (http://localhost:3000)
+- Build: `pnpm build`
+- Production server: `pnpm start`
+- Lint: `pnpm lint`
+
+Not configured yet: a web typecheck script, a web test runner, browser tests, a
+combined `Verify` command, an analyst service start command, and CI.
+
+## Testing
+
+- Python logic is gated by `uv run pytest`. A step that adds Python logic ships a
+  passing test in the same diff. No tests exist yet, and an empty run fails
+  rather than passes.
+- The web app has no test runner. Verify web work with `pnpm lint`, `pnpm build`,
+  and the running app until one is added deliberately.
+
+## Conventions
+
+- Python: 3.12, ruff with line length 100 and rules `E`, `F`, `I`, `B`, `UP`.
+  Packages use the `src/` layout.
+- Web: TypeScript strict mode, `@/*` maps to `apps/web/src/*`, server components
+  by default, Tailwind v4 configured in `src/app/globals.css`, shadcn/ui
+  components in `src/components/ui`.
+- Database access is split by role: the admin URL for migrations only, an
+  `ingest` role for offline loaders, and a read-only `analyst_ro` role for the
+  agent at runtime. See `.env.example`.
+- Secrets live in `.env`, which is ignored. Keep `.env.example` in step with any
+  new variable.
+- Comment the why, not the what. No em dashes in generated docs, comments, or
+  commit messages.
+- Conventional commit messages (`feat:`, `fix:`, `chore:`), one focused change
+  per commit. Ask before committing.

@@ -17,3 +17,13 @@ ingest/raw/
 .DS_Store
 Thumbs.db
 .idea/
+*.swp
+
+# Logs
+*.log
+
+# AI Blueprint local workflow files
+.agents/
+.claude/
+blueprint/
+CLAUDE.md
