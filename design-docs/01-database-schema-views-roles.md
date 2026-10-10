@@ -270,7 +270,9 @@ belong to the server. Remove them with `DROP ROLE` if you do not want them.
 
 ## 8. Known limits
 
-The independent review found six points. All are open in the findings ledger.
+The independent review found six points. They were open when this work landed.
+A later fix closed all of them. See
+[Harden roles and schema checks](2026-10-11-harden-roles-and-schema-checks.md).
 
 - **F-01:** `analyst_ro` can create a temporary table and write to it after the
   session leaves read-only mode.
