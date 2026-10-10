@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highbury Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of sections — system map on top, a scenario player that lights up the map, then data + decisions. Deliberately single dark "floodlit pitch" look. */
+:root{
+  --bg:#0c1712;          /* night pitch */
+  --surface:#13221b;
+  --surface-2:#1a2d24;
+  --line:#2b4337;
+  --fg:#ecefe8;
+  --muted:#9fb3a7;
+  --accent:#e0343c;      /* matchday red */
+  --accent-soft:rgba(224,52,60,.16);
+  --chalk:#f5f3ea;
+  --ok:#4cc38a;
+  --warn:#e8b54a;
+  --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 64px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(44px,8vw,84px);font-weight:800;line-height:.92;text-transform:uppercase}
+h1 span{color:var(--accent)}
+h2{font-size:clamp(28px,4vw,38px);font-weight:700;text-transform:uppercase;line-height:1}
+h3{font-size:21px;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lede{max-width:64ch;color:var(--muted);font-size:18px}
+header{display:flex;flex-direction:column;gap:18px;position:relative}
+header .pitchline{position:absolute;right:0;top:0;width:180px;height:120px;opacity:.5}
+.section-head{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+.section-head p{color:var(--muted);max-width:68ch}
+
+/* ---------- system map ---------- */
+.map-wrap{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:28px 22px;overflow:hidden}
+.map-wrap::before{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,transparent 0 120px,rgba(255,255,255,.018) 120px 240px);pointer-events:none}
+.map{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:auto auto auto;gap:46px 34px;z-index:1}
+.lane-label{position:absolute;left:-6px;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg)}
+svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+svg.edges path{fill:none;stroke:var(--line);stroke-width:2}
+svg.edges path.on{stroke:var(--accent);stroke-width:2.5;stroke-dasharray:6 6;animation:flow 0.9s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+.node{position:relative;z-index:1;text-align:left;background:var(--surface-2);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:14px 14px 13px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:4px;min-width:0;transition:border-color .2s,background .2s,transform .2s}
+.node:hover{border-color:var(--muted)}
+.node:focus-visible{outline:2px solid var(--chalk);outline-offset:3px}
+.node .k{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.node .n{font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.05;text-transform:uppercase}
+.node .t{font-size:13px;color:var(--muted);line-height:1.35}
+.node.sel{border-color:var(--chalk)}
+.node.on{border-color:var(--accent);background:linear-gradient(0deg,var(--accent-soft),var(--accent-soft)),var(--surface-2);transform:translateY(-2px)}
+.node.on .k{color:var(--accent)}
+.mw{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{font-family:var(--font-mono);font-size:10.5px;padding:2px 7px;border-radius:3px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--chalk);background:var(--accent-soft)}
+#n-web{grid-column:1;grid-row:1}
+#n-api{grid-column:2;grid-row:1}
+#n-agent{grid-column:3;grid-row:1}
+#n-mcp{grid-column:4;grid-row:1}
+#n-db{grid-column:5;grid-row:1/4;align-self:center}
+#n-llm{grid-column:3;grid-row:2}
+#n-sources{grid-column:3;grid-row:3}
+#n-ingest{grid-column:4;grid-row:3}
+.offline-tag{grid-column:1/3;grid-row:3;align-self:center;font-size:14px;color:var(--muted);border-left:2px solid var(--line);padding-left:12px}
+.offline-tag b{color:var(--fg);font-weight:600}
+
+.detail{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px}
+.detail h3{font-size:28px;text-transform:uppercase}
+.detail .why{color:var(--muted)}
+.detail ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.detail .stack{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+
+/* ---------- scenario player ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.tab{font:inherit;font-weight:600;font-size:15px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--chalk);color:var(--bg);border-color:var(--chalk)}
+.tab:focus-visible,.ctrl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.player{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:22px;align-items:start}
+.question{grid-column:1/-1;display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+.question .q{font-family:var(--font-display);font-size:clamp(20px,3vw,28px);font-weight:600;line-height:1.1}
+.question .mark{font-family:var(--font-display);font-size:44px;font-weight:800;color:var(--accent);line-height:.8}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:s}
+ol.steps li button{width:100%;text-align:left;font:inherit;font-size:14.5px;color:var(--muted);background:transparent;border:0;border-left:2px solid var(--line);padding:7px 10px 7px 14px;cursor:pointer;display:flex;gap:10px;align-items:baseline}
+ol.steps li button::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--font-mono);font-size:11px;color:var(--muted);min-width:20px}
+ol.steps li button.done{color:var(--fg)}
+ol.steps li button.cur{color:var(--chalk);border-left-color:var(--accent);background:var(--surface)}
+ol.steps li button.cur::before{color:var(--accent)}
+ol.steps li button:focus-visible{outline:2px solid var(--chalk);outline-offset:-2px}
+.stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+.stage .where{display:flex;flex-wrap:wrap;gap:6px}
+.stage .where .chip{color:var(--chalk)}
+.stage h3{font-size:30px;text-transform:uppercase;line-height:1}
+.stage .body{color:var(--fg);max-width:70ch}
+.callout{border-left:3px solid var(--warn);background:rgba(232,181,74,.08);padding:10px 14px;font-size:14.5px;color:var(--fg)}
+.callout.good{border-left-color:var(--ok);background:rgba(76,195,138,.08)}
+.callout.bad{border-left-color:var(--accent);background:var(--accent-soft)}
+pre{margin:0;background:#08100c;border:1px solid var(--line);border-radius:5px;padding:14px 16px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;color:#d6e3da;max-width:100%}
+pre .c{color:#6f8a7b}
+pre .s{color:#f0c27b}
+pre .kw{color:#ff8a8f}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctrl{font:inherit;font-weight:600;font-size:14px;background:var(--surface-2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 14px;cursor:pointer}
+.ctrl.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ctrl:disabled{opacity:.4;cursor:default}
+.progress{font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+
+/* ---------- data + decisions ---------- */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:420px}
+th,td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+th{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--surface)}
+tr:last-child td{border-bottom:0}
+.y{color:var(--ok);font-weight:600}
+.n{color:var(--muted)}
+.decisions{display:flex;flex-direction:column;gap:18px}
+.dec{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.dec:last-child{border-bottom:0;padding-bottom:0}
+.dec .lab{font-family:var(--font-display);font-size:20px;font-weight:700;text-transform:uppercase;line-height:1.05;color:var(--accent)}
+.dec p{color:var(--muted)}
+.dec p b{color:var(--fg);font-weight:600}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+
+@media (max-width:900px){
+  .map{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px 22px}
+  #n-web{grid-column:1;grid-row:1}
+  #n-api{grid-column:2;grid-row:1}
+  #n-agent{grid-column:1;grid-row:2}
+  #n-llm{grid-column:2;grid-row:2}
+  #n-mcp{grid-column:1;grid-row:3}
+  #n-db{grid-column:2;grid-row:3;align-self:stretch}
+  #n-sources{grid-column:1;grid-row:4}
+  #n-ingest{grid-column:2;grid-row:4}
+  .offline-tag{grid-column:1/-1;grid-row:5}
+  .player{grid-template-columns:minmax(0,1fr)}
+  .detail,.cols{grid-template-columns:minmax(0,1fr)}
+  header .pitchline{display:none}
+}
+@media (max-width:520px){
+  .map{grid-template-columns:minmax(0,1fr);gap:22px}
+  #n-web,#n-api,#n-agent,#n-llm,#n-mcp,#n-db,#n-sources,#n-ingest{grid-column:1;grid-row:auto}
+  .offline-tag{grid-column:1;grid-row:auto}
+  .dec{grid-template-columns:minmax(0,1fr);gap:6px}
+  .map-wrap{padding:20px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  svg.edges path.on{animation:none;stroke-dasharray:none}
+  .node{transition:none}
+  .node.on{transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <svg class="pitchline" viewBox="0 0 180 120" aria-hidden="true">
+    <rect x="1" y="1" width="178" height="118" fill="none" stroke="#2b4337" stroke-width="2"/>
+    <line x1="90" y1="1" x2="90" y2="119" stroke="#2b4337" stroke-width="2"/>
+    <circle cx="90" cy="60" r="22" fill="none" stroke="#2b4337" stroke-width="2"/>
+    <rect x="1" y="30" width="28" height="60" fill="none" stroke="#2b4337" stroke-width="2"/>
+    <rect x="151" y="30" width="28" height="60" fill="none" stroke="#e0343c" stroke-width="2"/>
+  </svg>
+  <span class="eyebrow">Highbury · system design · v1</span>
+  <h1>How a question<br>becomes a <span>verified</span> answer</h1>
+  <p class="lede">Highbury is an AI football analyst for Arsenal's 2003–04 and 2025–26 seasons. This page shows the parts of the system, then plays three questions through it step by step so you can watch where control goes and why.</p>
+</header>
+
+<section aria-labelledby="map-h">
+  <div class="section-head">
+    <span class="eyebrow">01 · The system map</span>
+    <h2 id="map-h">Nine parts, two paths</h2>
+    <p>The top row is the runtime path a question takes. The bottom row runs offline, once, to load the database. Select any part to see what it owns.</p>
+  </div>
+
+  <div class="map-wrap">
+    <div class="map" id="map">
+      <svg class="edges" id="edges" aria-hidden="true"></svg>
+
+      <button class="node" id="n-web" data-node="web"><span class="k">Browser</span><span class="n">Web app</span><span class="t">Next.js · D3 pitch charts</span></button>
+      <button class="node" id="n-api" data-node="api"><span class="k">Service</span><span class="n">FastAPI</span><span class="t">/api/ask · SSE stream</span></button>
+      <button class="node" id="n-agent" data-node="agent"><span class="k">Reasoning</span><span class="n">LangChain agent</span><span class="t">create_agent loop</span>
+        <span class="mw"><span class="chip" data-mw="scope">scope guard</span><span class="chip" data-mw="budget">tool budget</span><span class="chip" data-mw="verify">claim verifier</span></span>
+      </button>
+      <button class="node" id="n-mcp" data-node="mcp"><span class="k">Tools</span><span class="n">MCP server</span><span class="t">5 football data tools</span></button>
+      <button class="node" id="n-db" data-node="db"><span class="k">Data</span><span class="n">PostgreSQL</span><span class="t">read-only role for the agent</span></button>
+      <button class="node" id="n-llm" data-node="llm"><span class="k">Model</span><span class="n">LLM provider</span><span class="t">via init_chat_model</span></button>
+      <button class="node" id="n-sources" data-node="sources"><span class="k">Offline</span><span class="n">Data sources</span><span class="t">StatsBomb · Understat · FPL</span></button>
+      <button class="node" id="n-ingest" data-node="ingest"><span class="k">Offline</span><span class="n">Ingest + resolve</span><span class="t">normalize · match players</span></button>
+      <p class="offline-tag"><b>Offline lane.</b> Runs on your laptop or as a one-off job. The live app never scrapes anything.</p>
+    </div>
+  </div>
+
+  <div class="detail" id="detail" aria-live="polite"></div>
+</section>
+
+<section aria-labelledby="flow-h">
+  <div class="section-head">
+    <span class="eyebrow">02 · Control flow</span>
+    <h2 id="flow-h">Play a question through the system</h2>
+    <p>Pick a scenario and step through it. The parts involved in each step light up on the system map above. Numbers in the payloads are example values for illustration, except where a step says otherwise.</p>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <div class="player">
+    <div class="question"><span class="mark">?</span><span class="q" id="q"></span></div>
+    <ol class="steps" id="steps"></ol>
+    <div class="stage">
+      <div class="where" id="where"></div>
+      <h3 id="st-title"></h3>
+      <p class="body" id="st-body"></p>
+      <div id="st-callout"></div>
+      <pre id="st-code"></pre>
+      <div class="controls">
+        <button class="ctrl" id="prev">← Back</button>
+        <button class="ctrl primary" id="next">Next step →</button>
+        <button class="ctrl" id="play">Autoplay</button>
+        <span class="progress" id="prog"></span>
+      </div>
+      <p class="note">Tip: keep the system map in view while stepping. On a phone, the highlighted parts are listed above the step title.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="data-h">
+  <div class="section-head">
+    <span class="eyebrow">03 · Data and decisions</span>
+    <h2 id="data-h">What the agent can know, and why it's built this way</h2>
+  </div>
+  <div class="cols">
+    <div>
+      <h3 style="margin-bottom:12px">Data catalog</h3>
+      <p class="note" style="margin-bottom:12px">The agent reads this table before answering. It is how Highbury says "that data doesn't exist for 2025–26" instead of guessing.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Feature</th><th>2003–04</th><th>2025–26</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>Results, scores</td><td class="y">Yes</td><td class="y">Yes</td><td>StatsBomb / football-data</td></tr>
+            <tr><td>Shots + location</td><td class="y">Yes</td><td class="y">Yes</td><td>StatsBomb / Understat</td></tr>
+            <tr><td>Shot xG</td><td class="y">Yes</td><td class="y">Yes</td><td>Different models*</td></tr>
+            <tr><td>Minutes, goals, assists</td><td class="y">Yes</td><td class="y">Yes</td><td>StatsBomb / FPL</td></tr>
+            <tr><td>Passes + location</td><td class="y">Yes</td><td class="n">No</td><td>StatsBomb only</td></tr>
+            <tr><td>Pressures, carries</td><td class="y">Yes</td><td class="n">No</td><td>StatsBomb only</td></tr>
+            <tr><td>Pass networks</td><td class="y">Yes</td><td class="n">No</td><td>Derived from passes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:10px">*StatsBomb and Understat compute xG with different models, so cross-era xG comparisons carry a caveat the agent must state.</p>
+    </div>
+    <div class="decisions">
+      <div class="dec"><span class="lab">Agent loop, not a graph</span><p>Upstream is a fixed safety pipeline, so it uses an explicit LangGraph graph. Highbury's questions need <b>different tools in a different order each time</b>, so the model drives a LangChain agent loop. Guardrails live in middleware instead of graph edges.</p></div>
+      <div class="dec"><span class="lab">Postgres, read-only</span><p>The agent connects as <b>analyst_ro</b>: SELECT only, statement timeout, row cap. sqlglot also rejects anything that isn't a single SELECT before it reaches the database. Two independent locks.</p></div>
+      <div class="dec"><span class="lab">Numbers are checked</span><p>The answer is <b>structured</b>: every claim carries its value and the tool call it came from. The verifier compares each value with the recorded tool output before anything is shown.</p></div>
+      <div class="dec"><span class="lab">Charts are data</span><p>The model never draws. It asks <b>build_chart</b> for a validated spec, and the frontend renders it with D3. The LLM decides what to show, the UI owns how it looks.</p></div>
+      <div class="dec"><span class="lab">Model is config</span><p><b>init_chat_model</b> makes the model a setting, so the eval suite can run the same 50 questions on several models and pick by accuracy, cost, and latency.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>Unofficial fan project design document. Not affiliated with Arsenal FC or the Premier League. Example payload values are illustrative.</footer>
+</div>
+
+<script>
+const NODES={
+  web:{name:"Web app",what:"Where the fan types a question and watches the answer build.",does:["Sends the question to POST /api/ask and listens to the SSE stream","Shows each agent step live, then turns the list into the \"Show the working\" panel","Validates every chart spec with Zod, then renders it with D3 (shot map, pass network, xG timeline)","Shows the verification badge and caveats"],stack:["Next.js","TypeScript","Tailwind","D3 / visx","Framer Motion","Zod"]},
+  api:{name:"FastAPI",what:"The front door to the analyst. Thin on purpose.",does:["Per-IP rate limit and a cache for suggested questions","Starts an agent run and forwards each step as a server-sent event","Logs cost, tokens and latency per request, never the user's text","Serves season overviews and player pages without the agent"],stack:["Python 3.12","FastAPI","SSE","uv"]},
+  agent:{name:"LangChain agent",what:"The model in a loop: think, call a tool, read the result, repeat, then answer.",does:["create_agent with the MCP tools and a system prompt holding the schema and data catalog","Scope guard middleware refuses off-topic questions before any tool runs","Tool budget middleware stops runaway loops","Claim verifier middleware checks the structured answer before it leaves"],stack:["LangChain v1","create_agent","middleware","Pydantic structured output"]},
+  llm:{name:"LLM provider",what:"Swappable. Called only by the agent.",does:["Chosen with init_chat_model, so changing models is a config change","Schema and catalog context are prompt-cached to cut cost","Develop on a cheap model, pick the demo model from eval results","Hard spending cap set at the provider"],stack:["init_chat_model","prompt caching","~$10–15 budget"]},
+  mcp:{name:"MCP server",what:"Everything the agent can do to the data, as five typed tools.",does:["get_data_catalog: what exists for each season","get_schema: tables and column descriptions for writing SQL","resolve_player: \"Henry\" → canonical player id, across sources","run_sql: parsed by sqlglot, SELECT only, LIMIT enforced, runs as analyst_ro","build_chart: returns a validated chart spec with its data"],stack:["MCP Python SDK","FastMCP","langchain-mcp-adapters","sqlglot"]},
+  db:{name:"PostgreSQL",what:"The single source of truth. Read-only at runtime.",does:["Tables: seasons, players, player_aliases, matches, events, shots, player_match_stats, data_catalog","One pitch coordinate system for every source","analyst_ro role: SELECT only, statement timeout, row cap","Column comments double as the agent's schema documentation"],stack:["PostgreSQL","Neon or Supabase","Docker locally"]},
+  sources:{name:"Data sources",what:"Four free sources with different depth.",does:["StatsBomb Open Data: every 2003–04 event with coordinates","Understat: 2025–26 shots with location and xG","FPL API + community archives: 2025–26 per-gameweek player stats","football-data.co.uk: results and basic match stats","Raw files stay local and are never committed"],stack:["statsbombpy","Understat","FPL API","CSV"]},
+  ingest:{name:"Ingest + resolve",what:"The hidden hard part: making four sources agree.",does:["Converts every coordinate system to one pitch","Maps each source's player names and IDs to one canonical player (rapidfuzz + an overrides file)","Writes a review report of low-confidence matches","Fills the data catalog and sanity-checks totals against known season facts"],stack:["Python","polars","rapidfuzz","SQL migrations"]}
+};
+const EDGES=[["web","api"],["api","agent"],["agent","mcp"],["mcp","db"],["agent","llm"],["sources","ingest"],["ingest","db"]];
+
+const SCEN=[
+ {id:"happy",tab:"Cross-era comparison",q:"How did Henry's shooting in 2003–04 compare with Saka's in 2025–26?",steps:[
+  {t:"Question sent",nodes:["web","api"],b:"The web app posts the question and opens a server-sent event stream, so the user sees progress instead of a spinner.",code:`<span class="kw">POST</span> /api/ask
+{ <span class="s">"question"</span>: <span class="s">"How did Henry's shooting in 2003–04 compare with Saka's in 2025–26?"</span>,
+  <span class="s">"conversation_id"</span>: <span class="s">"c_81f2"</span> }`},
+  {t:"Rate limit, cache, start run",nodes:["api","agent"],b:"FastAPI checks the per-IP limit and the suggested-question cache. This question isn't cached, so it starts an agent run and begins forwarding events.",code:`event: step
+data: { <span class="s">"label"</span>: <span class="s">"Thinking about your question…"</span> }`},
+  {t:"Scope guard",nodes:["agent"],mw:["scope"],b:"Before the model spends any tool calls, the scope guard middleware confirms this is a football question Highbury can attempt.",call:["good","In scope: football, Arsenal, supported seasons."]},
+  {t:"Model plans the analysis",nodes:["agent","llm"],b:"The model reads the system prompt (schema and catalog, prompt-cached) and decides it needs three things: what data each season has, the two players' ids, and their shots.",code:`<span class="c"># model's first tool choice</span>
+tool_call: get_data_catalog(season=<span class="kw">None</span>)`},
+  {t:"Check what data exists",nodes:["agent","mcp","db"],b:"Shots, locations and xG exist for both seasons, so a fair comparison is possible. The catalog also says xG comes from two different models, which must become a caveat.",code:`{ <span class="s">"shots"</span>:  { <span class="s">"2003-04"</span>: <span class="kw">true</span>, <span class="s">"2025-26"</span>: <span class="kw">true</span> },
+  <span class="s">"xg"</span>:     { <span class="s">"2003-04"</span>: <span class="s">"statsbomb"</span>, <span class="s">"2025-26"</span>: <span class="s">"understat"</span> },
+  <span class="s">"passes"</span>: { <span class="s">"2003-04"</span>: <span class="kw">true</span>, <span class="s">"2025-26"</span>: <span class="kw">false</span> } }`},
+  {t:"Resolve the players",nodes:["agent","mcp","db"],b:"\"Henry\" and \"Saka\" are turned into canonical player ids. This works across sources because the offline ingest already matched each source's names to one player.",code:`resolve_player(<span class="s">"Henry"</span>, season=<span class="s">"2003-04"</span>) → { <span class="s">"player_id"</span>: 14, <span class="s">"name"</span>: <span class="s">"Thierry Henry"</span> }
+resolve_player(<span class="s">"Saka"</span>,  season=<span class="s">"2025-26"</span>) → { <span class="s">"player_id"</span>: 207, <span class="s">"name"</span>: <span class="s">"Bukayo Saka"</span> }`},
+  {t:"Write and run SQL",nodes:["agent","llm","mcp","db"],mw:["budget"],b:"The model writes one query. run_sql parses it with sqlglot, rejects anything but a single SELECT, adds a LIMIT, and runs it as the read-only role. The tool budget counter ticks up with each call.",code:`<span class="kw">SELECT</span> p.name, s.label <span class="kw">AS</span> season, <span class="kw">count</span>(*) <span class="kw">AS</span> shots,
+       <span class="kw">sum</span>(sh.xg) <span class="kw">AS</span> xg, <span class="kw">count</span>(*) <span class="kw">FILTER</span> (<span class="kw">WHERE</span> sh.outcome=<span class="s">'goal'</span>) <span class="kw">AS</span> goals
+<span class="kw">FROM</span> shots sh <span class="kw">JOIN</span> players p <span class="kw">ON</span> p.id=sh.player_id
+<span class="kw">JOIN</span> matches m <span class="kw">ON</span> m.id=sh.match_id <span class="kw">JOIN</span> seasons s <span class="kw">ON</span> s.id=m.season_id
+<span class="kw">WHERE</span> (p.id=14 <span class="kw">AND</span> s.label=<span class="s">'2003-04'</span>) <span class="kw">OR</span> (p.id=207 <span class="kw">AND</span> s.label=<span class="s">'2025-26'</span>)
+<span class="kw">GROUP BY</span> 1,2 <span class="kw">LIMIT</span> 500;   <span class="c"># tool calls used: 4 / 12</span>`},
+  {t:"Ask for charts",nodes:["agent","mcp","db"],b:"The model never draws. It asks build_chart for two shot maps. The tool queries the shot locations and returns a spec validated by Pydantic.",code:`{ <span class="s">"type"</span>: <span class="s">"shot_map"</span>, <span class="s">"title"</span>: <span class="s">"Henry · 2003–04"</span>,
+  <span class="s">"pitch"</span>: { <span class="s">"length"</span>: 120, <span class="s">"width"</span>: 80 },
+  <span class="s">"points"</span>: [ { <span class="s">"x"</span>: 104.2, <span class="s">"y"</span>: 36.1, <span class="s">"xg"</span>: 0.21, <span class="s">"outcome"</span>: <span class="s">"goal"</span>, <span class="s">"minute"</span>: 34 }, … ] }`},
+  {t:"Draft a structured answer",nodes:["agent","llm"],b:"The model writes its answer in a fixed shape. Each claim carries a value and the id of the tool call it came from. That link is what makes verification possible.",code:`{ <span class="s">"summary"</span>: <span class="s">"Henry took more shots, from slightly further out…"</span>,
+  <span class="s">"claims"</span>: [ { <span class="s">"text"</span>: <span class="s">"Henry: 140 shots"</span>, <span class="s">"value"</span>: 140, <span class="s">"source"</span>: <span class="s">"call_4"</span> }, … ],
+  <span class="s">"charts"</span>: [ <span class="s">"chart_1"</span>, <span class="s">"chart_2"</span> ],
+  <span class="s">"caveats"</span>: [ <span class="s">"xG comes from two different models"</span> ] }`},
+  {t:"Verify every claim",nodes:["agent"],mw:["verify"],b:"The claim verifier looks up each claim's source call in the recorded tool outputs and compares the value, with a small tolerance for rounding.",call:["good","5 of 5 claims match their tool outputs. Answer approved."]},
+  {t:"Render the answer",nodes:["agent","api","web"],b:"The final event carries the answer. The web app validates the chart specs with Zod and renders two interactive shot maps side by side, the verification badge, the caveat, and the working panel with the SQL.",code:`event: final
+data: { <span class="s">"answer"</span>: {…}, <span class="s">"verification"</span>: { <span class="s">"checked"</span>: 5, <span class="s">"passed"</span>: 5, <span class="s">"removed"</span>: 0 } }`}
+ ]},
+ {id:"missing",tab:"Data not available",q:"Show Saka's pass network against Chelsea in 2025–26.",steps:[
+  {t:"Question sent",nodes:["web","api","agent"],b:"Same entry path as every question: POST, SSE stream, scope guard passes.",mw:["scope"],code:`{ <span class="s">"question"</span>: <span class="s">"Show Saka's pass network against Chelsea in 2025–26."</span> }`},
+  {t:"Catalog check first",nodes:["agent","llm","mcp","db"],b:"The system prompt tells the model to check the catalog before any season-specific chart. Pass events don't exist for 2025–26.",code:`get_data_catalog(season=<span class="s">"2025-26"</span>)
+→ { <span class="s">"passes"</span>: <span class="kw">false</span>, <span class="s">"shots"</span>: <span class="kw">true</span>, <span class="s">"xg"</span>: <span class="kw">true</span>, <span class="s">"minutes"</span>: <span class="kw">true</span> }`},
+  {t:"Say so, and offer an alternative",nodes:["agent","llm"],b:"A general chatbot would invent a pass network here. Highbury tells the user plainly and plans what it can show instead: Saka's shots in that match and the match xG timeline.",call:["warn","Pass data isn't available for 2025–26. Showing shots and the xG timeline for this match instead."]},
+  {t:"Find the match, run queries",nodes:["agent","mcp","db"],mw:["budget"],b:"resolve_player, then a query for the match id, then Saka's shots in it. All read-only, all inside the tool budget.",code:`<span class="kw">SELECT</span> m.id <span class="kw">FROM</span> matches m <span class="kw">JOIN</span> teams t <span class="kw">ON</span> t.id <span class="kw">IN</span> (m.home_id, m.away_id)
+<span class="kw">WHERE</span> m.season_id=2 <span class="kw">AND</span> t.name=<span class="s">'Chelsea'</span> <span class="kw">LIMIT</span> 10;   <span class="c"># may return 2 league matches</span>`},
+  {t:"Ask which match",nodes:["agent","api","web"],b:"Two league meetings come back. Rather than guess, the agent returns a short clarifying question with both dates as options the user can tap.",call:["warn","Two matches found. Which one: the home game or the away game?"]},
+  {t:"Answer with caveat",nodes:["agent","mcp","api","web"],mw:["verify"],b:"After the user picks, build_chart returns a shot map and an xG timeline. The verifier checks the claims, and the answer card shows the caveat banner at the top.",code:`{ <span class="s">"caveats"</span>: [ <span class="s">"Pass networks need event data, which isn't available for 2025–26."</span> ],
+  <span class="s">"charts"</span>: [ <span class="s">"shot_map"</span>, <span class="s">"xg_timeline"</span> ] }`}
+ ]},
+ {id:"catch",tab:"Verifier catches an error",q:"How many league goals did Henry score in the Invincibles season?",steps:[
+  {t:"Question sent",nodes:["web","api","agent"],mw:["scope"],b:"A simple factual question. These are exactly where LLMs fail confidently, because the model has seen many different Henry numbers in training.",code:`{ <span class="s">"question"</span>: <span class="s">"How many league goals did Henry score in the Invincibles season?"</span> }`},
+  {t:"Query the database",nodes:["agent","mcp","db"],b:"The agent resolves Henry and counts his league goals for 2003–04. The tool returns 30, which matches his Golden Boot-winning league tally that season.",code:`run_sql(<span class="s">"SELECT count(*) FROM shots WHERE player_id=14 AND season='2003-04' AND outcome='goal'"</span>)
+→ { <span class="s">"rows"</span>: [ { <span class="s">"count"</span>: 30 } ], <span class="s">"call_id"</span>: <span class="s">"call_2"</span> }`},
+  {t:"First draft goes wrong",nodes:["agent","llm"],b:"The model mixes in a figure from memory, an all-competitions total, and states it as the league tally.",code:`{ <span class="s">"claims"</span>: [ { <span class="s">"text"</span>: <span class="s">"Henry scored 39 league goals"</span>, <span class="s">"value"</span>: 39, <span class="s">"source"</span>: <span class="s">"call_2"</span> } ] }`},
+  {t:"Verifier rejects it",nodes:["agent"],mw:["verify"],b:"The claim says it came from call_2, but call_2 returned 30. The values don't match, so the answer is blocked before the user sees it.",call:["bad","Claim value 39 ≠ tool output 30 (call_2). Regenerating once with this feedback."]},
+  {t:"Regenerate once",nodes:["agent","llm"],mw:["verify"],b:"The model gets the mismatch as feedback and rewrites the answer. The new claim matches the tool output and passes. If it had failed again, the claim would be removed and a caveat added.",code:`{ <span class="s">"claims"</span>: [ { <span class="s">"text"</span>: <span class="s">"Henry scored 30 league goals"</span>, <span class="s">"value"</span>: 30, <span class="s">"source"</span>: <span class="s">"call_2"</span> } ],
+  <span class="s">"verification"</span>: { <span class="s">"checked"</span>: 1, <span class="s">"passed"</span>: 1, <span class="s">"retries"</span>: 1 } }`},
+  {t:"Render with badge",nodes:["api","web"],b:"The user sees the correct answer with a badge reading \"1/1 claims verified · 1 correction\". The correction count is logged and becomes an eval metric.",call:["good","This is the story to tell in interviews: the system caught its own model's mistake."]}
+ ]}
+];
+
+const $=s=>document.querySelector(s);
+const map=$("#map"),svg=$("#edges");
+let sel="agent",scen=0,step=0,timer=null;
+
+function renderDetail(id){
+  const n=NODES[id];
+  document.querySelectorAll(".node").forEach(b=>b.classList.toggle("sel",b.dataset.node===id));
+  $("#detail").innerHTML=`<div><span class="eyebrow">Selected part</span><h3>${n.name}</h3><p class="why">${n.what}</p><div class="stack">${n.stack.map(s=>`<span class="chip">${s}</span>`).join("")}</div></div><div><ul>${n.does.map(d=>`<li>${d}</li>`).join("")}</ul></div>`;
+}
+
+function drawEdges(){
+  const box=map.getBoundingClientRect();
+  svg.setAttribute("viewBox",`0 0 ${box.width} ${box.height}`);
+  const active=new Set(SCEN[scen].steps[step].nodes);
+  svg.innerHTML=EDGES.map(([a,b])=>{
+    const ra=$(`[data-node="${a}"]`).getBoundingClientRect(),rb=$(`[data-node="${b}"]`).getBoundingClientRect();
+    const ax=ra.left-box.left,ay=ra.top-box.top,bx=rb.left-box.left,by=rb.top-box.top;
+    const acx=ax+ra.width/2,acy=ay+ra.height/2,bcx=bx+rb.width/2,bcy=by+rb.height/2;
+    let x1,y1,x2,y2,d;
+    const dx=bcx-acx,dy=bcy-acy;
+    if(Math.abs(dx)>Math.abs(dy)*0.9){
+      x1=dx>0?ax+ra.width:ax; y1=acy; x2=dx>0?bx:bx+rb.width; y2=Math.max(by+12,Math.min(by+rb.height-12,acy));
+      const mx=(x1+x2)/2; d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    }else{
+      x1=acx; y1=dy>0?ay+ra.height:ay; x2=Math.max(bx+12,Math.min(bx+rb.width-12,acx)); y2=dy>0?by:by+rb.height;
+      const my=(y1+y2)/2; d=`M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`;
+    }
+    const on=active.has(a)&&active.has(b);
+    return `<path d="${d}" class="${on?"on":""}"/>`;
+  }).join("");
+}
+
+function renderTabs(){
+  $("#tabs").innerHTML=SCEN.map((s,i)=>`<button class="tab" role="tab" id="tab-${s.id}" aria-selected="${i===scen}">${s.tab}</button>`).join("");
+  document.querySelectorAll(".tab").forEach((b,i)=>b.onclick=()=>{stop();scen=i;step=0;renderTabs();renderScenario();});
+}
+
+function renderScenario(){
+  const s=SCEN[scen];
+  $("#q").textContent=s.q;
+  $("#steps").innerHTML=s.steps.map((st,i)=>`<li><button data-i="${i}">${st.t}</button></li>`).join("");
+  document.querySelectorAll("#steps button").forEach(b=>b.onclick=()=>{stop();step=+b.dataset.i;renderStep();});
+  renderStep();
+}
+
+function renderStep(){
+  const s=SCEN[scen],st=s.steps[step];
+  document.querySelectorAll("#steps button").forEach((b,i)=>{b.classList.toggle("cur",i===step);b.classList.toggle("done",i<step);b.setAttribute("aria-current",i===step?"step":"false");});
+  document.querySelectorAll(".node").forEach(b=>b.classList.toggle("on",st.nodes.includes(b.dataset.node)));
+  document.querySelectorAll("[data-mw]").forEach(c=>c.classList.toggle("on",(st.mw||[]).includes(c.dataset.mw)));
+  $("#where").innerHTML=st.nodes.map(n=>`<span class="chip">${NODES[n].name}</span>`).join("")+(st.mw||[]).map(m=>`<span class="chip">middleware: ${{scope:"scope guard",budget:"tool budget",verify:"claim verifier"}[m]}</span>`).join("");
+  $("#st-title").textContent=st.t;
+  $("#st-body").textContent=st.b;
+  $("#st-callout").innerHTML=st.call?`<div class="callout ${st.call[0]}">${st.call[1]}</div>`:"";
+  const code=$("#st-code");
+  if(st.code){code.hidden=false;code.innerHTML=st.code}else{code.hidden=true}
+  $("#prev").disabled=step===0;
+  $("#next").textContent=step===s.steps.length-1?"Restart ↺":"Next step →";
+  $("#prog").textContent=`step ${String(step+1).padStart(2,"0")} / ${String(s.steps.length).padStart(2,"0")}`;
+  drawEdges();
+}
+
+function next(){const n=SCEN[scen].steps.length;step=(step+1)%n;renderStep();}
+function stop(){if(timer){clearInterval(timer);timer=null;$("#play").textContent="Autoplay";}}
+$("#next").onclick=()=>{stop();next();};
+$("#prev").onclick=()=>{stop();if(step>0){step--;renderStep();}};
+$("#play").onclick=()=>{
+  if(timer){stop();return;}
+  $("#play").textContent="Pause";
+  timer=setInterval(()=>{if(step===SCEN[scen].steps.length-1){stop();return;}next();},2600);
+};
+document.querySelectorAll(".node").forEach(b=>b.onclick=()=>{sel=b.dataset.node;renderDetail(sel);});
+
+renderTabs();renderScenario();renderDetail(sel);
+window.addEventListener("resize",drawEdges);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawEdges);
+</script>
+</body>
+</html>
