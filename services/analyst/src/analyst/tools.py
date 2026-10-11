@@ -14,12 +14,16 @@ from typing import Any, Literal
 from pydantic import BaseModel, JsonValue
 from rapidfuzz import fuzz, utils
 
-from analyst import db
+from analyst import charts, db
 from analyst.settings import SettingsError
 from analyst.sql_guard import AGENT_VIEWS, MAX_ROWS, SqlRejected, guard
 
 STATEMENT_TIMEOUT_MS = 5000
 TIMEOUT_TEXT = f"The query took longer than {STATEMENT_TIMEOUT_MS // 1000} seconds and was stopped."
+TOO_MANY_ROWS_TEXT = (
+    f"The query reached the limit of {MAX_ROWS} rows. A chart needs every row, so narrow the query."
+)
+NO_ROWS_TEXT = "The query returned no rows, so there is no chart."
 
 # rapidfuzz scores from 0 to 100. A name below the cutoff is not a match. The best
 # player must lead the next one by FUZZY_LEAD to be the one answer. On the real
@@ -92,6 +96,16 @@ class ResolveResult(BaseModel):
     # error: the lookup did not run. It does not mean that there is no such player.
     status: Literal["found", "ambiguous", "not_found", "error"]
     matches: list[PlayerMatch] = []
+    error: str | None = None
+
+
+class ChartResult(BaseModel):
+    ok: bool
+    chart: charts.ChartSpec | None = None
+    # The id of the query that gave the rows. None when no query ran.
+    call_id: str | None = None
+    sql: str | None = None
+    row_count: int = 0
     error: str | None = None
 
 
@@ -295,3 +309,40 @@ def resolve_player(name: str) -> ResolveResult:
     return ResolveResult(
         query=query, status="found" if one_answer else "ambiguous", matches=matches
     )
+
+
+def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResult:
+    """Build a chart from the rows of one SELECT. The chart holds its data.
+
+    The SQL has the rules of run_sql. Each chart type needs its columns:
+    shot_map: one row for each shot, with x, y, xg, outcome, minute, opponent. It
+    also takes player, season, match_date. SELECT * FROM v_shots works.
+    compare_bars: exactly two rows, one for each player, with player and season.
+    Each other column is a metric and must be a number for both players.
+    pass_network: one row for each pair of passer and recipient, with player,
+    recipient, passes (the count), x and y (the mean start position). Group
+    v_passes by player and recipient.
+    """
+    try:
+        title = charts.check_request(chart_type, title)
+    except charts.ChartRejected as error:
+        return ChartResult(ok=False, error=str(error))
+
+    # The chart rows come through run_sql, so the guard, the row limit and the
+    # timeout hold for them too.
+    result = run_sql(sql)
+    query = {"call_id": result.call_id, "sql": result.sql, "row_count": result.row_count}
+    if not result.ok:
+        return ChartResult(ok=False, error=result.error, **query)
+    if result.limit_reached:
+        # A chart of the first rows only would show wrong totals.
+        return ChartResult(ok=False, error=TOO_MANY_ROWS_TEXT, **query)
+    if not result.rows:
+        return ChartResult(ok=False, error=NO_ROWS_TEXT, **query)
+    try:
+        chart = charts.build(
+            chart_type, result.columns, result.rows, title, f"c_{uuid.uuid4().hex[:8]}"
+        )
+    except charts.ChartRejected as error:
+        return ChartResult(ok=False, error=str(error), **query)
+    return ChartResult(ok=True, chart=chart, **query)

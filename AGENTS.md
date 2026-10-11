@@ -70,6 +70,8 @@ Run Python and database commands from the repository root.
 - Ingest 2003-04: `uv run --env-file .env python -m ingest.statsbomb` (StatsBomb; caches raw files in `ingest/raw/statsbomb/`, safe to re-run)
 - Ingest 2025-26: `uv run --env-file .env python -m ingest.understat` (Understat; caches raw files in `ingest/raw/understat/`, safe to re-run)
 - Aliases and data catalog: `uv run --env-file .env python -m ingest.curated` (loads `ingest/aliases.yaml` and the catalog; needs both seasons loaded first, safe to re-run)
+- MCP server: `uv run --env-file .env python -m analyst.mcp_server` (the five data tools over stdio; it waits for an MCP client and prints nothing by itself)
+- MCP Inspector: `npx @modelcontextprotocol/inspector --config services/analyst/mcp.json --server highbury` (web UI; needs Node. For terminal output add `--cli --method tools/list` after `inspector`. The config file is needed because the Inspector does not pass flags such as `--env-file` from an inline command)
 - Python lint: `uv run ruff check .`
 - Python format: `uv run ruff format .`
 - Test: `uv run --env-file .env pytest` (Python only; needs the local database running)
@@ -83,7 +85,8 @@ Run web commands from `apps/web`.
 - Lint: `pnpm lint`
 
 Not configured yet: a web typecheck script, a web test runner, browser tests, a
-combined `Verify` command, an analyst service start command, and CI.
+combined `Verify` command, a start command for the analyst API (the MCP server
+above is a separate entry point), and CI.
 
 ## Testing
 

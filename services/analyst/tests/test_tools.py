@@ -1,6 +1,5 @@
 import os
 import re
-from datetime import date
 from urllib.parse import urlsplit, urlunsplit
 
 import pytest
@@ -8,72 +7,6 @@ import pytest
 from analyst import db as read_path
 from analyst import tools
 from analyst.sql_guard import AGENT_VIEWS, MAX_ROWS
-from ingest import curated, load
-
-
-def shot(source_id, player, outcome, xg):
-    return load.ShotRow(
-        source_id, "m1", player, "Arsenal", 12, 104.0, 36.0, xg, outcome, "right foot", "open play"
-    )
-
-
-def season(season_id, label, source, players, shots=()) -> load.SeasonRows:
-    """One Arsenal home match. Each player is (source id, name, source name, team)."""
-    return load.SeasonRows(
-        season_id=season_id,
-        season_label=label,
-        data_level="SHOT",
-        source=source,
-        teams=["Arsenal", "Everton"],
-        players=[load.PlayerRow(pid, name, alias, None) for pid, name, alias, _ in players],
-        matches=[load.MatchRow("m1", date(season_id, 8, 16), "Arsenal", "Everton", 2, 1, None)],
-        shots=list(shots),
-        events=[],
-        stats=[load.StatRow(pid, "m1", team, 90, 0, 0, None, None) for pid, _, _, team in players],
-    )
-
-
-@pytest.fixture
-def seeded(analyst_env, ingest):
-    """Two small seasons with aliases and the catalog, as the analyst can read them."""
-    load.load(
-        ingest,
-        season(
-            2003,
-            "2003-04",
-            "statsbomb",
-            [
-                ("10", "Thierry Henry", "Thierry Henry", "Arsenal"),
-                ("11", "Robert Pirès", "Robert Pirès", "Arsenal"),
-                ("12", "Ashley Cole", "Ashley Cole", "Arsenal"),
-                ("13", "Joe Cole", "Joseph John Cole", "Everton"),
-            ],
-            [shot("s1", "10", "goal", 0.25), shot("s2", "10", "saved", 0.5)],
-        ),
-    )
-    load.load(
-        ingest,
-        season(
-            2025,
-            "2025-26",
-            "understat",
-            [
-                ("7", "Bukayo Saka", "Bukayo Saka", "Arsenal"),
-                ("9", "Micky van de Ven", "Micky van de Ven", "Everton"),
-            ],
-        ),
-    )
-    curated.load_aliases(
-        ingest,
-        [
-            curated.AliasEntry("2003-04", "Thierry Henry", ("Henry", "Titi")),
-            curated.AliasEntry("2003-04", "Robert Pirès", ("Pires",)),
-            curated.AliasEntry("2025-26", "Bukayo Saka", ("Saka", "B. Saka")),
-        ],
-    )
-    curated.load_catalog(ingest)
-    # The tools open their own connections, so they must see these rows.
-    ingest.commit()
 
 
 @pytest.fixture
@@ -355,6 +288,187 @@ def test_a_lookup_that_did_not_run_is_an_error_and_not_a_missing_player(no_datab
     result = tools.resolve_player("Henry")
 
     assert (result.status, result.error) == ("error", "The database is not reachable.")
+
+
+def test_build_chart_gives_a_shot_map_with_the_rows_of_the_statement(seeded):
+    result = tools.build_chart(
+        "shot_map", "SELECT * FROM v_shots WHERE player = 'Thierry Henry' ORDER BY xg", " Henry "
+    )
+
+    assert result.ok and result.error is None
+    assert result.sql == (
+        f"SELECT * FROM v_shots WHERE player = 'Thierry Henry' ORDER BY xg LIMIT {MAX_ROWS}"
+    )
+    assert result.row_count == 2
+    assert re.fullmatch(r"q_[0-9a-f]{8}", result.call_id)
+    assert re.fullmatch(r"c_[0-9a-f]{8}", result.chart.id)
+    assert (result.chart.type, result.chart.title) == ("shot_map", "Henry")
+    assert [shot.model_dump() for shot in result.chart.shots] == [
+        {
+            "x": 104.0,
+            "y": 36.0,
+            "xg": xg,
+            "outcome": outcome,
+            "minute": 12,
+            "opponent": "Everton",
+            "player": "Thierry Henry",
+            "season": "2003-04",
+            "match_date": "2003-08-16",
+        }
+        for xg, outcome in [(0.25, "goal"), (0.5, "saved")]
+    ]
+    assert result.model_dump_json()
+
+
+COMPARE = (
+    "SELECT player, season, {metrics} FROM v_player_season"
+    " WHERE player IN ('Thierry Henry', 'Bukayo Saka') ORDER BY season"
+)
+
+
+def test_build_chart_compares_two_players_on_the_metrics_of_the_statement(seeded):
+    result = tools.build_chart("compare_bars", COMPARE.format(metrics="minutes, shots"), "Eras")
+
+    assert result.error is None
+    assert result.chart.model_dump() == {
+        "type": "compare_bars",
+        "id": result.chart.id,
+        "title": "Eras",
+        "series": [
+            {"player": "Thierry Henry", "season": "2003-04"},
+            {"player": "Bukayo Saka", "season": "2025-26"},
+        ],
+        "metrics": [
+            {"name": "minutes", "values": [90.0, 90.0]},
+            {"name": "shots", "values": [2.0, 0.0]},
+        ],
+    }
+
+
+def test_build_chart_refuses_a_metric_that_one_player_does_not_have(seeded):
+    result = tools.build_chart("compare_bars", COMPARE.format(metrics="minutes, xa"), "Eras")
+
+    assert result.chart is None
+    assert result.error == (
+        "The metric xa is null for Thierry Henry."
+        " A comparison uses only metrics that both players have."
+    )
+
+
+HUGE = "power(10::numeric, 400)"
+
+
+@pytest.mark.parametrize(
+    ("chart_type", "sql", "reason"),
+    [
+        (
+            "compare_bars",
+            COMPARE.format(metrics=f"{HUGE} AS goals"),
+            "The metric goals is not a number that a chart can hold for Thierry Henry.",
+        ),
+        (
+            "pass_network",
+            f"SELECT player, recipient, {HUGE} AS passes, avg(x) AS x, avg(y) AS y FROM v_passes"
+            " WHERE outcome IS NULL GROUP BY player, recipient",
+            "The pass counts of",
+        ),
+    ],
+)
+def test_build_chart_gives_text_for_a_number_that_is_too_large(seeded, chart_type, sql, reason):
+    result = tools.build_chart(chart_type, sql, "Too large")
+
+    assert (result.ok, result.chart) == (False, None)
+    assert result.error.startswith(reason)
+
+
+def test_build_chart_gives_a_pass_network_from_the_grouped_passes(seeded):
+    result = tools.build_chart(
+        "pass_network",
+        "SELECT player, recipient, count(*) AS passes, avg(x) AS x, avg(y) AS y FROM v_passes"
+        " WHERE team = 'Arsenal' AND outcome IS NULL GROUP BY player, recipient ORDER BY player",
+        "Arsenal passes",
+    )
+
+    assert result.error is None
+    assert [node.model_dump() for node in result.chart.nodes] == [
+        {"player": "Robert Pirès", "x": 50.0, "y": 30.0, "passes": 1},
+        {"player": "Thierry Henry", "x": 70.0, "y": 30.0, "passes": 2},
+    ]
+    assert [edge.model_dump() for edge in result.chart.edges] == [
+        {"source": "Robert Pirès", "target": "Thierry Henry", "passes": 1},
+        {"source": "Thierry Henry", "target": "Robert Pirès", "passes": 2},
+    ]
+
+
+@pytest.mark.parametrize(
+    ("chart_type", "title", "reason"),
+    [
+        ("pie", "Henry", "Unknown chart type 'pie'. Known types: shot_map, compare_bars,"),
+        ("shot_map", "  ", "The title must have 1 to 120 characters."),
+    ],
+)
+def test_build_chart_refuses_a_bad_request_and_runs_no_query(
+    no_database, chart_type, title, reason
+):
+    result = tools.build_chart(chart_type, "SELECT * FROM v_shots", title)
+
+    assert not result.ok
+    assert result.error.startswith(reason)
+    assert (result.chart, result.call_id, result.sql) == (None, None, None)
+
+
+SHOT = "104.0 AS x, 36.0 AS y, 0.25 AS xg, 'goal' AS outcome, 12 AS minute, 'Everton' AS opponent"
+
+
+@pytest.mark.parametrize(
+    ("sql", "ran", "rows", "reason"),
+    [
+        ("DROP TABLE shots", False, 0, "Only a SELECT statement is allowed."),
+        ("SELECT nope FROM v_shots", True, 0, 'column "nope" does not exist'),
+        (
+            f"SELECT {SHOT} FROM generate_series(1, {MAX_ROWS + 1})",
+            True,
+            MAX_ROWS,
+            f"The query reached the limit of {MAX_ROWS} rows. A chart needs every row,"
+            " so narrow the query.",
+        ),
+        (
+            "SELECT * FROM v_shots WHERE player = 'Nobody'",
+            True,
+            0,
+            "The query returned no rows, so there is no chart.",
+        ),
+        (
+            "SELECT x, y FROM v_shots",
+            True,
+            2,
+            "A shot_map chart needs the columns x, y, xg, outcome, minute, opponent."
+            " Missing: xg, outcome, minute, opponent.",
+        ),
+        (
+            f"SELECT {SHOT.replace('0.25', '1.5')}",
+            True,
+            1,
+            "Row 1, column xg:",
+        ),
+    ],
+)
+def test_build_chart_gives_the_reason_and_no_chart(seeded, sql, ran, rows, reason):
+    result = tools.build_chart("shot_map", sql, "Henry")
+
+    assert not result.ok and result.chart is None
+    assert result.error.startswith(reason)
+    assert re.fullmatch(r"q_[0-9a-f]{8}", result.call_id)
+    assert (result.sql is not None) == ran
+    assert result.row_count == rows
+
+
+def test_build_chart_reports_a_database_it_cannot_reach_as_text(no_database):
+    result = tools.build_chart("shot_map", "SELECT * FROM v_shots", "Henry")
+
+    assert (result.ok, result.chart) == (False, None)
+    assert result.error == "The database is not reachable."
+    assert result.sql == f"SELECT * FROM v_shots LIMIT {MAX_ROWS}"
 
 
 def names(*rows):
