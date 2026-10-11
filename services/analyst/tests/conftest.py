@@ -1,7 +1,11 @@
+import os
+from collections.abc import Callable, Iterator
 from datetime import date
+from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 
+from analyst.settings import get_settings
 from ingest import curated, load
 
 
@@ -33,6 +37,29 @@ def season(season_id, label, source, players, shots=(), events=()) -> load.Seaso
         events=list(events),
         stats=[load.StatRow(pid, "m1", team, 90, 0, 0, None, None) for pid, _, _, team in players],
     )
+
+
+@pytest.fixture
+def no_database(analyst_url):
+    """A URL that the server refuses at once, so the test does not wait for a timeout."""
+    url = urlsplit(os.environ["ANALYST_DATABASE_URL"])._replace(path="/highbury_no_such_database")
+    analyst_url(urlunsplit(url))
+
+
+@pytest.fixture
+def analyst_model(monkeypatch) -> Iterator[Callable[[str | None], None]]:
+    """Set the model name that the analyst service reads, for one test."""
+
+    def use(name: str | None) -> None:
+        if name is None:
+            monkeypatch.delenv("ANALYST_MODEL", raising=False)
+        else:
+            monkeypatch.setenv("ANALYST_MODEL", name)
+        # The settings are read one time and kept, so drop the kept ones.
+        get_settings.cache_clear()
+
+    yield use
+    get_settings.cache_clear()
 
 
 @pytest.fixture

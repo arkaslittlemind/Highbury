@@ -1,19 +1,10 @@
-import os
 import re
-from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 
 from analyst import db as read_path
 from analyst import tools
 from analyst.sql_guard import AGENT_VIEWS, MAX_ROWS
-
-
-@pytest.fixture
-def no_database(analyst_url):
-    """A URL that the server refuses at once, so the test does not wait for a timeout."""
-    url = urlsplit(os.environ["ANALYST_DATABASE_URL"])._replace(path="/highbury_no_such_database")
-    analyst_url(urlunsplit(url))
 
 
 def test_run_sql_returns_the_rows_and_the_statement_that_ran(seeded):

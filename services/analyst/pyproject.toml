@@ -12,7 +12,13 @@ dependencies = [
     "sqlglot>=25",
     "rapidfuzz>=3.9",
     "mcp>=2.3.0",
+    "langchain>=1.0",
+    "langgraph>=1.0",
+    "langchain-google-genai>=3",
 ]
+
+[project.scripts]
+ask = "analyst.cli:main"
 
 [build-system]
 requires = ["hatchling"]
