@@ -11,6 +11,7 @@ from scripted import (
     calls,
     shots_claim,
     tool_texts,
+    with_usage,
 )
 
 from analyst import agent
@@ -101,6 +102,80 @@ def test_a_claim_in_a_follow_up_cannot_cite_a_query_of_the_turn_before(seeded):
     assert [removed.reason for removed in follow_up.verification.removed] == ["call_not_found"]
 
 
+def test_the_hooks_get_each_step_before_its_record(seeded):
+    model = ScriptedModel(
+        replies=[
+            calls(("resolve_player", {"name": "Titi"})),
+            calls(("run_sql", {"sql": COUNT_SQL})),
+            answer(),
+        ]
+    )
+    seen = []
+
+    turn = agent.ask(
+        agent.build_agent(model),
+        "Show me Henry's shots.",
+        "t1",
+        on_step=lambda number, tool: seen.append(("step", number, tool)),
+        on_record=lambda record: seen.append(("record", record)),
+    )
+
+    assert seen == [
+        ("step", 1, "resolve_player"),
+        ("record", turn.records[0]),
+        ("step", 2, "run_sql"),
+        ("record", turn.records[1]),
+    ]
+
+
+def test_a_step_comes_before_its_tool_runs(seeded, monkeypatch):
+    order = []
+    real = agent.tools.run_sql
+
+    def run_sql(sql: str):
+        order.append("tool")
+        return real(sql)
+
+    run_sql.__doc__ = real.__doc__
+    monkeypatch.setattr(agent, "AGENT_TOOLS", [agent.agent_tool(run_sql)])
+    model = ScriptedModel(replies=[calls(("run_sql", {"sql": COUNT_SQL})), answer()])
+
+    agent.ask(
+        agent.build_agent(model),
+        "Show me Henry's shots.",
+        "t1",
+        on_step=lambda number, tool: order.append("step"),
+        on_record=lambda record: order.append("record"),
+    )
+
+    assert order == ["step", "tool", "record"]
+
+
+def test_a_turn_holds_the_tokens_and_the_model_calls_that_it_used(seeded):
+    model = ScriptedModel(
+        replies=[
+            with_usage(calls(("run_sql", {"sql": COUNT_SQL})), 100, 7),
+            # A provider that reports no tokens for a reply.
+            calls(("run_sql", {"sql": COUNT_SQL})),
+            with_usage(answer(), 250, 40),
+        ]
+    )
+
+    turn = agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert turn.usage == agent.Usage(model_calls=3, input_tokens=350, output_tokens=47)
+
+
+def test_each_question_has_its_own_usage(seeded):
+    model = ScriptedModel(replies=[with_usage(answer(), 100, 7), with_usage(answer(), 30, 2)])
+    analyst = agent.build_agent(model)
+
+    agent.ask(analyst, "Show me Henry's shots.", "t1")
+    follow_up = agent.ask(analyst, "Only the ones inside the box.", "t1")
+
+    assert follow_up.usage == agent.Usage(model_calls=1, input_tokens=30, output_tokens=2)
+
+
 def test_the_model_reads_the_full_rows_of_a_query_but_not_the_data_of_a_chart(seeded):
     model = ScriptedModel(
         replies=[
@@ -182,6 +257,41 @@ def test_the_call_after_the_limit_does_not_run_and_the_turn_fails(seeded):
     ran = [message for message in model.seen[-1] if isinstance(message, ToolMessage)]
     assert len(ran) == 10
     assert len(model.replies) == 1
+
+
+def test_a_turn_that_fails_carries_what_it_used(seeded):
+    model = ScriptedModel(
+        replies=[*(with_usage(query(number), 10, 1) for number in range(1, 12)), answer()]
+    )
+    steps = []
+
+    with pytest.raises(agent.AgentError) as error:
+        agent.ask(
+            agent.build_agent(model),
+            "Show me Henry's shots.",
+            "t1",
+            on_step=lambda number, tool: steps.append(number),
+        )
+
+    assert error.value.usage == agent.Usage(model_calls=11, input_tokens=110, output_tokens=11)
+    # The call over the limit gives no step.
+    assert steps == list(range(1, 11))
+
+
+def test_a_model_call_that_fails_is_counted(seeded):
+    model = ScriptedModel(replies=[with_usage(query(1), 10, 1), ConnectionError("no route")])
+
+    with pytest.raises(agent.AgentError) as error:
+        agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert error.value.usage == agent.Usage(model_calls=2, input_tokens=10, output_tokens=1)
+
+
+def test_an_error_before_a_turn_has_no_usage(no_database):
+    with pytest.raises(agent.AgentError) as error:
+        agent.build_agent(ScriptedModel(replies=[]))
+
+    assert error.value.usage is None
 
 
 def test_a_follow_up_reads_the_turns_before_it_on_the_same_thread_only(seeded, caplog):

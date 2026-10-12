@@ -17,6 +17,7 @@ from langchain.agents.middleware import (
     AgentState,
     ModelCallLimitMiddleware,
     ModelRequest,
+    ModelResponse,
     ToolCallRequest,
     before_agent,
     wrap_model_call,
@@ -51,9 +52,23 @@ NO_ANSWER = "The model gave no structured answer."
 CHART_KEYS = ("id", "type", "title")
 
 
+class Usage(BaseModel):
+    """What one question used of the model."""
+
+    model_calls: int = 0
+    # The sums of what the provider reported. A reply with no report adds nothing.
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
 class AgentError(Exception):
     """The turn gave no answer. The text is safe to show: it holds no secret, no
     connection string, and no question text."""
+
+    def __init__(self, message: str, usage: Usage | None = None) -> None:
+        super().__init__(message)
+        # What the turn used before it failed. None when no turn started.
+        self.usage = usage
 
 
 class Turn(BaseModel):
@@ -62,6 +77,7 @@ class Turn(BaseModel):
     # The tool calls of this question only, in the order of the calls.
     records: list[ToolRecord]
     verification: Verification
+    usage: Usage
 
 
 @dataclass
@@ -73,6 +89,10 @@ class RunContext:
     records: dict[tuple[int, int], ToolRecord] = field(default_factory=dict)
     # The number of the next tool call: 1 for the first call of the question.
     call_numbers: Iterator[int] = field(default_factory=lambda: itertools.count(1))
+    usage: Usage = field(default_factory=Usage)
+    # The hooks of ask. They can run on more than one thread at the same time.
+    on_step: Callable[[int, str], None] | None = None
+    on_record: Callable[[ToolRecord], None] | None = None
 
 
 def model_text(result: BaseModel) -> str:
@@ -129,8 +149,14 @@ def limit_tool_calls(request: ToolCallRequest, handler: Callable[[ToolCallReques
     The limit middleware of LangChain also counts the tool call that carries the
     structured answer of some models, so the limit would differ by model.
     """
-    if next(request.runtime.context.call_numbers) > TOOL_CALL_LIMIT:
-        raise AgentError(f"The question needed more than {TOOL_CALL_LIMIT} tool calls.")
+    context = request.runtime.context
+    number = next(context.call_numbers)
+    if number > TOOL_CALL_LIMIT:
+        raise AgentError(
+            f"The question needed more than {TOOL_CALL_LIMIT} tool calls.", context.usage
+        )
+    if context.on_step:
+        context.on_step(number, request.tool_call["name"])
     return handler(request)
 
 
@@ -143,9 +169,13 @@ def record_tool_call(request: ToolCallRequest, handler: Callable[[ToolCallReques
             result = message.artifact.model_dump(mode="json")
         else:
             result = {"error": str(message.content)}
-        request.runtime.context.records[call_place(request)] = ToolRecord(
+        context = request.runtime.context
+        record = ToolRecord(
             name=request.tool_call["name"], args=request.tool_call["args"], result=result
         )
+        context.records[call_place(request)] = record
+        if context.on_record:
+            context.on_record(record)
     return message
 
 
@@ -158,14 +188,31 @@ def forget_last_answer(state: AgentState, runtime: Any) -> dict[str, Any]:
 @wrap_model_call
 def name_model_failure(request: ModelRequest, handler: Callable[[ModelRequest], Any]) -> Any:
     """Turn a failure of the provider into an error with a text that is safe to show."""
+    usage = request.runtime.context.usage
     try:
         return handler(request)
     except StructuredOutputError as error:
-        raise AgentError(NO_ANSWER) from error
+        raise AgentError(NO_ANSWER, usage) from error
     except Exception as error:
         # The providers have no shared error class, and the text of their errors
         # can repeat the request. Only the class name goes into the text.
-        raise AgentError(f"The model call failed ({type(error).__name__}).") from error
+        raise AgentError(f"The model call failed ({type(error).__name__}).", usage) from error
+
+
+@wrap_model_call
+def count_usage(
+    request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]
+) -> ModelResponse:
+    """Add each model call and its tokens to the usage of the question."""
+    usage = request.runtime.context.usage
+    # A call that fails is a call too: the provider can bill it.
+    usage.model_calls += 1
+    response = handler(request)
+    for message in response.result:
+        if isinstance(message, AIMessage) and message.usage_metadata:
+            usage.input_tokens += message.usage_metadata["input_tokens"]
+            usage.output_tokens += message.usage_metadata["output_tokens"]
+    return response
 
 
 def load_model() -> BaseChatModel:
@@ -197,6 +244,7 @@ def build_agent(model: BaseChatModel | None = None) -> CompiledStateGraph:
             forget_last_answer,
             ModelCallLimitMiddleware(run_limit=MODEL_CALL_LIMIT, exit_behavior="error"),
             name_model_failure,
+            count_usage,
             limit_tool_calls,
             record_tool_call,
         ],
@@ -210,13 +258,24 @@ def build_agent(model: BaseChatModel | None = None) -> CompiledStateGraph:
     )
 
 
-def ask(agent: CompiledStateGraph, question: str, thread_id: str) -> Turn:
+def ask(
+    agent: CompiledStateGraph,
+    question: str,
+    thread_id: str,
+    *,
+    on_step: Callable[[int, str], None] | None = None,
+    on_record: Callable[[ToolRecord], None] | None = None,
+) -> Turn:
     """Answer one question. One thread id is one conversation.
+
+    on_step gets the number and the tool name of each tool call before the tool
+    runs. on_record gets the record of each call when the call ends. The calls
+    of one model reply run at the same time, so a hook must be safe for threads.
 
     After AgentError the thread can hold a tool call with no result, so do not
     ask on that thread again.
     """
-    context = RunContext()
+    context = RunContext(on_step=on_step, on_record=on_record)
     try:
         state = agent.invoke(
             {"messages": [{"role": "user", "content": question}]},
@@ -225,11 +284,11 @@ def ask(agent: CompiledStateGraph, question: str, thread_id: str) -> Turn:
         )
     except ModelCallLimitExceededError as error:
         raise AgentError(
-            f"The question needed more than {MODEL_CALL_LIMIT} model calls."
+            f"The question needed more than {MODEL_CALL_LIMIT} model calls.", context.usage
         ) from error
     answer = state.get("structured_response")
     if answer is None:
-        raise AgentError(NO_ANSWER)
+        raise AgentError(NO_ANSWER, context.usage)
     records = [record for _, record in sorted(context.records.items())]
     answer, verification = verify(answer, records)
-    return Turn(answer=answer, records=records, verification=verification)
+    return Turn(answer=answer, records=records, verification=verification, usage=context.usage)

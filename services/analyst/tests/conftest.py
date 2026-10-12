@@ -62,6 +62,30 @@ def analyst_model(monkeypatch) -> Iterator[Callable[[str | None], None]]:
     get_settings.cache_clear()
 
 
+API_VARIABLES = {
+    "CORS_ORIGINS": "http://localhost:3000",
+    "RATE_LIMIT_PER_MINUTE": "5",
+    "ANALYST_INPUT_USD_PER_MTOK": None,
+    "ANALYST_OUTPUT_USD_PER_MTOK": None,
+}
+
+
+@pytest.fixture
+def api_env(monkeypatch) -> Iterator[Callable[..., None]]:
+    """Set the variables that only the API reads, for one test. None takes one out."""
+
+    def use(**changes: str | None) -> None:
+        for name, value in {**API_VARIABLES, **changes}.items():
+            if value is None:
+                monkeypatch.delenv(name, raising=False)
+            else:
+                monkeypatch.setenv(name, value)
+        get_settings.cache_clear()
+
+    yield use
+    get_settings.cache_clear()
+
+
 @pytest.fixture
 def seeded(analyst_env, ingest):
     """Two small seasons with aliases and the catalog, as the analyst can read them."""

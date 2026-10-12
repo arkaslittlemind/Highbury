@@ -82,3 +82,13 @@ def tool_texts(messages: list[BaseMessage]) -> dict[str, dict]:
         # The structured answer of a turn before is a tool message too, with no JSON.
         if isinstance(message, ToolMessage) and message.name != "Answer"
     }
+
+
+def with_usage(reply: AIMessage, input_tokens: int, output_tokens: int) -> AIMessage:
+    """The reply with the token counts that a provider reports."""
+    usage = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
+    }
+    return reply.model_copy(update={"usage_metadata": usage})
