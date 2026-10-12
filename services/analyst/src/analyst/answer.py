@@ -2,7 +2,15 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
+
+
+class ToolRecord(BaseModel):
+    name: str
+    args: dict[str, JsonValue]
+    # The JSON form of the result of the tool. Only an error text when the call
+    # did not reach the tool.
+    result: dict[str, JsonValue]
 
 
 class Claim(BaseModel):

@@ -22,8 +22,9 @@ def model(seeded, monkeypatch):
 
 
 def cited_answer(read: dict[str, dict]):
-    """An answer that cites the query and the chart of this turn."""
+    """An answer that cites the query and the chart of this turn, and a query that is not."""
     return answer(
+        summary="Thierry Henry took 2 shots in 2003-04 with 0.75 xG.",
         claims=[
             {
                 "text": "Henry took 2 shots",
@@ -55,10 +56,13 @@ def test_an_answer_prints_with_its_claims_its_charts_and_its_working(model, caps
     assert out == (
         f"Question: {QUESTION}\n"
         "Status: answered\n"
-        "Summary: Thierry Henry took 2 shots in 2003-04.\n"
+        "Summary: Thierry Henry took 2 shots in 2003-04 with 0.75 xG.\n"
         "Claims:\n"
         f"  - Henry took 2 shots | 2 shots | {query_id}\n"
-        "  - Their xG was 0.75 | 0.75 xG | q_none\n"
+        "Verification: 1 of 2 claims passed\n"
+        "Removed:\n"
+        "  - Their xG was 0.75 | 0.75 xG | q_none | call_not_found\n"
+        "Unbacked numbers: 0.75\n"
         "Charts:\n"
         f"  - {chart_id} | shot_map | Henry | 2 shots\n"
         "  - c_missing | not found\n"
@@ -92,6 +96,7 @@ def test_an_answer_with_no_data_prints_the_alternative(model, capsys):
         "Status: unavailable\n"
         "Summary: There is no pass data for 2025-26.\n"
         "Claims: none\n"
+        "Verification: no claim to check\n"
         "Charts: none\n"
         "Alternative: I can show Saka's shot map for 2025-26.\n"
         "Working: no tool call\n"

@@ -31,12 +31,13 @@ from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.graph.state import CompiledStateGraph
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from analyst import tools
-from analyst.answer import Answer
+from analyst.answer import Answer, ToolRecord
 from analyst.prompt import build_system_prompt
 from analyst.settings import model_name
+from analyst.verifier import Verification, verify
 
 TOOL_CALL_LIMIT = 10
 # A model can call no tool and still not end: it can give an answer of a wrong
@@ -55,18 +56,12 @@ class AgentError(Exception):
     connection string, and no question text."""
 
 
-class ToolRecord(BaseModel):
-    name: str
-    args: dict[str, JsonValue]
-    # The JSON form of the result of the tool. Only an error text when the call
-    # did not reach the tool.
-    result: dict[str, JsonValue]
-
-
 class Turn(BaseModel):
+    # Its claims are only the ones that passed the check.
     answer: Answer
     # The tool calls of this question only, in the order of the calls.
     records: list[ToolRecord]
+    verification: Verification
 
 
 @dataclass
@@ -236,4 +231,5 @@ def ask(agent: CompiledStateGraph, question: str, thread_id: str) -> Turn:
     if answer is None:
         raise AgentError(NO_ANSWER)
     records = [record for _, record in sorted(context.records.items())]
-    return Turn(answer=answer, records=records)
+    answer, verification = verify(answer, records)
+    return Turn(answer=answer, records=records, verification=verification)

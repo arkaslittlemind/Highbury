@@ -11,12 +11,24 @@ from pydantic import Field
 ANSWER = {
     "status": "answered",
     "summary": "Thierry Henry took 2 shots in 2003-04.",
-    "claims": [{"text": "Henry took 2 shots", "value": 2, "unit": "shots", "tool_call_id": "q_1"}],
+    # A claim needs the id of a query of the turn, so a test that needs one gives it.
+    "claims": [],
     "charts": [],
     "caveats": [],
     "alternative": None,
 }
 SHOTS_SQL = "SELECT * FROM v_shots WHERE player = 'Thierry Henry'"
+COUNT_SQL = "SELECT count(*) AS shots FROM v_shots"
+
+
+def shots_claim(tool_call_id: str) -> dict:
+    """The claim that the rows of COUNT_SQL support."""
+    return {
+        "text": "Henry took 2 shots",
+        "value": 2,
+        "unit": "shots",
+        "tool_call_id": tool_call_id,
+    }
 
 
 class ScriptedModel(BaseChatModel):

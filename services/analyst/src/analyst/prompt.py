@@ -22,8 +22,9 @@ RULES = (
     "Derived numbers (per 90, percentages, differences, totals) come from SQL: never"
     " calculate a number yourself.",
     "Every number in the summary has a claim. The tool_call_id of a claim is the call_id of"
-    " the run_sql result whose rows hold the value, and the value of a claim is the number"
-    " as that row has it.",
+    " a run_sql result of this question whose rows hold the value, and the value of a claim"
+    " is the number as that row has it. To give a number of an earlier answer again, run its"
+    " query again.",
     "A comparison across the two seasons uses only metrics that both seasons have. Its"
     " caveats say that the xG models differ: StatsBomb for 2003-04, Understat for 2025-26.",
     "Use build_chart to show rows and run_sql for the numbers of the claims. Do not read"

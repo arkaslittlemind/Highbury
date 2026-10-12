@@ -11,7 +11,9 @@ from collections.abc import Sequence
 from pydantic import JsonValue
 
 from analyst import agent
+from analyst.answer import Claim
 from analyst.settings import SettingsError
+from analyst.verifier import Verification
 
 # The key of a chart that holds its marks. The marks have the name of the key.
 CHART_MARKS = {"shot_map": "shots", "pass_network": "nodes"}
@@ -54,15 +56,33 @@ def working_lines(records: list[agent.ToolRecord]) -> list[str]:
     return lines
 
 
+def claim_line(claim: Claim) -> str:
+    return f"  - {claim.text} | {number_text(claim.value)} {claim.unit} | {claim.tool_call_id}"
+
+
+def verification_lines(verification: Verification) -> list[str]:
+    if verification.checked:
+        counts = f"{verification.passed} of {verification.checked} claims passed"
+    else:
+        counts = "no claim to check"
+    lines = [f"Verification: {counts}"]
+    if verification.removed:
+        lines.append("Removed:")
+        lines.extend(
+            f"{claim_line(removed.claim)} | {removed.reason}" for removed in verification.removed
+        )
+    if verification.unbacked_numbers:
+        lines.append(f"Unbacked numbers: {', '.join(verification.unbacked_numbers)}")
+    return lines
+
+
 def turn_lines(question: str, turn: agent.Turn, charts: dict[str, Chart]) -> list[str]:
     """Return the text of one turn. charts holds each chart of the conversation by id."""
     answer = turn.answer
     lines = [f"Question: {question}", f"Status: {answer.status}", f"Summary: {answer.summary}"]
     lines.append("Claims:" if answer.claims else "Claims: none")
-    lines.extend(
-        f"  - {claim.text} | {number_text(claim.value)} {claim.unit} | {claim.tool_call_id}"
-        for claim in answer.claims
-    )
+    lines.extend(claim_line(claim) for claim in answer.claims)
+    lines.extend(verification_lines(turn.verification))
     lines.append("Charts:" if answer.charts else "Charts: none")
     for ref in answer.charts:
         chart = charts.get(ref.id)

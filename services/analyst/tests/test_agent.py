@@ -2,11 +2,21 @@ import re
 
 import pytest
 from langchain_core.messages import AIMessage, ToolMessage
-from scripted import ANSWER, SHOTS_SQL, ScriptedModel, answer, calls, tool_texts
+from scripted import (
+    ANSWER,
+    COUNT_SQL,
+    SHOTS_SQL,
+    ScriptedModel,
+    answer,
+    calls,
+    shots_claim,
+    tool_texts,
+)
 
 from analyst import agent
-from analyst.answer import Answer
+from analyst.answer import Answer, Claim
 from analyst.settings import SettingsError
+from analyst.verifier import Verification
 
 
 def test_a_turn_returns_the_answer_and_a_record_of_each_tool_call(seeded):
@@ -33,6 +43,62 @@ def test_a_turn_returns_the_answer_and_a_record_of_each_tool_call(seeded):
     assert query.result["rows"] == [[2]]
     assert chart.result["chart"]["type"] == "shot_map"
     assert len(chart.result["chart"]["shots"]) == 2
+
+
+def test_a_claim_that_cites_a_query_of_the_turn_stays_in_the_answer(seeded):
+    model = ScriptedModel(
+        replies=[
+            calls(("run_sql", {"sql": COUNT_SQL})),
+            lambda read: answer(claims=[shots_claim(read["run_sql"]["call_id"])]),
+        ]
+    )
+
+    turn = agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    (claim,) = turn.answer.claims
+    assert claim.value == 2
+    assert claim.tool_call_id == turn.records[0].result["call_id"]
+    assert turn.verification == Verification(checked=1, passed=1, removed=[], unbacked_numbers=[])
+
+
+def test_a_claim_with_an_unknown_id_is_removed_from_the_answer(seeded):
+    model = ScriptedModel(
+        replies=[calls(("run_sql", {"sql": COUNT_SQL})), answer(claims=[shots_claim("q_none")])]
+    )
+
+    turn = agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert turn.answer.claims == []
+    assert (turn.verification.checked, turn.verification.passed) == (1, 0)
+    (removed,) = turn.verification.removed
+    assert removed.claim == Claim(**shots_claim("q_none"))
+    assert removed.reason == "call_not_found"
+    # The summary still says the number, and now no claim backs it.
+    assert turn.verification.unbacked_numbers == ["2"]
+
+
+def test_a_claim_in_a_follow_up_cannot_cite_a_query_of_the_turn_before(seeded):
+    ids = []
+
+    def first(read):
+        ids.append(read["run_sql"]["call_id"])
+        return answer(claims=[shots_claim(ids[0])])
+
+    model = ScriptedModel(
+        replies=[
+            calls(("run_sql", {"sql": COUNT_SQL})),
+            first,
+            lambda read: answer(claims=[shots_claim(ids[0])]),
+        ]
+    )
+    analyst = agent.build_agent(model)
+
+    before = agent.ask(analyst, "Show me Henry's shots.", "t1")
+    follow_up = agent.ask(analyst, "How many was that again?", "t1")
+
+    assert before.verification.passed == 1
+    assert follow_up.answer.claims == []
+    assert [removed.reason for removed in follow_up.verification.removed] == ["call_not_found"]
 
 
 def test_the_model_reads_the_full_rows_of_a_query_but_not_the_data_of_a_chart(seeded):
