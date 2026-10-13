@@ -1,13 +1,13 @@
+import { ChartTitle } from "@/components/charts/chart-title";
+import { ShotMap } from "@/components/charts/shot-map";
 import type { ChartSpec } from "@/lib/analyst-schema";
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-function countsText(chart: ChartSpec): string {
+function countsText(chart: Exclude<ChartSpec, { type: "shot_map" }>): string {
   switch (chart.type) {
-    case "shot_map":
-      return plural(chart.shots.length, "shot", "shots");
     case "compare_bars": {
       const [first, second] = chart.series;
       return `${first.player} (${first.season}) and ${second.player} (${second.season}), ${plural(chart.metrics.length, "metric", "metrics")}`;
@@ -18,8 +18,9 @@ function countsText(chart: ChartSpec): string {
 }
 
 /**
- * The place of one chart of an answer. The drawing of each chart type comes
- * with a later feature. Null means that no valid chart came for the id.
+ * The place of one chart of an answer. A shot map is drawn. The drawing of the
+ * other chart types comes with a later feature. Null means that no valid chart
+ * came for the id.
  */
 export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
   if (!chart) {
@@ -35,12 +36,16 @@ export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
   }
   return (
     <figure className="flex flex-col gap-4 rounded-panel border bg-surface-chart p-6">
-      <h2 className="font-display text-[26px] font-bold tracking-[0.04em] uppercase">
-        {chart.title}
-      </h2>
-      <figcaption className="border-t pt-3.5 text-[15px] text-foreground-2">
-        {countsText(chart)}
-      </figcaption>
+      {chart.type === "shot_map" ? (
+        <ShotMap chart={chart} />
+      ) : (
+        <>
+          <ChartTitle>{chart.title}</ChartTitle>
+          <figcaption className="border-t pt-3.5 text-[15px] text-foreground-2">
+            {countsText(chart)}
+          </figcaption>
+        </>
+      )}
     </figure>
   );
 }
