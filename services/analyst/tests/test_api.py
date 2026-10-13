@@ -394,6 +394,46 @@ def test_the_limit_stops_the_read_at_the_part_that_passes_it():
     assert parts == [b"x" * 10]
 
 
+def test_a_body_that_passes_the_limit_in_a_later_message_gets_413(serve):
+    client, model = serve(answer())
+    # A server gives a large body in parts. The test client reads the full body
+    # first and gives it as one message, so this test calls the app itself.
+    part = b" " * (api.MAX_BODY_BYTES // 2 + 1)
+    parts = [part, part, part]
+    sent = []
+
+    async def receive() -> dict:
+        body = parts.pop(0)
+        return {"type": "http.request", "body": body, "more_body": bool(parts)}
+
+    async def send(message: dict) -> None:
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/ask",
+        "raw_path": b"/api/ask",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"content-type", b"application/json")],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+    }
+
+    asyncio.run(client.app(scope, receive, send))
+
+    start, body = sent
+    assert start["status"] == 413
+    assert json.loads(body["body"]) == {"detail": "The request body is too large."}
+    # The first part is below the limit and the second part passes it.
+    assert parts == [part]
+    assert model.seen == []
+
+
 def test_the_web_page_can_read_a_413(serve):
     client, _ = serve()
 

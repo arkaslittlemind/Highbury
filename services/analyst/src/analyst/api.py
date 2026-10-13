@@ -462,8 +462,9 @@ def create_app(
     show_log()
     app = FastAPI(title="Highbury analyst")
     app.state.service = service
-    # The middleware that is added last is the outer one. CORS must be outside
-    # the body limit, or the web page cannot read a 413.
+    # The body limit sends no response. It raises its error in the route, and
+    # the exception handler of the app makes the 413. That handler is inside
+    # the two middlewares, so the 413 gets the CORS header in each order.
     app.add_middleware(BodyLimit)
     app.add_middleware(
         CORSMiddleware,
