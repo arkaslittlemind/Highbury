@@ -57,6 +57,25 @@ const PAIRS: [foreground: string, backgrounds: string[], minimum: number][] = [
   // The tooltip of a shot is light, with dark text.
   ["tooltip-muted", ["foreground"], TEXT],
   ["ring", SURFACES, MARK],
+  // The landing screen. The light cards have dark text.
+  ["background", ["paper"], TEXT],
+  ["paper-muted", ["paper"], TEXT],
+  ["verified-on-paper", ["paper"], TEXT],
+  // Text on the grass. grass-600 is the lightest grass below body text: the
+  // shade of the hero makes it darker than this on the page.
+  ["foreground", ["grass-800", "grass-700", "grass-600"], TEXT],
+  ["on-grass", ["grass-800", "grass-700", "grass-600"], TEXT],
+  ["on-grass-muted", ["grass-800"], TEXT],
+  // The headline of the last panel goes down to the lightest grass.
+  ["foreground", ["grass-500"], MARK],
+  // The ring of a light pill is 3px outside it, on the grass. Nothing on a
+  // light card takes the focus.
+  ["ring", ["grass-800", "grass-500"], MARK],
+  // The card of 2025-26.
+  ["brand-soft", ["now-900"], TEXT],
+  ["now-text", ["now-900"], TEXT],
+  ["now-muted", ["now-900", "now-950"], TEXT],
+  ["verified", ["now-900", "grass-700"], TEXT],
 ];
 
 describe("contrast", () => {

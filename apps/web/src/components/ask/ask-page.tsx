@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AnswerPanel } from "@/components/ask/answer-panel";
 import { AnswerSkeleton } from "@/components/ask/answer-skeleton";
 import { FailureCard } from "@/components/ask/failure-card";
-import { Hero } from "@/components/ask/hero";
-import { HowItWorks } from "@/components/ask/how-it-works";
+import { Landing } from "@/components/ask/landing";
 import { QuestionBar } from "@/components/ask/question-bar";
 import { QuestionHeading } from "@/components/ask/question-heading";
 import { SiteHeader } from "@/components/ask/site-header";
 import { StepList } from "@/components/ask/step-list";
-import { SuggestionChips } from "@/components/ask/suggestion-chips";
 import { useAsk } from "@/hooks/use-ask";
 import { useSuggestions } from "@/hooks/use-suggestions";
 
@@ -20,6 +18,8 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
   const suggestions = useSuggestions(apiUrl);
   const { state, ask, backToBar, reset } = useAsk(apiUrl);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // The landing screen plays its enter motion until the first question.
+  const [asked, setAsked] = useState(false);
   const questions = suggestions.status === "ready" ? suggestions.questions : [];
 
   // A screen reader and a keyboard start at the result, and the page scrolls
@@ -29,36 +29,24 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
     if (settled) titleRef.current?.focus();
   }, [settled]);
 
+  if (state.phase === "idle") {
+    return (
+      <Landing
+        suggestions={suggestions}
+        draft={state.draft}
+        intro={!asked}
+        onAsk={(question) => {
+          setAsked(true);
+          ask(question, { asNew: true });
+        }}
+      />
+    );
+  }
+
   return (
     <>
-      <SiteHeader
-        onNewQuestion={state.phase === "idle" ? undefined : reset}
-        howLink={state.phase === "idle"}
-      />
+      <SiteHeader onNewQuestion={reset} />
       <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-10 sm:pt-12">
-        {state.phase === "idle" && (
-          <>
-            <Hero />
-            <QuestionBar
-              large
-              label="Ask the Analyst"
-              placeholder="e.g. Show me Thierry Henry's shots in 2003-04"
-              initialQuestion={state.draft}
-              onAsk={(question) => ask(question, { asNew: true })}
-            >
-              <SuggestionChips
-                lead="Try"
-                questions={questions}
-                onPick={(question) => ask(question, { asNew: true })}
-              />
-              <p className="text-sm text-muted-foreground">
-                Arsenal Premier League only · 2003-04 and 2025-26 · answers show their SQL
-              </p>
-            </QuestionBar>
-            <HowItWorks />
-          </>
-        )}
-
         {state.phase === "asking" && (
           <>
             <QuestionHeading turn={state.turn} titleRef={titleRef} />

@@ -35,7 +35,7 @@ const STROKE = { strokeWidth: 1.5, vectorEffect: "non-scaling-stroke" } as const
 const HOLLOW = "fill-surface-chart/60";
 
 /** The shape of an outcome, around the origin. The outcome is the shape and not only the colour. */
-function ShotMark({ kind, r }: { kind: OutcomeKind; r: number }) {
+export function ShotMark({ kind, r }: { kind: OutcomeKind; r: number }) {
   switch (kind) {
     case "goal":
       return <circle r={r} className="fill-brand stroke-background" {...STROKE} />;
