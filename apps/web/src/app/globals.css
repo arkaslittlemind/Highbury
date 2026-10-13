@@ -61,6 +61,23 @@
   --color-info: var(--info);
   --color-info-icon: var(--info-icon);
   --color-info-line: var(--info-line);
+  --color-paper: var(--paper);
+  --color-paper-muted: var(--paper-muted);
+  --color-verified-on-paper: var(--verified-on-paper);
+  --color-grass-900: var(--grass-900);
+  --color-grass-850: var(--grass-850);
+  --color-grass-800: var(--grass-800);
+  --color-grass-700: var(--grass-700);
+  --color-grass-600: var(--grass-600);
+  --color-grass-500: var(--grass-500);
+  --color-grass-card: var(--grass-card);
+  --color-on-grass: var(--on-grass);
+  --color-on-grass-muted: var(--on-grass-muted);
+  --color-now-900: var(--now-900);
+  --color-now-950: var(--now-950);
+  --color-now-line: var(--now-line);
+  --color-now-text: var(--now-text);
+  --color-now-muted: var(--now-muted);
 
   --font-sans: var(--font-source-sans), sans-serif;
   --font-display: var(--font-barlow-condensed), sans-serif;
@@ -79,6 +96,11 @@
   /* The smallest touch target, as min-h-target. */
   --spacing-target: 44px;
   --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.4);
+  --shadow-float: 0 24px 60px rgb(0 0 0 / 0.35);
+
+  /* The curve of each enter motion: it starts fast and comes to rest slowly.
+     The ease-out of CSS is too weak to read as a motion with intent. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* The Highbury palette, from prototypes/theme.css. The page has one dark
@@ -154,6 +176,27 @@
   --info-icon: #8EC0EA;
   --info-line: #6FA8DC;
 
+  /* the landing screen: the light cards, and the grass of the hero */
+  --paper: #F4F2EA;
+  --paper-muted: #2E3A33;
+  --verified-on-paper: #145A36;
+  --grass-900: #0C2412;
+  --grass-850: #13291B;
+  --grass-800: #1E4A26;
+  --grass-700: #235029;
+  --grass-600: #2A6A30;
+  --grass-500: #317837;
+  --grass-card: #142E1D;
+  --on-grass: #DCE3DD;
+  --on-grass-muted: #B9C4BD;
+
+  /* the card of 2025-26, in the red of that season */
+  --now-900: #3A1517;
+  --now-950: #24120F;
+  --now-line: #4D2326;
+  --now-text: #E6DAD6;
+  --now-muted: #B9AFAB;
+
   /* the focus ring, and the highlighted shot on a chart */
   --ring: #FFD27A;
 
@@ -166,6 +209,50 @@
 
   /* controls are 6px, panels are 8px (rounded-panel) */
   --radius: 6px;
+}
+
+/* The landing screen. The stripes of a mown pitch: --mown is the width of one stripe. */
+@utility mown {
+  background-image: repeating-linear-gradient(
+    172deg,
+    rgb(255 255 255 / 0.035) 0 var(--mown, 110px),
+    rgb(0 0 0 / 0.05) var(--mown, 110px) calc(var(--mown, 110px) * 2)
+  );
+}
+
+/* The grass of the hero: dark at the top, where the header is, and light at the touchline. */
+@utility hero-grass {
+  background-image: linear-gradient(
+    180deg,
+    var(--grass-900) 0%,
+    var(--grass-800) 38%,
+    var(--grass-600) 72%,
+    var(--grass-500) 100%
+  );
+}
+
+/* Long shadows across the grass. The blur makes them soft. */
+@utility hero-shadows {
+  background-image: repeating-linear-gradient(
+    118deg,
+    rgb(0 0 0 / 0.26) 0 70px,
+    transparent 70px 300px
+  );
+  filter: blur(28px);
+}
+
+/* The shade that keeps the text of the hero readable: dark behind the text
+   and at the edges. On a narrow screen the text has the full width, so the
+   shade goes down the screen and not across it. */
+@utility hero-shade {
+  background-image:
+    radial-gradient(120% 90% at 60% 55%, transparent 55%, rgb(3 9 5 / 0.65) 100%),
+    linear-gradient(180deg, rgb(5 14 8 / 0.78) 0%, rgb(5 14 8 / 0.5) 55%, rgb(5 14 8 / 0.3) 100%);
+  @variant lg {
+    background-image:
+      radial-gradient(120% 90% at 60% 55%, transparent 55%, rgb(3 9 5 / 0.65) 100%),
+      linear-gradient(90deg, rgb(5 14 8 / 0.82) 0%, rgb(5 14 8 / 0.55) 38%, rgb(5 14 8 / 0.05) 70%);
+  }
 }
 
 @layer base {
@@ -186,6 +273,12 @@
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 3px;
+  }
+  /* A link of the header moves the page to its section. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     * {
