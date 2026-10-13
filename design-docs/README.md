@@ -15,3 +15,4 @@ Simplified Technical English.
 - [10 Deploy pipeline](10-deploy-pipeline.md) - the public API on AWS and the web shell on Vercel: the image, one task behind a load balancer, the stream header, the address of the visitor from a trusted proxy, and the secrets as parameters
 - [Harden roles and schema checks](2026-10-11-harden-roles-and-schema-checks.md) - the fix for the seven review findings: one default permission removed, one grant added, two checks, and a settings repair
 - [Request body limit and review cleanup](2026-10-13-request-body-limit-and-review-cleanup.md) - the fix for a request body of any size: a count of the bytes as the service reads them, status 413 at 16 KB, and two small repairs from the review of feature 10
+- [Body limit comment and split-body test](2026-10-13-body-limit-comment-and-split-body-test.md) - the fix for two review findings of the body limit: the true reason in one comment, and a test that calls the app with a body in three messages
