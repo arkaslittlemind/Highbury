@@ -1,21 +1,37 @@
-import { ConnectionCheck } from "@/components/connection-check";
+import { TriangleAlert } from "lucide-react";
+
+import { AskPage } from "@/components/ask/ask-page";
+import { SiteHeader } from "@/components/ask/site-header";
+import { StateCard } from "@/components/ask/state-card";
 
 export default function Home() {
+  // Next.js puts the value into the bundle at build time. A change needs a new build.
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Highbury</h1>
-        <p className="text-muted-foreground">
-          An AI football analyst for Arsenal&apos;s 2003-04 and 2025-26 seasons.
-          The full page is not built yet. This page checks the connection to
-          the analyst.
-        </p>
-      </header>
-      <ConnectionCheck />
-      <footer className="text-sm text-muted-foreground">
-        Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or
-        the Premier League.
+    <>
+      {apiUrl ? (
+        <AskPage apiUrl={apiUrl} />
+      ) : (
+        <>
+          <SiteHeader />
+          <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-12 pb-16 sm:px-10">
+            <StateCard
+              tone="error"
+              icon={TriangleAlert}
+              tag="Not set up"
+              title="This page cannot reach the analyst API."
+              alert
+            >
+              <p className="text-foreground-2">NEXT_PUBLIC_API_URL is not set.</p>
+            </StateCard>
+          </main>
+        </>
+      )}
+      <footer className="border-t px-4 py-6 text-sm text-muted-foreground sm:px-10">
+        Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier
+        League.
       </footer>
-    </main>
+    </>
   );
 }
