@@ -205,6 +205,7 @@ def test_a_turn_streams_its_steps_and_its_chart_before_its_answer(serve):
         "sql": query["sql"],
         "row_count": 1,
         "error": None,
+        "call_id": query_id,
     }
     assert (drawn["tool"], drawn["args"], drawn["row_count"]) == ("build_chart", CHART, 2)
 
@@ -234,14 +235,35 @@ def test_the_working_holds_no_rows_and_no_chart_data(serve):
     *_, (_, last) = events(ask(client))
 
     assert [set(step) for step in last["working"]] == [
-        {"tool", "args", "sql", "row_count", "error"}
+        {"tool", "args", "sql", "row_count", "error", "call_id"}
     ] * 4
     wrong_arguments, refused = last["working"][2:]
     assert (wrong_arguments["sql"], wrong_arguments["row_count"]) == (None, None)
+    # The call did not reach the tool, so no query got an id.
+    assert wrong_arguments["call_id"] is None
     assert "sql" in wrong_arguments["error"]
     # The guard gives no statement back, so the working shows what the model sent.
     assert refused["sql"] == "DELETE FROM shots"
     assert refused["error"]
+
+
+def test_a_working_step_has_the_id_of_its_query(serve):
+    client, _ = serve(
+        calls(("resolve_player", {"name": "Henry"}), ("run_sql", {"sql": COUNT_SQL})),
+        calls(("build_chart", CHART)),
+        lambda read: answer(claims=[shots_claim(read["run_sql"]["call_id"])]),
+    )
+
+    *_, (_, last) = events(ask(client))
+
+    resolved, query, drawn = last["working"]
+    (claim,) = last["answer"]["claims"]
+    # A claim cites its query by this id, so a client can show the two together.
+    assert query["call_id"] == claim["tool_call_id"]
+    # Only a query has an id. The chart has the id of its own query.
+    assert resolved["call_id"] is None
+    assert re.fullmatch(r"q_[0-9a-f]{8}", drawn["call_id"])
+    assert drawn["call_id"] != query["call_id"]
 
 
 def test_a_tool_that_does_not_exist_has_the_other_label(serve):

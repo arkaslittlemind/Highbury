@@ -94,6 +94,8 @@ const workingStepSchema = z.object({
   sql: z.string().nullable(),
   row_count: z.number().int().nullable(),
   error: z.string().nullable(),
+  // The id of the query of the call, which a claim cites as tool_call_id.
+  call_id: z.string().nullable(),
 });
 
 export const answerDataSchema = z.object({

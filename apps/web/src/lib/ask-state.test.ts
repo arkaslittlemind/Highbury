@@ -10,6 +10,7 @@ import {
   reduce,
   retryOffer,
   secondsLeft,
+  workingRowOf,
   type AskAction,
   type AskState,
 } from "@/lib/ask-state";
@@ -217,6 +218,19 @@ describe("chartsOfAnswer", () => {
     const second = { ...SHOT_MAP_SPEC, title: "Built again" };
     const [{ chart }] = chartsOfAnswer([{ id: SHOT_MAP_SPEC.id }], [SHOT_MAP_SPEC, second]);
     expect(chart?.title).toBe("Built again");
+  });
+});
+
+describe("workingRowOf", () => {
+  it("finds the tool call that a claim cites", () => {
+    const [claim] = DATA.answer.claims;
+    expect(workingRowOf(DATA.working, claim.tool_call_id)).toBe(1);
+  });
+
+  it("gives null for an id that no tool call has", () => {
+    const [{ claim }] = DATA.verification.removed;
+    expect(workingRowOf(DATA.working, claim.tool_call_id)).toBeNull();
+    expect(workingRowOf([], "q_1a2b3c4d")).toBeNull();
   });
 });
 

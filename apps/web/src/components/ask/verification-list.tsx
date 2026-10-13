@@ -1,7 +1,9 @@
 import { Check, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import type { Ref } from "react";
 
-import type { Claim, Verification } from "@/lib/analyst-schema";
+import { CallRef } from "@/components/ask/call-ref";
+import type { Claim, Verification, WorkingStep } from "@/lib/analyst-schema";
+import { workingRowOf } from "@/lib/ask-state";
 import { cn } from "@/lib/utils";
 
 const REMOVED_REASONS = {
@@ -18,6 +20,10 @@ type VerificationListProps = {
   claims: Claim[];
   verification: Verification;
   partial: boolean;
+  // The tool calls of the turn. A claim links to the one whose query it cites.
+  working: WorkingStep[];
+  // Show the tool call at this place of the working, from 0.
+  onShowCall: (row: number) => void;
   detailsRef: Ref<HTMLDetailsElement>;
 };
 
@@ -25,10 +31,22 @@ export function VerificationList({
   claims,
   verification,
   partial,
+  working,
+  onShowCall,
   detailsRef,
 }: VerificationListProps) {
   const { checked, passed, removed } = verification;
   const Shield = partial ? ShieldAlert : ShieldCheck;
+
+  function callRef(claim: Claim) {
+    const row = workingRowOf(working, claim.tool_call_id);
+    return (
+      <CallRef
+        callId={claim.tool_call_id}
+        onShow={row === null ? undefined : () => onShowCall(row)}
+      />
+    );
+  }
 
   return (
     <details
@@ -58,7 +76,10 @@ export function VerificationList({
             className="grid grid-cols-[20px_1fr_auto] items-baseline gap-3 border-t border-line-subtle py-2.5"
           >
             <Check aria-label="Passed" className="size-4 self-center text-verified" />
-            <span>{claim.text}</span>
+            <span className="flex flex-col items-start gap-0.5">
+              <span>{claim.text}</span>
+              {callRef(claim)}
+            </span>
             <strong>{valueText(claim)}</strong>
           </li>
         ))}
@@ -68,9 +89,10 @@ export function VerificationList({
             className="grid grid-cols-[20px_1fr_auto] items-baseline gap-3 border-t border-line-subtle py-2.5 text-caveat-text"
           >
             <X aria-label="Removed" className="size-4 self-center text-caveat" />
-            <span>
+            <span className="flex flex-col items-start gap-0.5">
               <s>{claim.text}</s>
-              <span className="block text-sm">Removed: {REMOVED_REASONS[reason]}.</span>
+              <span className="text-sm">Removed: {REMOVED_REASONS[reason]}.</span>
+              {callRef(claim)}
             </span>
             <s>{valueText(claim)}</s>
           </li>

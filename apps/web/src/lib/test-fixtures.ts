@@ -71,13 +71,21 @@ export const ANSWER_DATA = {
     unbacked_numbers: ["3.1"],
   },
   working: [
-    { tool: "resolve_player", args: { name: "Henry" }, sql: null, row_count: null, error: null },
+    {
+      tool: "resolve_player",
+      args: { name: "Henry" },
+      sql: null,
+      row_count: null,
+      error: null,
+      call_id: null,
+    },
     {
       tool: "run_sql",
       args: { sql: "SELECT goals FROM v_player_season" },
       sql: "SELECT goals FROM v_player_season LIMIT 200",
       row_count: 1,
       error: null,
+      call_id: "q_1a2b3c4d",
     },
   ],
 };

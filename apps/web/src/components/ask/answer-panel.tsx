@@ -32,6 +32,14 @@ function reveal(details: RefObject<HTMLDetailsElement | null>) {
   details.current.scrollIntoView({ block: "nearest" });
 }
 
+function revealRow(details: RefObject<HTMLDetailsElement | null>, row: number) {
+  if (!details.current) return;
+  details.current.open = true;
+  const item = details.current.querySelector<HTMLElement>(`[data-row="${row}"]`);
+  item?.scrollIntoView({ block: "center" });
+  item?.focus({ preventScroll: true });
+}
+
 export function AnswerPanel({ turn, data, endedAt, titleRef, suggestions, onAsk }: AnswerPanelProps) {
   const verificationRef = useRef<HTMLDetailsElement>(null);
   const workingRef = useRef<HTMLDetailsElement>(null);
@@ -70,6 +78,8 @@ export function AnswerPanel({ turn, data, endedAt, titleRef, suggestions, onAsk 
               claims={answer.claims}
               verification={verification}
               partial={badge === "partial"}
+              working={working}
+              onShowCall={(row) => revealRow(workingRef, row)}
               detailsRef={verificationRef}
             />
           )}

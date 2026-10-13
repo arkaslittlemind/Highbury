@@ -28,10 +28,16 @@ export function WorkingList({ working, totals, detailsRef }: WorkingListProps) {
         {working.map((step, index) => (
           <li
             key={index}
-            className="grid grid-cols-1 items-start gap-x-4 gap-y-2 border-t border-line-subtle py-3 md:grid-cols-[32px_170px_minmax(0,1fr)_auto]"
+            // A claim moves the focus here, so the row must show it also after a click.
+            data-row={index}
+            tabIndex={-1}
+            className="grid grid-cols-1 items-start gap-x-4 gap-y-2 border-t border-line-subtle py-3 focus:outline-2 focus:outline-offset-2 focus:outline-ring md:grid-cols-[32px_170px_minmax(0,1fr)_auto]"
           >
             <span className="text-faint">{index + 1}</span>
-            <span className="text-brand-soft">{step.tool}</span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-brand-soft">{step.tool}</span>
+              {step.call_id && <span className="text-faint">{step.call_id}</span>}
+            </span>
             <div className="flex min-w-0 flex-col gap-2">
               {/* The service sends a statement as one line, so it must wrap to be read. */}
               <pre className="rounded-lg border border-line-subtle bg-code-bg px-4 py-3.5 leading-relaxed wrap-break-word whitespace-pre-wrap text-code">

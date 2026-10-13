@@ -93,6 +93,9 @@ class WorkingStep(BaseModel):
     sql: str | None
     row_count: int | None
     error: str | None
+    # The id of the query of the call, which a claim cites as tool_call_id.
+    # None when the call ran no query.
+    call_id: str | None
 
 
 class AnswerData(BaseModel):
@@ -129,12 +132,14 @@ def working_step(record: ToolRecord) -> WorkingStep:
     # The arguments come from the model, so a value can have any JSON type.
     sql = result.get("sql") or record.args.get("sql")
     row_count, error = result.get("row_count"), result.get("error")
+    call_id = result.get("call_id")
     return WorkingStep(
         tool=record.name,
         args=record.args,
         sql=sql if isinstance(sql, str) else None,
         row_count=row_count if isinstance(row_count, int) else None,
         error=error if isinstance(error, str) else None,
+        call_id=call_id if isinstance(call_id, str) else None,
     )
 
 

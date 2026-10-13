@@ -31,11 +31,20 @@ describe("the payload of each event", () => {
   });
 
   it("keeps an answer when the service adds a field", () => {
-    const withCallId = {
+    const withMore = {
       ...ANSWER_DATA,
-      working: ANSWER_DATA.working.map((step) => ({ ...step, call_id: "q_1a2b3c4d" })),
+      working: ANSWER_DATA.working.map((step) => ({ ...step, duration_ms: 12 })),
     };
-    expect(answerDataSchema.safeParse(withCallId).success).toBe(true);
+    expect(answerDataSchema.safeParse(withMore).success).toBe(true);
+  });
+
+  it("rejects a working step with no call id key", () => {
+    const working = ANSWER_DATA.working.map((step) => {
+      const without: Record<string, unknown> = { ...step };
+      delete without.call_id;
+      return without;
+    });
+    expect(answerDataSchema.safeParse({ ...ANSWER_DATA, working }).success).toBe(false);
   });
 });
 

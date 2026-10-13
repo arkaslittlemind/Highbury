@@ -1,4 +1,10 @@
-import type { AnswerData, ChartSpec, Step, Verification } from "@/lib/analyst-schema";
+import type {
+  AnswerData,
+  ChartSpec,
+  Step,
+  Verification,
+  WorkingStep,
+} from "@/lib/analyst-schema";
 import type { AskEvent, AskFailure } from "@/lib/ask-stream";
 
 /** One question and what came for it. Times are milliseconds of one clock. */
@@ -130,6 +136,12 @@ export function chartsOfAnswer(
     id,
     chart: charts.findLast((chart) => chart.id === id) ?? null,
   }));
+}
+
+/** The place in the working of the tool call with this id, from 0. Null when no call has it. */
+export function workingRowOf(working: WorkingStep[], callId: string): number | null {
+  const row = working.findIndex((step) => step.call_id === callId);
+  return row === -1 ? null : row;
 }
 
 export function formatElapsed(milliseconds: number): string {
