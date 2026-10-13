@@ -12,6 +12,8 @@ ingest/raw/
 .env
 .env.*
 !.env.example
+# The filled copy of service.example.json names the AWS account.
+deploy/ecs/service.json
 
 # OS / editors
 .DS_Store
@@ -27,3 +29,6 @@ Thumbs.db
 .claude/
 blueprint/
 CLAUDE.md
+
+
+*.gitkeep

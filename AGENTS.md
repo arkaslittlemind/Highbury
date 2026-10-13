@@ -28,6 +28,7 @@ never committed.
 | `services/analyst` | Analyst service (Python 3.12): FastAPI, agent, data tools |
 | `ingest` | Offline loaders for StatsBomb and Understat (Python 3.12) |
 | `db/migrations` | SQL schema, views, and roles |
+| `deploy/ecs` | Config of the API service on AWS ECS Express Mode, with names only |
 | `project-requirement-docs` | Product and build plans |
 | `design-docs` | One study document per finished feature, in Simplified Technical English |
 
@@ -72,6 +73,8 @@ Run Python and database commands from the repository root.
 - Aliases and data catalog: `uv run --env-file .env python -m ingest.curated` (loads `ingest/aliases.yaml` and the catalog; needs both seasons loaded first, safe to re-run)
 - Ask the analyst: `uv run --env-file .env ask "<question>" ["<follow-up>"]` (the agent on the command line; each extra argument is a follow-up in the same conversation; needs `ANALYST_MODEL` and the key of its provider in `.env`, and each call costs money; `--debug` shows the traceback of an error)
 - Analyst API: `uv run --env-file .env uvicorn analyst.api:create_app --factory --port 8000` (http://localhost:8000; needs the local database, `ANALYST_MODEL` with the key of its provider, `CORS_ORIGINS`, and `RATE_LIMIT_PER_MINUTE` in `.env`; each question that is not cached costs money)
+- API container: `docker build -t highbury-api .`, then `docker run --rm -p 8000:8000 --env-file .env -e ANALYST_DATABASE_URL=postgresql://analyst_ro:analyst_ro_local@host.docker.internal:5433/highbury highbury-api` (the image of production; inside a container `localhost` is the container, so the database host is `host.docker.internal`)
+- Deploy the API: tag the image with a new tag and `docker push` it to the `highbury-api` repository in Amazon ECR. Copy `deploy/ecs/service.example.json` to `service.json` (ignored), fill it in, and put the new tag in `image`. Then `aws ecs update-express-gateway-service --service-arn <arn> --primary-container <the primaryContainer object of service.json>` (the first time: `aws ecs create-express-gateway-service --cli-input-json file://deploy/ecs/service.json`). The two secrets are SecureString parameters under `/highbury/` in AWS Systems Manager. Each command changes production, so ask first
 - MCP server: `uv run --env-file .env python -m analyst.mcp_server` (the five data tools over stdio; it waits for an MCP client and prints nothing by itself)
 - MCP Inspector: `npx @modelcontextprotocol/inspector --config services/analyst/mcp.json --server highbury` (web UI; needs Node. For terminal output add `--cli --method tools/list` after `inspector`. The config file is needed because the Inspector does not pass flags such as `--env-file` from an inline command)
 - Python lint: `uv run ruff check .`
@@ -81,10 +84,12 @@ Run Python and database commands from the repository root.
 Run web commands from `apps/web`.
 
 - Web install: `pnpm install`
+- Web environment: `cp .env.example .env.local` (`NEXT_PUBLIC_API_URL`, the origin of the analyst API; it goes into the bundle at build time)
 - Dev server: `pnpm dev` (http://localhost:3000)
 - Build: `pnpm build`
 - Production server: `pnpm start`
 - Lint: `pnpm lint`
+- Deploy the web: `vercel deploy --prod` (the Vercel project `highbury`, linked with `vercel link`; `NEXT_PUBLIC_API_URL` for production is set on the project; `vercel.json` names the framework because the project was not made by auto-detection; the command changes production, so ask first)
 
 Not configured yet: a web typecheck script, a web test runner, browser tests, a
 combined `Verify` command, and CI.

@@ -484,7 +484,9 @@ def create_app(
         return StreamingResponse(
             iter(events.get, None),
             media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache"},
+            # A proxy that buffers a response holds each step until the answer
+            # is complete. This header tells it to send each event at once.
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
     return app

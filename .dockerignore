@@ -1,0 +1,9 @@
+# An allow list: a new file, such as an env file or raw data, stays out of the
+# image until a line here lets it in.
+*
+!pyproject.toml
+!uv.lock
+!services/analyst/pyproject.toml
+!services/analyst/src
+!ingest/pyproject.toml
+**/__pycache__

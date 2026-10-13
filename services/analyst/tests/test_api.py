@@ -170,6 +170,7 @@ def test_a_turn_streams_its_steps_and_its_chart_before_its_answer(serve):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["x-accel-buffering"] == "no"
     (_, first), (_, second), (_, chart), (_, last) = found = events(response)
     assert [name for name, _ in found] == ["step", "step", "chart", "answer"]
     assert first == {"number": 1, "tool": "run_sql", "label": "Querying the match data"}

@@ -1,0 +1,32 @@
+{
+  "serviceName": "highbury-api",
+  "executionRoleArn": "arn:aws:iam::<account id>:role/ecsTaskExecutionRole",
+  "infrastructureRoleArn": "arn:aws:iam::<account id>:role/ecsInfrastructureRoleForExpressServices",
+  "cpu": "256",
+  "memory": "512",
+  "healthCheckPath": "/api/health",
+  "scalingTarget": {
+    "minTaskCount": 1,
+    "maxTaskCount": 1
+  },
+  "primaryContainer": {
+    "image": "<account id>.dkr.ecr.<region>.amazonaws.com/highbury-api:<tag>",
+    "containerPort": 8000,
+    "environment": [
+      { "name": "ANALYST_MODEL", "value": "<provider:model>" },
+      { "name": "CORS_ORIGINS", "value": "https://<project>.vercel.app" },
+      { "name": "RATE_LIMIT_PER_MINUTE", "value": "5" },
+      { "name": "FORWARDED_ALLOW_IPS", "value": "<address range of the VPC of the load balancer, never *>" }
+    ],
+    "secrets": [
+      {
+        "name": "ANALYST_DATABASE_URL",
+        "valueFrom": "arn:aws:ssm:<region>:<account id>:parameter/highbury/ANALYST_DATABASE_URL"
+      },
+      {
+        "name": "GOOGLE_API_KEY",
+        "valueFrom": "arn:aws:ssm:<region>:<account id>:parameter/highbury/GOOGLE_API_KEY"
+      }
+    ]
+  }
+}
