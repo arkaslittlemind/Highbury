@@ -91,7 +91,7 @@ Run web commands from `apps/web`.
 - Lint: `pnpm lint`
 - Web test: `pnpm test` (Vitest, one run; the unit tests are the `src/**/*.test.ts` files and need no database and no API)
 - Web test watch: `pnpm test:watch`
-- Deploy the web: `vercel deploy --prod` (the Vercel project `highbury`, linked with `vercel link`; `NEXT_PUBLIC_API_URL` for production is set on the project; `vercel.json` names the framework because the project was not made by auto-detection; the command changes production, so ask first)
+- Deploy the web: push to `main`. The Vercel project `highbury` is connected to the GitHub repository, and each push to `main` builds `apps/web` (the Root Directory of the project) and replaces production. `NEXT_PUBLIC_API_URL` for production is set on the project; `vercel.json` names the framework because the project was not made by auto-detection. A push to `main` changes production, so ask first. Do not run `vercel deploy` from `apps/web`: with the Root Directory set, the command looks for `apps/web/apps/web`
 
 Not configured yet: a web typecheck script, browser tests, a combined `Verify`
 command, and CI.
