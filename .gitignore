@@ -24,6 +24,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Output of the Playwright MCP browser checks
+.playwright-mcp/
+
 # AI Blueprint local workflow files
 .agents/
 .claude/
