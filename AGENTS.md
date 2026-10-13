@@ -89,18 +89,23 @@ Run web commands from `apps/web`.
 - Build: `pnpm build`
 - Production server: `pnpm start`
 - Lint: `pnpm lint`
+- Web test: `pnpm test` (Vitest, one run; the unit tests are the `src/**/*.test.ts` files and need no database and no API)
+- Web test watch: `pnpm test:watch`
 - Deploy the web: `vercel deploy --prod` (the Vercel project `highbury`, linked with `vercel link`; `NEXT_PUBLIC_API_URL` for production is set on the project; `vercel.json` names the framework because the project was not made by auto-detection; the command changes production, so ask first)
 
-Not configured yet: a web typecheck script, a web test runner, browser tests, a
-combined `Verify` command, and CI.
+Not configured yet: a web typecheck script, browser tests, a combined `Verify`
+command, and CI.
 
 ## Testing
 
 - Python logic is gated by the Test command. A step that adds Python logic ships
   a passing test in the same diff. Database tests create a throwaway database
   and fail, not skip, when Postgres is unreachable.
-- The web app has no test runner. Verify web work with `pnpm lint`, `pnpm build`,
-  and the running app until one is added deliberately.
+- Web logic (parsers, validators, formatters) is gated by the Web test command.
+  A step that adds web logic ships a passing test in the same diff, next to the
+  file as `<name>.test.ts`.
+- Components and pages have no unit tests. Verify them with `pnpm lint`,
+  `pnpm build`, and the running app.
 
 ## Conventions
 
