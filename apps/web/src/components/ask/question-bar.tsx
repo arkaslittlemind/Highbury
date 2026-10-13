@@ -42,19 +42,23 @@ export function QuestionBar({
       onSubmit={submit}
       className={cn(
         "flex flex-col rounded-panel border border-line-mid bg-card",
-        large ? "gap-4 p-7" : "gap-3.5 p-5",
+        large
+          ? "gap-4 p-5 sm:p-7"
+          : // On a phone the follow-up bar stays at the bottom of the screen.
+            "gap-3.5 p-5 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:bg-background max-sm:px-4 max-sm:py-3",
       )}
     >
       <label
         htmlFor={inputId}
         className={cn(
           "font-display font-bold tracking-[0.14em] text-foreground-2 uppercase",
-          large ? "text-lg" : "text-base",
+          // The label stays as the name of the input when it is not in view.
+          large ? "text-lg" : "text-base max-sm:sr-only",
         )}
       >
         {label}
       </label>
-      <div className="flex flex-wrap gap-3">
+      <div className={cn("flex gap-3", large ? "flex-wrap" : "max-sm:gap-2 sm:flex-wrap")}>
         <input
           id={inputId}
           type="text"
@@ -66,7 +70,9 @@ export function QuestionBar({
           autoFocus={initialQuestion !== ""}
           className={cn(
             "min-w-0 rounded-lg border border-input bg-background placeholder:text-faint",
-            large ? "h-16 flex-[1_1_480px] px-5.5 text-xl" : "h-14 flex-[1_1_420px] px-4.5 text-lg",
+            large
+              ? "h-14 flex-[1_1_480px] px-4.5 text-lg sm:h-16 sm:px-5.5 sm:text-xl"
+              : "h-12 flex-1 px-3.5 text-base sm:h-14 sm:flex-[1_1_420px] sm:px-4.5 sm:text-lg",
           )}
         />
         <Button
@@ -74,7 +80,9 @@ export function QuestionBar({
           disabled={!trimmed}
           className={cn(
             "font-display font-bold tracking-[0.1em] uppercase",
-            large ? "h-16 px-8 text-[22px]" : "h-14 px-7 text-xl",
+            large
+              ? "h-14 px-7 text-xl sm:h-16 sm:px-8 sm:text-[22px]"
+              : "h-12 px-5 text-lg sm:h-14 sm:px-7 sm:text-xl",
           )}
         >
           Ask

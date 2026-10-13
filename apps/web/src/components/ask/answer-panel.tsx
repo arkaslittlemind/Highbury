@@ -65,50 +65,53 @@ export function AnswerPanel({ turn, data, endedAt, titleRef, suggestions, onAsk 
         />
       </QuestionHeading>
 
-      <div className="flex flex-wrap items-start gap-8">
-        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
-          <AnswerBody
-            answer={answer}
-            suggestions={suggestions}
-            onAskAlternative={(question) => onAsk(question)}
-            onAskSuggestion={(question) => onAsk(question, { asNew: true })}
-          />
-          {badge !== "none" && (
-            <VerificationList
-              claims={answer.claims}
-              verification={verification}
-              partial={badge === "partial"}
-              working={working}
-              onShowCall={(row) => revealRow(workingRef, row)}
-              detailsRef={verificationRef}
+      {/* The heading does not move, because the focus goes to it. */}
+      <div className="flex animate-in flex-col gap-8 duration-300 fade-in slide-in-from-bottom-2">
+        <div className="flex flex-wrap items-start gap-8">
+          <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
+            <AnswerBody
+              answer={answer}
+              suggestions={suggestions}
+              onAskAlternative={(question) => onAsk(question)}
+              onAskSuggestion={(question) => onAsk(question, { asNew: true })}
             />
-          )}
-          {unbacked.length > 0 && (
-            <CaveatNote
-              title="Numbers with no checked claim"
-              text={`The summary gives ${unbacked.join(", ")}, and no checked claim backs ${unbacked.length === 1 ? "it" : "them"}.`}
-            />
-          )}
-          {answer.caveats.map((caveat, index) => (
-            <CaveatNote key={index} title="Caveat" text={caveat} />
-          ))}
-        </div>
-        {charts.length > 0 && (
-          <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-6">
-            {charts.map(({ id, chart }) => (
-              <ChartPanel key={id} chart={chart} />
+            {badge !== "none" && (
+              <VerificationList
+                claims={answer.claims}
+                verification={verification}
+                partial={badge === "partial"}
+                working={working}
+                onShowCall={(row) => revealRow(workingRef, row)}
+                detailsRef={verificationRef}
+              />
+            )}
+            {unbacked.length > 0 && (
+              <CaveatNote
+                title="Numbers with no checked claim"
+                text={`The summary gives ${unbacked.join(", ")}, and no checked claim backs ${unbacked.length === 1 ? "it" : "them"}.`}
+              />
+            )}
+            {answer.caveats.map((caveat, index) => (
+              <CaveatNote key={index} title="Caveat" text={caveat} />
             ))}
           </div>
+          {charts.length > 0 && (
+            <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-6">
+              {charts.map(({ id, chart }) => (
+                <ChartPanel key={id} chart={chart} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {working.length > 0 && (
+          <WorkingList
+            working={working}
+            totals={`${plural(working.length, "tool call", "tool calls")} · ${elapsed}`}
+            detailsRef={workingRef}
+          />
         )}
       </div>
-
-      {working.length > 0 && (
-        <WorkingList
-          working={working}
-          totals={`${plural(working.length, "tool call", "tool calls")} · ${elapsed}`}
-          detailsRef={workingRef}
-        />
-      )}
     </>
   );
 }

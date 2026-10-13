@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 import { AnswerPanel } from "@/components/ask/answer-panel";
 import { AnswerSkeleton } from "@/components/ask/answer-skeleton";
 import { FailureCard } from "@/components/ask/failure-card";
+import { Hero } from "@/components/ask/hero";
+import { HowItWorks } from "@/components/ask/how-it-works";
 import { QuestionBar } from "@/components/ask/question-bar";
 import { QuestionHeading } from "@/components/ask/question-heading";
 import { SiteHeader } from "@/components/ask/site-header";
@@ -29,19 +31,14 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
 
   return (
     <>
-      <SiteHeader onNewQuestion={state.phase === "idle" ? undefined : reset} />
-      <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-12 pb-16 sm:px-10">
+      <SiteHeader
+        onNewQuestion={state.phase === "idle" ? undefined : reset}
+        howLink={state.phase === "idle"}
+      />
+      <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-10 sm:pt-12">
         {state.phase === "idle" && (
           <>
-            <div className="flex flex-col gap-3">
-              <h1 className="font-display text-4xl leading-[1.05] font-bold sm:text-5xl">
-                Ask about Arsenal in 2003-04 and 2025-26
-              </h1>
-              <p className="max-w-[640px] text-xl text-foreground-2">
-                Ask in plain English. Every number is checked against the data before you
-                see it, and when the data cannot answer, Highbury says so.
-              </p>
-            </div>
+            <Hero />
             <QuestionBar
               large
               label="Ask the Analyst"
@@ -58,6 +55,7 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
                 Arsenal Premier League only · 2003-04 and 2025-26 · answers show their SQL
               </p>
             </QuestionBar>
+            <HowItWorks />
           </>
         )}
 

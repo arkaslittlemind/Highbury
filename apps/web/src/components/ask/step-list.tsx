@@ -48,7 +48,10 @@ export function StepList({ steps, startedAt, onStop }: StepListProps) {
       </div>
       <ol aria-live="polite" className="flex flex-col">
         {steps.map((step, index) => (
-          <li key={step.number} className="flex gap-3.5 border-b border-line-subtle py-3">
+          <li
+            key={step.number}
+            className="flex animate-in gap-3.5 border-b border-line-subtle py-3 duration-200 fade-in"
+          >
             {index === running ? (
               <span
                 aria-hidden="true"
