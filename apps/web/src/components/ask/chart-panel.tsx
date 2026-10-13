@@ -1,4 +1,5 @@
 import { ChartTitle } from "@/components/charts/chart-title";
+import { CompareBars } from "@/components/charts/compare-bars";
 import { ShotMap } from "@/components/charts/shot-map";
 import type { ChartSpec } from "@/lib/analyst-schema";
 
@@ -6,20 +7,13 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-function countsText(chart: Exclude<ChartSpec, { type: "shot_map" }>): string {
-  switch (chart.type) {
-    case "compare_bars": {
-      const [first, second] = chart.series;
-      return `${first.player} (${first.season}) and ${second.player} (${second.season}), ${plural(chart.metrics.length, "metric", "metrics")}`;
-    }
-    case "pass_network":
-      return `${plural(chart.nodes.length, "player", "players")}, ${plural(chart.edges.length, "passing link", "passing links")}`;
-  }
+function countsText(chart: Extract<ChartSpec, { type: "pass_network" }>): string {
+  return `${plural(chart.nodes.length, "player", "players")}, ${plural(chart.edges.length, "passing link", "passing links")}`;
 }
 
 /**
- * The place of one chart of an answer. A shot map is drawn. The drawing of the
- * other chart types comes with a later feature. Null means that no valid chart
+ * The place of one chart of an answer. A shot map and a comparison are drawn. The
+ * drawing of the pass network comes with a later feature. Null means that no valid chart
  * came for the id.
  */
 export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
@@ -38,6 +32,8 @@ export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
     <figure className="flex flex-col gap-4 rounded-panel border bg-surface-chart p-6">
       {chart.type === "shot_map" ? (
         <ShotMap chart={chart} />
+      ) : chart.type === "compare_bars" ? (
+        <CompareBars chart={chart} />
       ) : (
         <>
           <ChartTitle>{chart.title}</ChartTitle>
