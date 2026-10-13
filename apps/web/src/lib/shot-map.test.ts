@@ -10,6 +10,8 @@ import {
   summaryText,
   tooltipLines,
   tooltipPlace,
+  withoutKinds,
+  type OutcomeKind,
   type Shot,
 } from "@/lib/shot-map";
 import { SHOT } from "@/lib/test-fixtures";
@@ -76,6 +78,33 @@ describe("drawOrder", () => {
     drawOrder(shots);
 
     expect(shots.map((each) => each.xg)).toEqual([0.1, 0.7]);
+  });
+});
+
+describe("withoutKinds", () => {
+  const shots = [
+    shot({ outcome: "goal", minute: 1 }),
+    shot({ outcome: "saved", minute: 2 }),
+    shot({ outcome: "own goal", minute: 3 }),
+    shot({ outcome: "goal", minute: 4 }),
+  ];
+  const minutes = (hidden: OutcomeKind[]) =>
+    withoutKinds(shots, new Set(hidden)).map((each) => each.minute);
+
+  it("gives all the shots when no kind is hidden", () => {
+    expect(minutes([])).toEqual([1, 2, 3, 4]);
+  });
+
+  it("leaves out the shots of a hidden kind and keeps the order", () => {
+    expect(minutes(["goal"])).toEqual([2, 3]);
+  });
+
+  it("hides an outcome that is not stored as other", () => {
+    expect(minutes(["other"])).toEqual([1, 2, 4]);
+  });
+
+  it("gives no shots when each kind is hidden", () => {
+    expect(minutes(["goal", "saved", "other"])).toEqual([]);
   });
 });
 

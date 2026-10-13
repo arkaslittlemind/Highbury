@@ -17,6 +17,7 @@ import {
   summaryText,
   tooltipLines,
   tooltipPlace,
+  withoutKinds,
   type OutcomeKind,
   type Shot,
   type ShotMapSpec,
@@ -86,18 +87,49 @@ function ShotMark({ kind, r }: { kind: OutcomeKind; r: number }) {
   }
 }
 
-function Legend({ kinds }: { kinds: OutcomeKind[] }) {
+type LegendProps = {
+  // The outcomes that the chart has marks for.
+  kinds: OutcomeKind[];
+  hidden: ReadonlySet<OutcomeKind>;
+  onToggle: (kind: OutcomeKind) => void;
+};
+
+/** The legend is also the filter: each outcome is a button that shows or hides its marks. */
+function Legend({ kinds, hidden, onToggle }: LegendProps) {
   return (
-    <ul aria-label="Legend" className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground-2">
-      {kinds.map((kind) => (
-        <li key={kind} className="flex items-center gap-2">
-          <svg aria-hidden="true" width="16" height="16" viewBox="-8 -8 16 16">
-            <ShotMark kind={kind} r={6} />
-          </svg>
-          {OUTCOME_LABELS[kind]}
-        </li>
-      ))}
-      <li className="ml-auto flex items-center gap-2">
+    <ul
+      aria-label="Legend"
+      className="flex flex-wrap items-center gap-x-5 text-sm text-foreground-2"
+    >
+      {kinds.map((kind) => {
+        const off = hidden.has(kind);
+        return (
+          <li key={kind}>
+            <button
+              type="button"
+              aria-pressed={!off}
+              onClick={() => onToggle(kind)}
+              // The line through the label shows the state without colour.
+              className={cn(
+                "flex min-h-target cursor-pointer items-center gap-2 hover:text-foreground",
+                off && "text-faint line-through",
+              )}
+            >
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="-8 -8 16 16"
+                className={cn(off && "opacity-40")}
+              >
+                <ShotMark kind={kind} r={6} />
+              </svg>
+              {OUTCOME_LABELS[kind]}
+            </button>
+          </li>
+        );
+      })}
+      <li className="ml-auto flex min-h-target items-center gap-2">
         <svg
           aria-hidden="true"
           width="40"
@@ -157,6 +189,8 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
   // The mark that Tab goes to: the last one that had the focus.
   const [tabStop, setTabStop] = useState(0);
   const [tooltipHidden, setTooltipHidden] = useState(false);
+  // The outcomes that the visitor turned off in the legend.
+  const [hiddenKinds, setHiddenKinds] = useState<ReadonlySet<OutcomeKind>>(new Set());
 
   if (chart.shots.length === 0) {
     return (
@@ -169,11 +203,24 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
     );
   }
 
-  // The marks. A shot from the own half has none, and the summary says so.
-  const shots = drawOrder(chart.shots.filter(isDrawn));
-  const kinds = new Set(shots.map((shot) => outcomeKind(shot.outcome)));
+  // A shot from the own half has no mark, and the summary says so.
+  const drawn = drawOrder(chart.shots.filter(isDrawn));
+  const drawnKinds = new Set(drawn.map((shot) => outcomeKind(shot.outcome)));
+  // The marks on the pitch, which the indexes below count.
+  const shots = withoutKinds(drawn, hiddenKinds);
   const active = hovered ?? focused;
   const activeShot = active === null ? null : shots[active];
+
+  function toggleKind(kind: OutcomeKind) {
+    const next = new Set(hiddenKinds);
+    if (!next.delete(kind)) next.add(kind);
+    setHiddenKinds(next);
+    // The indexes count the visible marks, so an old index is a different shot.
+    setHovered(null);
+    setFocused(null);
+    setTabStop(0);
+    setTooltipHidden(false);
+  }
 
   function onKeyDown(event: KeyboardEvent<SVGSVGElement>) {
     if (event.key === "Escape") {
@@ -248,7 +295,11 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
         </Pitch>
         {activeShot && !tooltipHidden && <Tooltip shot={activeShot} />}
       </div>
-      <Legend kinds={OUTCOME_KINDS.filter((kind) => kind !== "other" || kinds.has(kind))} />
+      <Legend
+        kinds={OUTCOME_KINDS.filter((kind) => drawnKinds.has(kind))}
+        hidden={hiddenKinds}
+        onToggle={toggleKind}
+      />
       <figcaption className="border-t pt-3.5 text-[15px] text-foreground-2">
         <strong className="text-foreground">Chart summary.</strong> {summaryText(chart.shots)}
       </figcaption>

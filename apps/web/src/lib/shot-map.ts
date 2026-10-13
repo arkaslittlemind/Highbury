@@ -64,6 +64,11 @@ export function drawOrder(shots: Shot[]): Shot[] {
   return [...shots].sort((first, second) => second.xg - first.xg);
 }
 
+/** The shots that the filter of the legend does not hide. */
+export function withoutKinds(shots: Shot[], hidden: ReadonlySet<OutcomeKind>): Shot[] {
+  return shots.filter((shot) => !hidden.has(outcomeKind(shot.outcome)));
+}
+
 function countText(kind: OutcomeKind, count: number): string {
   switch (kind) {
     case "goal":
