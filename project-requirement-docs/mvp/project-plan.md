@@ -118,8 +118,8 @@ FastMCP server for external agents and the MCP Inspector.
 report accuracy, verified-claim rate, correct refusals, latency, and cost.
 
 ### Deployment
-Vercel (web); Railway or Render paid tier (FastAPI container, no cold starts);
-Neon (Postgres). The browser calls the API directly so SSE isn't buffered. LLM
+Vercel (web); AWS ECS Express Mode (FastAPI container on Fargate behind a load
+balancer, one always-on task, no cold starts); Neon (Postgres). The browser calls the API directly so SSE isn't buffered. LLM
 provider spending cap set before the URL goes public.
 
 ## 6. UI/UX

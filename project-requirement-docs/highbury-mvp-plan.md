@@ -55,7 +55,7 @@ If something doesn't serve one of these five, it's out of scope for this week.
 Browser (Next.js on Vercel)
    │  POST /api/ask  ──►  SSE stream: step events … final answer
    ▼
-FastAPI (Render/Railway container)
+FastAPI (container on AWS ECS Express Mode)
    │  rate limit · suggestion cache · cost/latency log
    ▼
 LangChain agent (create_agent, model via init_chat_model)
@@ -246,8 +246,10 @@ Tips for keeping the loop fast:
 - **Use `/fix` for small breakages** found while demoing, not a new feature.
 - **`/prototype` before item 11** replaces Figma: generate 2–3 throwaway Ask
   page layouts, pick one, and put the choice in the item 11 spec.
-- **`/release` for item 10** generates the Render/Vercel config and readiness
-  checks. Approve the deploy yourself; Blueprint never pushes without approval.
+- **`/release` for item 10** generates the Vercel config and readiness checks.
+  It does not cover AWS: the config of the API container on ECS Express Mode is
+  written by hand. Approve the deploy yourself; Blueprint never pushes without
+  approval.
 - **`/continuous` is optional, Day 4 only.** Once the API and Ask page are
   stable, it can run items 12–14 back to back while you build the eval golden
   set by hand. Expected values must come from SQL *you* wrote, not the agent.

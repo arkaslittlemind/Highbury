@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import json
 import logging
@@ -324,6 +325,84 @@ def test_a_question_of_500_characters_is_valid_and_loses_the_space_at_its_ends(s
 
     assert response.status_code == 200
     assert model.seen[0][-1].content == "x" * 500
+
+
+JSON_BODY = {"Content-Type": "application/json"}
+
+
+def body_of(size: int) -> bytes:
+    """A valid question in a JSON body of exactly this number of bytes."""
+    body = json.dumps({"question": QUESTION}).encode()
+    # JSON permits space after the value.
+    return body + b" " * (size - len(body))
+
+
+def test_a_body_at_the_limit_gets_its_stream(serve):
+    client, model = serve(answer())
+
+    response = client.post("/api/ask", content=body_of(api.MAX_BODY_BYTES), headers=JSON_BODY)
+
+    assert response.status_code == 200
+    assert humans(model) == [QUESTION]
+
+
+def test_a_body_over_the_limit_gets_413_and_no_model_call(serve):
+    client, model = serve(answer())
+
+    response = client.post("/api/ask", content=body_of(api.MAX_BODY_BYTES + 1), headers=JSON_BODY)
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "The request body is too large."}
+    assert model.seen == []
+
+
+def test_a_body_with_no_length_that_is_over_the_limit_gets_413(serve):
+    client, model = serve(answer())
+    # A body that comes in parts has no Content-Length header.
+    parts = (b" " * 1024 for _ in range(api.MAX_BODY_BYTES // 1024 + 1))
+
+    response = client.post("/api/ask", content=parts, headers=JSON_BODY)
+
+    assert "content-length" not in response.request.headers
+    assert response.status_code == 413
+    assert model.seen == []
+
+
+def test_the_limit_stops_the_read_at_the_part_that_passes_it():
+    parts = [b"x" * 10, b"x" * 10, b"x" * 10]
+    read = []
+
+    async def receive() -> dict:
+        body = parts.pop(0)
+        return {"type": "http.request", "body": body, "more_body": bool(parts)}
+
+    async def reader(scope, receive, send) -> None:
+        more = True
+        while more:
+            message = await receive()
+            read.append(message["body"])
+            more = message["more_body"]
+
+    limited = api.BodyLimit(reader, max_bytes=15)
+
+    with pytest.raises(api.HTTPException) as error:
+        asyncio.run(limited({"type": "http"}, receive, None))
+
+    assert error.value.status_code == 413
+    # The app got the first part only, and the third part was not read.
+    assert read == [b"x" * 10]
+    assert parts == [b"x" * 10]
+
+
+def test_the_web_page_can_read_a_413(serve):
+    client, _ = serve()
+
+    response = client.post(
+        "/api/ask", content=body_of(api.MAX_BODY_BYTES + 1), headers={**JSON_BODY, "Origin": WEB}
+    )
+
+    assert response.status_code == 413
+    assert response.headers["access-control-allow-origin"] == WEB
 
 
 def test_a_follow_up_reads_the_turn_before_it(serve):

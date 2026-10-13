@@ -21,6 +21,7 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel, JsonValue, StringConstraints
 from pydantic_core import to_json
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from analyst import agent
 from analyst.answer import Answer, ToolRecord
@@ -50,6 +51,10 @@ OTHER_STEP_LABEL = "Working"
 # The question goes to a paid model, so its length has a limit.
 MAX_QUESTION_LENGTH = 500
 
+# The largest valid body is about 6 KB: a question of 500 characters, where JSON
+# can write one character as 12 bytes, plus the conversation id and the keys.
+MAX_BODY_BYTES = 16 * 1024
+
 # Each conversation holds the rows of its queries, and the service is public.
 MAX_CONVERSATIONS = 200
 
@@ -61,6 +66,7 @@ NO_ADDRESS = "unknown"
 UNEXPECTED = "Something went wrong. Try again."
 ENDED = "This conversation has ended. Start a new one."
 BUSY = "This conversation is busy. Wait for its answer."
+TOO_LARGE = "The request body is too large."
 
 
 class AskRequest(BaseModel):
@@ -140,6 +146,39 @@ def answer_data(turn: agent.Turn, conversation_id: str) -> AnswerData:
         verification=turn.verification,
         working=[working_step(record) for record in turn.records],
     )
+
+
+class BodyLimit:
+    """Stops the read of a request body at the limit.
+
+    Without it the service reads a body of any size before it checks the
+    question, so one request can fill the memory of the process. It is a plain
+    ASGI middleware: it changes only what the app reads, and the response stays
+    a stream.
+    """
+
+    def __init__(self, app: ASGIApp, max_bytes: int = MAX_BODY_BYTES) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        seen = 0
+
+        async def counted() -> Message:
+            nonlocal seen
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > self.max_bytes:
+                    # The body reader of FastAPI lets this error through, and
+                    # the app answers with it. Any other error becomes a 400.
+                    raise HTTPException(413, TOO_LARGE)
+            return message
+
+        await self.app(scope, counted, send)
 
 
 class RateLimiter:
@@ -423,6 +462,9 @@ def create_app(
     show_log()
     app = FastAPI(title="Highbury analyst")
     app.state.service = service
+    # The middleware that is added last is the outer one. CORS must be outside
+    # the body limit, or the web page cannot read a 413.
+    app.add_middleware(BodyLimit)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),

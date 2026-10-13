@@ -242,7 +242,7 @@ fuzzy name matching, and a hand-maintained overrides file.
 ### Deployment
 
 - Vercel for the Next.js app
-- Render / Railway / Fly for the FastAPI container (MCP server runs inside it)
+- AWS ECS Express Mode for the FastAPI container (MCP server runs inside it)
 - Managed PostgreSQL (Neon or Supabase)
 
 ## 6. UI/UX - How should this look and feel?
