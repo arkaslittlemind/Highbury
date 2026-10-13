@@ -1,0 +1,78 @@
+/* Highbury theme - the durable output of /prototype.
+   Every mockup in this folder reads its colours, fonts, and radii from here, so
+   one edit restyles all six screens. Port this block into the @theme of
+   apps/web/src/app/globals.css with the first UI feature.
+   Values come from blueprint/reference/styles/tokens.css. */
+
+:root {
+  /* surfaces */
+  --bg: #0A120E;              /* page */
+  --surface: #101B16;         /* cards */
+  --surface-chart: #0F1A15;   /* chart panels */
+  --surface-sunken: #0D1712;  /* insets inside a card */
+  --skeleton: #13211B;        /* loading placeholders */
+  --code-bg: #07100C;         /* SQL blocks */
+
+  /* pitch */
+  --pitch: #12201A;           /* pitch fill */
+  --pitch-alt: #142219;       /* second half of a split pitch */
+  --pitch-line: #4A6658;      /* pitch markings */
+
+  /* borders */
+  --line-subtle: #1A2A22;
+  --line: #22342B;            /* card borders */
+  --line-mid: #2C4237;
+  --line-strong: #3A5246;     /* inputs, chips */
+
+  /* text */
+  --text: #F1EEE6;            /* primary, and the 2003-04 series */
+  --text-2: #C9D0CB;          /* secondary body */
+  --muted: #A3ADA7;           /* captions */
+  --faint: #7C8781;           /* placeholders */
+  --code-text: #E6E2D6;
+  --tooltip-muted: #4A544E;   /* secondary text on the light tooltip */
+
+  /* accent - red is split because one shade cannot serve both jobs on a dark
+     page: the light shade is readable as text, the deep shade carries white text */
+  --accent: #FF6B70;          /* red text and marks, the 2025-26 series, goals */
+  --accent-soft: #FF8F93;
+  --accent-hover: #FF7A7F;
+  --accent-strong: #E4343E;
+  --accent-fill: #C8202B;     /* buttons */
+  --on-accent: #FFFFFF;       /* text on accent-fill */
+
+  /* state: verified */
+  --verified: #9BEBC2;
+  --verified-strong: #7FE0AE;
+  --verified-bg: #13281E;
+  --verified-bg-2: #1E3A2C;
+  --verified-line: #2E5B44;
+
+  /* state: caveat, not available, sample-data tag */
+  --caveat: #E8C46A;
+  --caveat-strong: #F3D98E;
+  --caveat-text: #D9D3C0;
+  --caveat-bg: #1A1810;
+  --caveat-line: #4A4128;
+  --sample-line: #6B5A2A;
+
+  /* state: info (rate limit) */
+  --info: #A9D0F0;
+  --info-icon: #8EC0EA;
+  --info-line: #6FA8DC;
+
+  /* focus ring, and the highlighted shot on a chart */
+  --focus: #FFD27A;
+
+  /* type - the mockups load these from Google Fonts in styles/base.css */
+  --font-display: 'Barlow Condensed', sans-serif;  /* headlines, big numbers, uppercase labels */
+  --font-body: 'Source Sans 3', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;        /* SQL, tool ids */
+
+  /* scale */
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-pill: 999px;
+  --target-min: 44px;         /* smallest touch target */
+  --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.4);  /* tooltip */
+}

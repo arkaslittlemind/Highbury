@@ -1,0 +1,189 @@
+/* 04-compare: page-specific styles */
+
+.compare-div-1 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compare-div-2 {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.compare-div-3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px minmax(0, 1fr);
+  gap: 16px;
+  align-items: end;
+}
+
+.compare-div-4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.compare-div-5 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.compare-div-6 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.compare-div-7 {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.compare-div-8 {
+  text-align: right;
+}
+
+.compare-div-9 {
+  width: 100%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+}
+
+.page-compare {
+  width: 100%;
+  min-height: 1800px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.compare-div-11 {
+  width: 76%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+  opacity: 0.85;
+}
+
+.compare-div-12 {
+  width: 77%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+}
+
+.compare-div-13 {
+  width: 79%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+}
+
+.compare-div-14 {
+  width: 86%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+  opacity: 0.85;
+}
+
+.compare-div-15 {
+  width: 86%;
+  height: 22px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.compare-div-16 {
+  width: 87%;
+  height: 22px;
+  background: var(--text);
+  border-radius: 2px 0 0 2px;
+}
+
+.compare-figure-1 {
+  margin: 0;
+  background: var(--surface-chart);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.compare-form-1 {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line-mid);
+  border-radius: var(--radius-panel);
+}
+
+.compare-p-1 {
+  margin: 0;
+  max-width: 860px;
+  font-size: 21px;
+  line-height: 1.5;
+}
+
+.compare-span-1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.compare-span-2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compare-span-3 {
+  width: 14px;
+  height: 14px;
+  background: var(--text);
+  border-radius: 2px;
+}
+
+.compare-span-4 {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--bg) 35%, transparent) 3px 5px);
+}
+
+.compare-svg-1 {
+  flex: 0 0 22px;
+  margin-top: 2px;
+}

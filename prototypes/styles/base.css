@@ -1,0 +1,12 @@
+/* Base: reset, fonts, focus, motion */
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+body { margin: 0; background: var(--bg); }
+a { color: var(--text); }
+a:hover { color: var(--accent-hover); }
+button, input { font: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+input::placeholder { color: var(--faint); }
+summary { cursor: pointer; }
+@keyframes hbspin { to { transform: rotate(360deg); } }
+@keyframes hbpulse { 0%, 100% { opacity: .45; } 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

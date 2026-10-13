@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highbury — Answer with shot map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/answer.css">
+</head>
+<body>
+<div class="page-answer">
+
+<header class="site-header">
+<a href="01-landing.html" class="brand">
+<span class="brand__name">Highbury</span>
+<span class="caption">AI football analyst</span>
+</a>
+<div class="row-12">
+<span class="sample-tag">SAMPLE VALUES · LAYOUT ONLY</span>
+<a href="01-landing.html" class="btn-ghost">New question</a>
+</div>
+</header>
+
+<main class="page-main">
+
+<div class="shared-div-1">
+<span class="eyebrow">2003–04 · Arsenal 4–2 Liverpool</span>
+<h1 class="question-title">Show Henry's shots in the 4–2 win over Liverpool, April 2004. How did his goals compare with his xG?</h1>
+<div class="shared-div-4">
+<span class="verify-badge">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--verified)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>
+6 of 6 claims verified</span>
+<span>Answered in 3.1 s · 5 steps</span>
+<a href="#working" class="answer-a-1">Show the working</a>
+</div>
+</div>
+
+<div class="shared-div-5">
+
+<div class="answer-div-4">
+<p class="answer-p-1">Henry scored a hat-trick from 7 shots worth 1.46 xG — 1.54 goals above expectation. Five of his seven shots hit the target, and his three goals all came from central positions inside or on the edge of the box.</p>
+
+<div class="answer-div-3">
+<div class="stat-tile">
+<div class="answer-div-6">3</div>
+<div class="stat-tile__label">Goals</div>
+</div>
+<div class="stat-tile">
+<div class="answer-div-6">1.46</div>
+<div class="stat-tile__label">xG from 7 shots</div>
+</div>
+<div class="stat-tile">
+<div class="answer-div-7">+1.54</div>
+<div class="stat-tile__label">Goals minus xG</div>
+</div>
+</div>
+
+<details open="" class="shared-details-2">
+<summary class="panel-summary">
+<span class="shared-span-1">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--verified)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>
+Verification</span>
+<span class="answer-span-2">checked 6 · passed 6 · removed 0</span>
+</summary>
+<ul class="answer-ul-1">
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Goals: <strong>3</strong></span>
+<code class="tool-ref">call_04 · goals</code>
+</li>
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Shots: <strong>7</strong></span>
+<code class="tool-ref">call_04 · shots</code>
+</li>
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Shots on target: <strong>5</strong></span>
+<code class="tool-ref">call_04 · on_target</code>
+</li>
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Total xG: <strong>1.46</strong></span>
+<code class="tool-ref">call_04 · xg</code>
+</li>
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Goals minus xG: <strong>+1.54</strong></span>
+<code class="tool-ref">call_04 · g_minus_xg</code>
+</li>
+<li class="claim-row">
+<span aria-label="Passed" class="claim-mark">✓</span>
+<span>Biggest chance: <strong>0.52 xG</strong></span>
+<code class="tool-ref">call_03 · row 3</code>
+</li>
+</ul>
+</details>
+
+<div class="caveat">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--caveat)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="answer-svg-1"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.5"></path></svg>
+<div class="shared-div-2">
+<strong class="shared-strong-2">Caveat</strong>
+<span class="caveat-text">xG here is StatsBomb's model. It values the chance before the shot is struck, so finishing quality shows up as goals above xG.</span>
+</div>
+</div>
+</div>
+
+<figure class="shotmap-panel">
+<div class="answer-div-2">
+<h2 class="answer-h2-1">Henry · shot map</h2>
+<span class="caption">Attacking upward · size = xG</span>
+</div>
+<div class="answer-div-8">
+<svg role="img" aria-label="Shot map of Thierry Henry's 7 shots against Liverpool: 3 goals, 2 saved, 1 blocked, 1 off target, mostly central inside the penalty area." viewBox="-2 -4 84 66" class="chart-svg">
+<rect x="-2" y="-4" width="84" height="66" fill="var(--surface-chart)"></rect>
+<rect x="0" y="0" width="80" height="60" fill="var(--pitch)" stroke="var(--pitch-line)" stroke-width="0.3"></rect>
+<rect x="18" y="0" width="44" height="18" fill="none" stroke="var(--pitch-line)" stroke-width="0.3"></rect>
+<rect x="30" y="0" width="20" height="6" fill="none" stroke="var(--pitch-line)" stroke-width="0.3"></rect>
+<rect x="36" y="-1.6" width="8" height="1.6" fill="none" stroke="var(--text-2)" stroke-width="0.35"></rect>
+<circle cx="40" cy="12" r="0.4" fill="var(--pitch-line)"></circle>
+<path d="M32 18 A10 10 0 0 0 48 18" fill="none" stroke="var(--pitch-line)" stroke-width="0.3"></path>
+<path d="M30 60 A10 10 0 0 1 50 60" fill="none" stroke="var(--pitch-line)" stroke-width="0.3"></path>
+<line x1="53.35" y1="9.35" x2="56.65" y2="12.65" stroke="var(--muted)" stroke-width="0.5" stroke-linecap="round"></line>
+<line x1="53.35" y1="12.65" x2="56.65" y2="9.35" stroke="var(--muted)" stroke-width="0.5" stroke-linecap="round"></line>
+<polygon points="40,22.2 38.43,24.9 41.57,24.9" fill="none" stroke="var(--text-2)" stroke-width="0.45" stroke-linejoin="round"></polygon>
+<circle cx="30" cy="19" r="2.06" fill="var(--surface-chart)" fill-opacity="0.6" stroke="var(--text)" stroke-width="0.45"></circle>
+<circle cx="47" cy="14" r="2.7" fill="var(--surface-chart)" fill-opacity="0.6" stroke="var(--focus)" stroke-width="0.7"></circle>
+<circle cx="34" cy="17" r="2.39" fill="var(--accent)" stroke="var(--bg)" stroke-width="0.35"></circle>
+<circle cx="41" cy="10" r="3.59" fill="var(--accent)" fill-opacity="0.92" stroke="var(--bg)" stroke-width="0.35"></circle>
+<circle cx="44" cy="8" r="3.88" fill="var(--accent)" fill-opacity="0.92" stroke="var(--bg)" stroke-width="0.35"></circle>
+</svg>
+<div role="tooltip" class="shot-tooltip">
+<div class="answer-div-5">Saved · xG 0.18</div>
+<div>Right foot · open play</div>
+<div class="answer-div-1">Minute [—] · from v_shots row 4</div>
+</div>
+</div>
+<ul aria-label="Legend" class="answer-ul-2">
+<li class="legend-item"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="var(--accent)"></circle></svg>Goal</li>
+<li class="legend-item"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="var(--text)" stroke-width="1.6"></circle></svg>Saved</li>
+<li class="legend-item"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,2 14,13 2,13" fill="none" stroke="var(--text-2)" stroke-width="1.6" stroke-linejoin="round"></polygon></svg>Blocked</li>
+<li class="legend-item"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"></path></svg>Off target</li>
+<li class="legend-item--v2"><svg aria-hidden="true" width="40" height="16" viewBox="0 0 40 16"><circle cx="5" cy="8" r="2.5" fill="none" stroke="var(--faint)"></circle><circle cx="17" cy="8" r="4.5" fill="none" stroke="var(--faint)"></circle><circle cx="32" cy="8" r="7" fill="none" stroke="var(--faint)"></circle></svg>Low → high xG</li>
+</ul>
+<figcaption class="shared-figcaption-1"><strong class="shared-strong-1">Chart summary.</strong> 7 shots: 3 goals (xG 0.52, 0.42, 0.12), 2 saved, 1 blocked, 1 off target. Six of seven came from inside the penalty area, all but one from a central channel.</figcaption>
+</figure>
+</div>
+
+<details id="working" open="" class="shared-details-1">
+<summary class="answer-summary-1">
+<span class="answer-span-1">Show the working</span>
+<span class="answer-span-2">5 tool calls · 3.1 s · [tokens] · [$ cost]</span>
+</summary>
+<ol class="answer-ol-1">
+<li class="tool-call">
+<span class="text-faint">call_01</span><span class="sql-kw">get_data_catalog</span><span class="text-2-inline">season = "2003–04"</span><span class="text-muted">1 row</span>
+</li>
+<li class="tool-call">
+<span class="text-faint">call_02</span><span class="sql-kw">resolve_player</span><span class="text-2-inline">"Henry" → Thierry Henry (match 0.98)</span><span class="text-muted">1 row</span>
+</li>
+<li class="tool-call--v2">
+<span class="text-faint">call_03</span><span class="sql-kw">run_sql</span>
+<pre class="sql-block"><span class="sql-kw">SELECT</span> x, y, xg, outcome, body_part, play_pattern
+<span class="sql-kw">FROM</span>   v_shots
+<span class="sql-kw">WHERE</span>  season_label = <span class="caveat-mark">'2003–04'</span>
+  <span class="sql-kw">AND</span>  player_name  = <span class="caveat-mark">'Thierry Henry'</span>
+  <span class="sql-kw">AND</span>  opponent     = <span class="caveat-mark">'Liverpool'</span>
+<span class="sql-kw">ORDER BY</span> xg <span class="sql-kw">DESC</span>
+<span class="sql-kw">LIMIT</span>  200;</pre>
+<span class="text-muted">7 rows</span>
+</li>
+<li class="tool-call--v2">
+<span class="text-faint">call_04</span><span class="sql-kw">run_sql</span>
+<pre class="sql-block"><span class="sql-kw">SELECT</span> COUNT(*) <span class="sql-kw">AS</span> shots,
+       COUNT(*) <span class="sql-kw">FILTER</span> (<span class="sql-kw">WHERE</span> outcome = <span class="caveat-mark">'Goal'</span>) <span class="sql-kw">AS</span> goals,
+       COUNT(*) <span class="sql-kw">FILTER</span> (<span class="sql-kw">WHERE</span> on_target) <span class="sql-kw">AS</span> on_target,
+       ROUND(SUM(xg), 2) <span class="sql-kw">AS</span> xg,
+       ROUND(goals - SUM(xg), 2) <span class="sql-kw">AS</span> g_minus_xg
+<span class="sql-kw">FROM</span>   v_shots <span class="text-faint">-- same filters as call_03</span>
+<span class="sql-kw">LIMIT</span>  1;</pre>
+<span class="text-muted">1 row</span>
+</li>
+<li class="tool-call">
+<span class="text-faint">call_05</span><span class="sql-kw">build_chart</span><span class="text-2-inline">shot_map · source call_03 · spec valid</span><span class="text-verified">ok</span>
+</li>
+</ol>
+</details>
+
+<form class="answer-form-1">
+<label for="followup" class="answer-label-1">Ask a follow-up</label>
+<div class="shared-div-6">
+<input id="followup" type="text" placeholder="e.g. Now show his whole season" class="shared-input-1">
+<button type="submit" class="shared-button-1">Ask</button>
+</div>
+<div class="wrap-10">
+<button type="button" class="chip">His whole 2003–04 season</button>
+<button type="button" class="chip">Pires in the same match</button>
+<button type="button" class="chip">Only the shots inside the box</button>
+</div>
+</form>
+</main>
+
+<footer class="site-footer">Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier League.</footer>
+</div>
+</body>
+</html>

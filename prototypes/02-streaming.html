@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highbury — Agent working</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/streaming.css">
+</head>
+<body>
+<div class="page-streaming">
+
+<header class="site-header">
+<a href="01-landing.html" class="brand">
+<span class="brand__name">Highbury</span>
+<span class="caption">AI football analyst</span>
+</a>
+<a href="01-landing.html" class="btn-ghost">New question</a>
+</header>
+
+<main class="page-main">
+
+<div class="streaming-div-3">
+<span class="eyebrow">Your question</span>
+<h1 class="question-title">Show Henry's shots in the 4–2 win over Liverpool, April 2004. How did his goals compare with his xG?</h1>
+</div>
+
+<div class="shared-div-5">
+
+<section aria-labelledby="steps-title" aria-live="polite" class="streaming-section-1">
+<div class="streaming-div-5">
+<h2 id="steps-title" class="streaming-h2-1">Analyst at work</h2>
+<span class="streaming-span-4">2.4 s</span>
+</div>
+<ol class="streaming-ol-1">
+
+<li class="step">
+<span aria-hidden="true" class="streaming-span-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--verified-strong)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+<div class="streaming-div-1">
+<span class="step__label">Reading the data catalog</span>
+<span class="caption">2003–04 has shots with StatsBomb xG</span>
+</div>
+</li>
+
+<li class="step">
+<span aria-hidden="true" class="streaming-span-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--verified-strong)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+<div class="streaming-div-1">
+<span class="step__label">Resolving players</span>
+<span class="caption">“Henry” → Thierry Henry · 1 match</span>
+</div>
+</li>
+
+<li class="step">
+<span aria-hidden="true" class="streaming-span-3"></span>
+<div class="streaming-div-2">
+<span class="step__label">Querying shots</span>
+<code class="streaming-code-1">run_sql · v_shots</code>
+</div>
+</li>
+
+<li class="step--v2">
+<span aria-hidden="true" class="streaming-span-2"></span>
+<span class="step__label">Building the shot map</span>
+</li>
+
+<li class="streaming-li-1">
+<span aria-hidden="true" class="streaming-span-2"></span>
+<span class="step__label">Verifying claims</span>
+</li>
+</ol>
+<button type="button" class="streaming-button-1">Stop</button>
+</section>
+
+<section aria-label="Answer loading" class="streaming-section-2">
+<div class="streaming-div-4">
+<div class="skeleton-tile"></div>
+<div class="skeleton-tile"></div>
+<div class="skeleton-tile"></div>
+</div>
+<div class="streaming-div-7"></div>
+<div class="streaming-div-6"></div>
+<div class="streaming-div-8">
+<svg aria-hidden="true" viewBox="-2 -4 84 66" class="streaming-svg-1">
+<rect x="0" y="0" width="80" height="60" fill="none" stroke="var(--line-strong)" stroke-width="0.35"></rect>
+<rect x="18" y="0" width="44" height="18" fill="none" stroke="var(--line-strong)" stroke-width="0.35"></rect>
+<rect x="30" y="0" width="20" height="6" fill="none" stroke="var(--line-strong)" stroke-width="0.35"></rect>
+<path d="M32 18 A10 10 0 0 0 48 18" fill="none" stroke="var(--line-strong)" stroke-width="0.35"></path>
+<path d="M30 60 A10 10 0 0 1 50 60" fill="none" stroke="var(--line-strong)" stroke-width="0.35"></path>
+</svg>
+<span class="streaming-span-5">The shot map appears once the data is back</span>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body>
+</html>

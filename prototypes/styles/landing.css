@@ -1,0 +1,252 @@
+/* 01-landing: page-specific styles */
+
+.landing-button-1 {
+  flex: 0 0 auto;
+  height: 64px;
+  padding: 0 32px;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: var(--radius-control);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.landing-div-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.landing-div-2 {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0 4px 12px;
+}
+
+.landing-div-3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.landing-div-4 {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.landing-div-5 {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.page-landing {
+  width: 100%;
+  min-height: 1760px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.landing-figure-1 {
+  flex: 1 1 460px;
+  min-width: 0;
+  margin: 0;
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--surface-chart);
+  border-radius: var(--radius-control);
+  padding: 20px;
+}
+
+.landing-form-1 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line-mid);
+  border-radius: var(--radius-panel);
+}
+
+.landing-h1-1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 104px;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.landing-h2-1 {
+  margin: 0 0 20px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 36px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.landing-h2-2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 36px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.landing-input-1 {
+  flex: 1 1 480px;
+  min-width: 0;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 0 22px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: 20px;
+}
+
+.landing-label-1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.landing-main-1 {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.landing-nav-1 {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  font-size: 15px;
+}
+
+.landing-ol-1 {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.landing-p-1 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.landing-p-2 {
+  margin: 0;
+  max-width: 540px;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.landing-p-3 {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.landing-section-1 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 56px;
+  align-items: center;
+  padding: 72px 0 48px;
+}
+
+.landing-section-2 {
+  padding: 40px 0 64px;
+}
+
+.landing-section-3 {
+  padding: 40px 0;
+  border-top: 1px solid var(--line);
+}
+
+.landing-section-4 {
+  padding: 8px 0 56px;
+}
+
+.landing-span-1 {
+  color: var(--text);
+}
+
+.landing-span-2 {
+  color: var(--accent);
+}
+
+.landing-span-3 {
+  width: 28px;
+  height: 3px;
+  background: var(--accent-strong);
+}
+
+.landing-table-1 {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.landing-th-1 {
+  padding: 16px 20px;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.landing-th-2 {
+  padding: 16px 20px;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--accent);
+}
+
+.landing-tr-1 {
+  background: var(--surface);
+  text-align: left;
+}
+
+.landing-tr-2 {
+  border-top: 1px solid var(--line);
+}

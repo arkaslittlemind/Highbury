@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highbury — Ask the Analyst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/landing.css">
+</head>
+<body>
+<div class="page-landing">
+
+<header class="site-header">
+<a href="01-landing.html" class="brand">
+<span class="brand__name">Highbury</span>
+<span class="caption">AI football analyst</span>
+</a>
+<nav aria-label="Primary" class="landing-nav-1">
+<a href="#how" class="nav-link">How it works</a>
+</nav>
+</header>
+
+<main class="landing-main-1">
+
+<section aria-labelledby="hero-title" class="landing-section-1">
+<div class="landing-div-4">
+<div class="row-10--v2">
+<span aria-hidden="true" class="landing-span-3"></span>
+Two seasons. One analyst.
+</div>
+<h1 id="hero-title" class="landing-h1-1">The Invincibles<br><span class="landing-span-2">↔</span> 2025–26</h1>
+<p class="landing-p-2">Ask anything about Arsenal's 2003–04 and 2025–26 league seasons in plain English. Every number is checked against the data before you see it — and when the data can't answer, Highbury says so.</p>
+</div>
+
+<figure aria-hidden="true" class="landing-figure-1">
+<div class="landing-div-2">
+<span class="landing-span-1">2003–04 · StatsBomb</span>
+<span class="landing-span-2">Understat · 2025–26</span>
+</div>
+<svg viewBox="-2 -2 124 84" class="chart-svg">
+<rect x="0" y="0" width="120" height="80" fill="var(--pitch)" stroke="var(--line-strong)" stroke-width="0.4"></rect>
+<rect x="0" y="0" width="60" height="80" fill="var(--pitch-alt)"></rect>
+<line x1="60" y1="0" x2="60" y2="80" stroke="var(--line-strong)" stroke-width="0.4"></line>
+<circle cx="60" cy="40" r="10" fill="none" stroke="var(--line-strong)" stroke-width="0.4"></circle>
+<rect x="0" y="18" width="18" height="44" fill="none" stroke="var(--line-strong)" stroke-width="0.4"></rect>
+<rect x="0" y="30" width="6" height="20" fill="none" stroke="var(--line-strong)" stroke-width="0.4"></rect>
+<rect x="102" y="18" width="18" height="44" fill="none" stroke="var(--line-strong)" stroke-width="0.4"></rect>
+<rect x="114" y="30" width="6" height="20" fill="none" stroke="var(--line-strong)" stroke-width="0.4"></rect>
+<circle cx="14" cy="34" r="2.6" fill="var(--text)" opacity="0.9"></circle>
+<circle cx="10" cy="42" r="3.4" fill="var(--text)" opacity="0.9"></circle>
+<circle cx="19" cy="47" r="1.8" fill="none" stroke="var(--text)" stroke-width="0.4"></circle>
+<circle cx="24" cy="31" r="1.5" fill="none" stroke="var(--text)" stroke-width="0.4"></circle>
+<circle cx="8" cy="37" r="2.2" fill="var(--text)" opacity="0.9"></circle>
+<circle cx="27" cy="52" r="1.3" fill="none" stroke="var(--text)" stroke-width="0.4"></circle>
+<circle cx="106" cy="38" r="2.8" fill="var(--accent)"></circle>
+<circle cx="111" cy="44" r="3.2" fill="var(--accent)"></circle>
+<circle cx="101" cy="49" r="1.7" fill="none" stroke="var(--accent)" stroke-width="0.4"></circle>
+<circle cx="96" cy="33" r="1.4" fill="none" stroke="var(--accent)" stroke-width="0.4"></circle>
+<circle cx="113" cy="35" r="2.1" fill="var(--accent)"></circle>
+<circle cx="93" cy="47" r="1.2" fill="none" stroke="var(--accent)" stroke-width="0.4"></circle>
+</svg>
+<div class="landing-div-3">
+<span>26 W · 12 D · 0 L</span>
+<span>Shots · xG · player stats</span>
+</div>
+</figure>
+</section>
+
+<section aria-labelledby="ask-label" class="landing-section-4">
+<form class="landing-form-1">
+<label id="ask-label" for="ask" class="landing-label-1">Ask the Analyst</label>
+<div class="shared-div-6">
+<input id="ask" type="text" placeholder="e.g. Show Henry's shots in the 4–2 win over Liverpool, April 2004" class="landing-input-1">
+<button type="submit" class="landing-button-1">Ask</button>
+</div>
+<div class="wrap-10--v2">
+<span class="caption--v2">Try</span>
+<button type="button" class="chip">Henry's shot map, 2003–04</button>
+<button type="button" class="chip">Pires 2003–04 vs Saka 2025–26</button>
+<button type="button" class="chip">Who created the most chances in 2025–26?</button>
+<button type="button" class="chip">Team xG per match: then vs now</button>
+</div>
+<p class="landing-p-1">Arsenal Premier League only · 2003–04 and 2025–26 · answers cite their SQL</p>
+</form>
+</section>
+
+<section id="how" aria-labelledby="how-title" class="landing-section-3">
+<div class="landing-div-1">
+<h2 id="how-title" class="landing-h2-2">How it works</h2>
+</div>
+<ol class="landing-ol-1">
+<li class="how-card">
+<div class="row-12">
+<span class="how-card__num">01</span>
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h10"></path></svg>
+</div>
+<h3 class="how-card__title">Data catalog first</h3>
+<p class="text-2">The agent reads what each season actually holds before it writes a query — so it knows 2025–26 has shots but no passes.</p>
+</li>
+<li class="how-card">
+<div class="row-12">
+<span class="how-card__num">02</span>
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+</div>
+<h3 class="how-card__title">Read-only SQL</h3>
+<p class="text-2">One SELECT per call, checked by a parser and run as a read-only role with a 5-second timeout and a row cap.</p>
+</li>
+<li class="how-card">
+<div class="row-12">
+<span class="how-card__num">03</span>
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>
+</div>
+<h3 class="how-card__title">Claim verifier</h3>
+<p class="text-2">Plain code checks every number against the tool output it cites. Anything unsupported is removed before you see it.</p>
+</li>
+</ol>
+</section>
+
+<section id="data" aria-labelledby="data-title" class="landing-section-2">
+<h2 id="data-title" class="landing-h2-1">What each season can answer</h2>
+<div class="landing-div-5">
+<table class="landing-table-1">
+<thead>
+<tr class="landing-tr-1">
+<th scope="col" class="table__th">Season</th>
+<th scope="col" class="table__th">Source</th>
+<th scope="col" class="table__th">Shots + xG</th>
+<th scope="col" class="table__th">Passes &amp; events</th>
+<th scope="col" class="table__th">Player match stats</th>
+</tr>
+</thead>
+<tbody>
+<tr class="landing-tr-2">
+<th scope="row" class="landing-th-1">2003–04</th>
+<td class="table__td--v3">StatsBomb Open Data</td>
+<td class="table__td">✓ Available · StatsBomb xG</td>
+<td class="table__td">✓ Available</td>
+<td class="table__td">✓ Available</td>
+</tr>
+<tr class="landing-tr-2">
+<th scope="row" class="landing-th-2">2025–26</th>
+<td class="table__td--v3">Understat</td>
+<td class="table__td">✓ Available · Understat xG</td>
+<td class="table__td--v2">— Not in dataset</td>
+<td class="table__td">✓ Available</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="landing-p-3">Cross-era comparisons use only shared metrics. The two xG models differ, so compare shapes and ranks, not decimals.</p>
+</section>
+</main>
+
+<footer class="site-footer--v2">
+<span>Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier League.</span>
+<span>Data: StatsBomb Open Data · Understat</span>
+</footer>
+</div>
+</body>
+</html>
