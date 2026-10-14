@@ -58,7 +58,7 @@ def test_the_prompt_holds_each_rule(text, rule):
 
 
 def test_the_prompt_holds_the_sql_examples(text):
-    assert 4 <= len(prompt.SQL_EXAMPLES) <= 6
+    assert 4 <= len(prompt.SQL_EXAMPLES) <= 8
     for purpose, sql in prompt.SQL_EXAMPLES:
         assert purpose in text
         assert sql in text
@@ -78,3 +78,26 @@ def test_the_shot_examples_make_charts(seeded):
 
     assert chart.ok, chart.error
     assert len(chart.chart.shots) == 2
+
+
+def test_the_pass_examples_make_a_network_and_its_totals(liverpool_home):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart(
+        "pass_network", by_purpose[prompt.PASS_NETWORK_EXAMPLE], "Arsenal v Liverpool"
+    )
+    totals = tools.run_sql(by_purpose[prompt.PASS_TOTALS_EXAMPLE])
+
+    assert chart.ok, chart.error
+    # The failed pass of Henry and the pass of Liverpool are not in the network.
+    assert [node.model_dump() for node in chart.chart.nodes] == [
+        {"player": "Robert Pirès", "x": 50.0, "y": 30.0, "passes": 1},
+        {"player": "Thierry Henry", "x": 70.0, "y": 30.0, "passes": 2},
+    ]
+    assert [edge.model_dump() for edge in chart.chart.edges] == [
+        {"source": "Robert Pirès", "target": "Thierry Henry", "passes": 1},
+        {"source": "Thierry Henry", "target": "Robert Pirès", "passes": 2},
+    ]
+    # The claims count the same passes that the chart draws.
+    assert totals.ok, totals.error
+    assert (totals.columns, totals.rows) == (["completed_passes", "passers"], [[3, 2]])

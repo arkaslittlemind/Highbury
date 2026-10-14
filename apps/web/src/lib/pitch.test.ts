@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isInPenaltyArea, toPitchPoint, viewBoxOf } from "@/lib/pitch";
+import { isInPenaltyArea, toPitchPoint, tooltipPlaceAt, viewBoxOf } from "@/lib/pitch";
 
 describe("toPitchPoint", () => {
   it("puts the centre of the goal line of the attack at the top", () => {
@@ -32,6 +32,23 @@ describe("viewBoxOf", () => {
 
   it("shows the full pitch", () => {
     expect(viewBoxOf("full")).toEqual({ minX: -2, minY: -4, width: 84, height: 126 });
+  });
+});
+
+describe("tooltipPlaceAt", () => {
+  it("is below a mark in the top half of the full pitch", () => {
+    // The box of the full view is 84 x 126 from -2, -4.
+    const place = tooltipPlaceAt({ x: 40, y: 20 }, 3, "full");
+
+    expect(place).toEqual({ left: 50, top: (27 / 126) * 100, side: "below" });
+  });
+
+  it("is above a mark in the bottom half of the full pitch", () => {
+    const place = tooltipPlaceAt({ x: 80, y: 100 }, 3, "full");
+
+    expect(place.side).toBe("above");
+    expect(place.left).toBeCloseTo((82 / 84) * 100);
+    expect(place.top).toBeCloseTo((101 / 126) * 100);
   });
 });
 

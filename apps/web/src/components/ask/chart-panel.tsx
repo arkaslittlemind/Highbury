@@ -1,20 +1,10 @@
-import { ChartTitle } from "@/components/charts/chart-title";
 import { CompareBars } from "@/components/charts/compare-bars";
+import { PassNetwork } from "@/components/charts/pass-network";
 import { ShotMap } from "@/components/charts/shot-map";
 import type { ChartSpec } from "@/lib/analyst-schema";
 
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
-function countsText(chart: Extract<ChartSpec, { type: "pass_network" }>): string {
-  return `${plural(chart.nodes.length, "player", "players")}, ${plural(chart.edges.length, "passing link", "passing links")}`;
-}
-
 /**
- * The place of one chart of an answer. A shot map and a comparison are drawn. The
- * drawing of the pass network comes with a later feature. Null means that no valid chart
- * came for the id.
+ * The place of one chart of an answer. Null means that no valid chart came for the id.
  */
 export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
   if (!chart) {
@@ -35,12 +25,7 @@ export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
       ) : chart.type === "compare_bars" ? (
         <CompareBars chart={chart} />
       ) : (
-        <>
-          <ChartTitle>{chart.title}</ChartTitle>
-          <figcaption className="border-t pt-3.5 text-[15px] text-foreground-2">
-            {countsText(chart)}
-          </figcaption>
-        </>
+        <PassNetwork chart={chart} />
       )}
     </figure>
   );

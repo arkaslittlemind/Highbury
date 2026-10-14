@@ -91,7 +91,7 @@ def test_the_health_path_says_ok(serve):
     assert response.json() == {"status": "ok"}
 
 
-def test_the_suggestions_are_the_three_demo_questions(serve):
+def test_the_suggestions_are_the_demo_questions_and_the_pass_network(serve):
     client, _ = serve()
 
     response = client.get("/api/suggestions")
@@ -102,6 +102,7 @@ def test_the_suggestions_are_the_three_demo_questions(serve):
             "Show me Thierry Henry's shots in 2003-04.",
             "Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90.",
             "Show Saka's pass map from 2025-26.",
+            "Show Arsenal's pass network vs Liverpool at home.",
         ]
     }
 

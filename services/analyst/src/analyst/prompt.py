@@ -37,6 +37,15 @@ RULES = (
 )
 
 SHOT_MAP_EXAMPLE = "The shots of one player in one season, for a shot_map chart"
+PASS_NETWORK_EXAMPLE = "The completed passes of Arsenal in one match, for a pass_network chart"
+PASS_TOTALS_EXAMPLE = "The completed passes of Arsenal in the same match, for the claims"
+
+# The passes that a pass network draws: completed passes of Arsenal in one match.
+LIVERPOOL_HOME_PASSES = (
+    "FROM v_passes WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL"
+    " AND match_id = (SELECT match_id FROM v_matches WHERE season = '2003-04'"
+    " AND home_team = 'Arsenal' AND away_team = 'Liverpool')"
+)
 
 # (what the query is for, the query). Each one must run on the views as they are:
 # a test runs them all.
@@ -74,6 +83,17 @@ SQL_EXAMPLES = (
         "SELECT x, y, xg, outcome, minute, opponent, player, season, match_date FROM v_shots"
         " WHERE player = 'Thierry Henry' AND season = '2003-04'"
         " AND x >= 102 AND y BETWEEN 18 AND 62 ORDER BY match_date, minute",
+    ),
+    (
+        PASS_NETWORK_EXAMPLE,
+        "SELECT player, recipient, count(*) AS passes, round(avg(x)::numeric, 2) AS x,"
+        f" round(avg(y)::numeric, 2) AS y {LIVERPOOL_HOME_PASSES}"
+        " GROUP BY player, recipient ORDER BY player, recipient",
+    ),
+    (
+        PASS_TOTALS_EXAMPLE,
+        "SELECT count(*) AS completed_passes, count(DISTINCT player) AS passers"
+        f" {LIVERPOOL_HOME_PASSES}",
     ),
 )
 

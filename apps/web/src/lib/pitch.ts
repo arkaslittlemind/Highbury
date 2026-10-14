@@ -45,6 +45,29 @@ export function viewBoxOf(view: PitchView): ViewBox {
   };
 }
 
+export type TooltipPlace = {
+  // The centre of the mark, as a percentage of the width of the drawing.
+  left: number;
+  // The edge of the mark that the tooltip touches, as a percentage of the height.
+  top: number;
+  side: "above" | "below";
+};
+
+/**
+ * Where the tooltip of a mark goes on a view: on the side of the mark that has more
+ * room, touching the mark at its reach from the point.
+ */
+export function tooltipPlaceAt(point: SvgPoint, reach: number, view: PitchView): TooltipPlace {
+  const box = viewBoxOf(view);
+  const side = point.y - box.minY < box.height / 2 ? "below" : "above";
+  const edge = side === "below" ? point.y + reach : point.y - reach;
+  return {
+    left: ((point.x - box.minX) / box.width) * 100,
+    top: ((edge - box.minY) / box.height) * 100,
+    side,
+  };
+}
+
 /** True for a data coordinate in the penalty area of the attack, its lines included. */
 export function isInPenaltyArea(x: number, y: number): boolean {
   return (

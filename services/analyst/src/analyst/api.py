@@ -35,6 +35,7 @@ SUGGESTIONS = (
     "Show me Thierry Henry's shots in 2003-04.",
     "Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90.",
     "Show Saka's pass map from 2025-26.",
+    "Show Arsenal's pass network vs Liverpool at home.",
 )
 
 # What a visitor reads while a tool runs.

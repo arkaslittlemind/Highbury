@@ -4,6 +4,7 @@ import { useRef, useState, type KeyboardEvent } from "react";
 
 import { ChartTitle } from "@/components/charts/chart-title";
 import { Pitch } from "@/components/charts/pitch";
+import { PitchTooltip } from "@/components/charts/pitch-tooltip";
 import { toPitchPoint } from "@/lib/pitch";
 import {
   OUTCOME_KINDS,
@@ -19,7 +20,6 @@ import {
   tooltipPlace,
   withoutKinds,
   type OutcomeKind,
-  type Shot,
   type ShotMapSpec,
 } from "@/lib/shot-map";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,6 @@ import { cn } from "@/lib/utils";
 const MIN_HIT_RADIUS = 3;
 // The ring of the active mark is this far outside the mark, in pitch units.
 const RING_GAP = 0.8;
-// The width of the tooltip: w-52.
-const TOOLTIP_WIDTH = "13rem";
 
 const STROKE = { strokeWidth: 1.5, vectorEffect: "non-scaling-stroke" } as const;
 const HOLLOW = "fill-surface-chart/60";
@@ -144,36 +142,6 @@ function Legend({ kinds, hidden, onToggle }: LegendProps) {
         Low → high xG
       </li>
     </ul>
-  );
-}
-
-function Tooltip({ shot }: { shot: Shot }) {
-  const place = tooltipPlace(shot);
-  const [heading, ...lines] = tooltipLines(shot);
-  return (
-    // The label of the mark has the same text, so a screen reader does not need this.
-    <div
-      aria-hidden="true"
-      className={cn(
-        "pointer-events-none absolute z-10 w-52 rounded-lg bg-foreground px-3.5 py-3 text-sm leading-snug text-background shadow-pop",
-        place.side === "below" ? "mt-2" : "mb-2",
-      )}
-      // The place comes from the data of the shot, so it cannot be a class.
-      // clamp() keeps the tooltip inside the drawing.
-      style={{
-        left: `clamp(0px, calc(${place.left}% - ${TOOLTIP_WIDTH} / 2), calc(100% - ${TOOLTIP_WIDTH}))`,
-        ...(place.side === "below"
-          ? { top: `${place.top}%` }
-          : { bottom: `${100 - place.top}%` }),
-      }}
-    >
-      <div className="font-bold">{heading}</div>
-      {lines.map((line, index) => (
-        <div key={index} className={cn(index > 0 && "text-tooltip-muted")}>
-          {line}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -293,7 +261,9 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
             />
           )}
         </Pitch>
-        {activeShot && !tooltipHidden && <Tooltip shot={activeShot} />}
+        {activeShot && !tooltipHidden && (
+          <PitchTooltip place={tooltipPlace(activeShot)} lines={tooltipLines(activeShot)} />
+        )}
       </div>
       <Legend
         kinds={OUTCOME_KINDS.filter((kind) => drawnKinds.has(kind))}

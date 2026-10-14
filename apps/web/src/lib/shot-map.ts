@@ -1,7 +1,13 @@
 import { scaleSqrt } from "d3-scale";
 
 import type { ChartSpec } from "@/lib/analyst-schema";
-import { PITCH_LENGTH, isInPenaltyArea, toPitchPoint, viewBoxOf } from "@/lib/pitch";
+import {
+  PITCH_LENGTH,
+  isInPenaltyArea,
+  toPitchPoint,
+  tooltipPlaceAt,
+  type TooltipPlace,
+} from "@/lib/pitch";
 
 export type ShotMapSpec = Extract<ChartSpec, { type: "shot_map" }>;
 export type Shot = ShotMapSpec["shots"][number];
@@ -133,26 +139,9 @@ export function tooltipLines(shot: Shot): string[] {
   return lines;
 }
 
-export type TooltipPlace = {
-  // The centre of the mark, as a percentage of the width of the drawing.
-  left: number;
-  // The edge of the mark that the tooltip touches, as a percentage of the height.
-  top: number;
-  side: "above" | "below";
-};
-
 /** Where the tooltip of a shot goes. It is on the side of the mark that has more room. */
 export function tooltipPlace(shot: Shot): TooltipPlace {
-  const box = viewBoxOf("attacking-half");
-  const point = toPitchPoint(shot.x, shot.y);
-  const side = point.y - box.minY < box.height / 2 ? "below" : "above";
-  const reach = shotRadius(shot.xg);
-  const edge = side === "below" ? point.y + reach : point.y - reach;
-  return {
-    left: ((point.x - box.minX) / box.width) * 100,
-    top: ((edge - box.minY) / box.height) * 100,
-    side,
-  };
+  return tooltipPlaceAt(toPitchPoint(shot.x, shot.y), shotRadius(shot.xg), "attacking-half");
 }
 
 /** The shot that a key moves to, or null for a key that does not move. The list does not wrap. */

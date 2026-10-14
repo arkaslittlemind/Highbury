@@ -1,5 +1,6 @@
 import os
 from collections.abc import Callable, Iterator
+from dataclasses import replace
 from datetime import date
 from urllib.parse import urlsplit, urlunsplit
 
@@ -23,16 +24,18 @@ def pass_event(source_id, player, recipient, x, y):
     )
 
 
-def season(season_id, label, source, players, shots=(), events=()) -> load.SeasonRows:
+def season(
+    season_id, label, source, players, shots=(), events=(), opponent="Everton"
+) -> load.SeasonRows:
     """One Arsenal home match. Each player is (source id, name, source name, team)."""
     return load.SeasonRows(
         season_id=season_id,
         season_label=label,
         data_level="SHOT",
         source=source,
-        teams=["Arsenal", "Everton"],
+        teams=["Arsenal", opponent],
         players=[load.PlayerRow(pid, name, alias, None) for pid, name, alias, _ in players],
-        matches=[load.MatchRow("m1", date(season_id, 8, 16), "Arsenal", "Everton", 2, 1, None)],
+        matches=[load.MatchRow("m1", date(season_id, 8, 16), "Arsenal", opponent, 2, 1, None)],
         shots=list(shots),
         events=list(events),
         stats=[load.StatRow(pid, "m1", team, 90, 0, 0, None, None) for pid, _, _, team in players],
@@ -132,4 +135,33 @@ def seeded(analyst_env, ingest):
     )
     curated.load_catalog(ingest)
     # The tools open their own connections, so they must see these rows.
+    ingest.commit()
+
+
+@pytest.fixture
+def liverpool_home(analyst_env, ingest):
+    """The 2003-04 home match against Liverpool, with the passes of a small network."""
+    load.load(
+        ingest,
+        season(
+            2003,
+            "2003-04",
+            "statsbomb",
+            [
+                ("10", "Thierry Henry", "Thierry Henry", "Arsenal"),
+                ("11", "Robert Pirès", "Robert Pirès", "Arsenal"),
+                ("14", "Steven Gerrard", "Steven Gerrard", "Liverpool"),
+                ("15", "Jamie Carragher", "Jamie Carragher", "Liverpool"),
+            ],
+            events=[
+                pass_event("e1", "10", "11", 60.0, 40.0),
+                pass_event("e2", "10", "11", 80.0, 20.0),
+                pass_event("e3", "11", "10", 50.0, 30.0),
+                pass_event("e4", "10", None, 100.0, 70.0),
+                # Completed and received, so only the team leaves it out.
+                replace(pass_event("e5", "14", "15", 40.0, 40.0), team="Liverpool"),
+            ],
+            opponent="Liverpool",
+        ),
+    )
     ingest.commit()
