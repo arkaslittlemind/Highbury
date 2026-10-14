@@ -177,6 +177,18 @@ def test_a_read_only_select_on_the_views_is_accepted(sql):
     assert guard(sql).sql
 
 
+# Player names have letters outside ASCII. Only a function name must be ASCII.
+@pytest.mark.parametrize(
+    ("sql", "text"),
+    [
+        ("SELECT player, goals FROM v_player_season WHERE player ILIKE '%Pirès%'", "Pirès"),
+        ('SELECT goals AS "buts marqués" FROM v_player_season', "buts marqués"),
+    ],
+)
+def test_text_outside_a_function_name_can_have_any_letter(sql, text):
+    assert text in guard(sql).sql
+
+
 def limited(sql: str) -> tuple[str, bool]:
     result = guard(sql)
     return result.sql, result.capped
