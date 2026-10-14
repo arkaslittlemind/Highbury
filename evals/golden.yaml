@@ -1,0 +1,143 @@
+# The golden questions of the evals. Each answered question has hand-written SQL:
+# the number cells of its first row are the values that the answer must claim.
+# The runner reads the SQL as analyst_ro, so it follows the rules of run_sql.
+#
+# status: answered | unavailable | out_of_scope
+# chart: the chart type that the answer must show, or null for none
+# before: questions asked first in the same conversation, not scored
+
+- id: q01
+  question: Show me Thierry Henry's shots in 2003-04.
+  status: answered
+  chart: shot_map
+  sql: >-
+    SELECT count(*) AS shots FROM v_shots
+    WHERE player = 'Thierry Henry' AND season = '2003-04'
+  note: Demo question 1.
+
+- id: q02
+  question: Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90.
+  status: answered
+  chart: compare_bars
+  sql: >-
+    SELECT
+    (SELECT goals FROM v_player_season
+    WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_goals,
+    (SELECT goals FROM v_player_season
+    WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_goals,
+    (SELECT round((xg * 90.0 / minutes)::numeric, 2) FROM v_player_season
+    WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_xg_per_90,
+    (SELECT round((xg * 90.0 / minutes)::numeric, 2) FROM v_player_season
+    WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_xg_per_90
+  note: Demo question 2. The answer also needs the caveat on the two xG models.
+
+- id: q03
+  question: Show Saka's pass map from 2025-26.
+  status: unavailable
+  chart: null
+  note: Demo question 3. Understat has no pass events.
+
+- id: q04
+  question: Only the ones inside the box.
+  before:
+    - Show me Thierry Henry's shots in 2003-04.
+  status: answered
+  chart: shot_map
+  sql: >-
+    SELECT count(*) AS shots_in_box FROM v_shots
+    WHERE player = 'Thierry Henry' AND season = '2003-04'
+    AND x >= 102 AND y BETWEEN 18 AND 62
+  note: Demo question 4, a follow-up. The box is the penalty area of the prompt.
+
+- id: q05
+  question: Who will win the Champions League?
+  status: out_of_scope
+  chart: null
+  note: Demo question 5. No tool call.
+
+- id: q06
+  question: How many league goals did Thierry Henry score in 2003-04?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT goals FROM v_player_season
+    WHERE player = 'Thierry Henry' AND season = '2003-04'
+
+- id: q07
+  question: What was Arsenal's league record in 2003-04, in wins, draws, and losses?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT
+    count(*) FILTER (WHERE (home_team = 'Arsenal' AND home_goals > away_goals)
+    OR (away_team = 'Arsenal' AND away_goals > home_goals)) AS wins,
+    count(*) FILTER (WHERE home_goals = away_goals) AS draws,
+    count(*) FILTER (WHERE (home_team = 'Arsenal' AND home_goals < away_goals)
+    OR (away_team = 'Arsenal' AND away_goals < home_goals)) AS losses
+    FROM v_matches
+    WHERE season = '2003-04' AND 'Arsenal' IN (home_team, away_team)
+
+- id: q08
+  question: >-
+    How many minutes did Bukayo Saka play in the 2025-26 league season, and how many
+    goals did he score per 90 minutes?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT minutes, round((goals * 90.0 / minutes)::numeric, 2) AS goals_per_90
+    FROM v_player_season
+    WHERE player = 'Bukayo Saka' AND season = '2025-26'
+
+- id: q09
+  question: What was the score of Arsenal's home match against Liverpool in 2003-04?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT home_goals, away_goals FROM v_matches
+    WHERE season = '2003-04' AND home_team = 'Arsenal' AND away_team = 'Liverpool'
+
+- id: q10
+  question: Show Arsenal's pass network vs Liverpool at home.
+  status: answered
+  chart: pass_network
+  sql: >-
+    SELECT count(*) AS completed_passes FROM v_passes
+    WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL
+    AND match_id = (SELECT match_id FROM v_matches
+    WHERE season = '2003-04' AND home_team = 'Arsenal' AND away_team = 'Liverpool')
+  note: The fourth suggestion chip.
+
+- id: q11
+  question: Who was Arsenal's top league scorer in 2025-26, and how many goals did he score?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT goals FROM v_player_season
+    WHERE season = '2025-26' ORDER BY goals DESC LIMIT 1
+  note: Only the number is checked. The player is Viktor Gyokeres.
+
+- id: q12
+  question: How many shots did Arsenal take in the 2025-26 league season, and what was their total xG?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT count(*) AS shots, round(sum(xg)::numeric, 2) AS xg FROM v_shots
+    WHERE team = 'Arsenal' AND season = '2025-26'
+
+- id: q13
+  question: How many pressures did Declan Rice make in 2025-26?
+  status: unavailable
+  chart: null
+  note: Understat has no pressure events.
+
+- id: q14
+  question: Show Arsenal's pass network against Chelsea in 2025-26.
+  status: unavailable
+  chart: null
+  note: Pass networks exist for 2003-04 only.
+
+- id: q15
+  question: Which club does Kylian Mbappe play for?
+  status: out_of_scope
+  chart: null
+  note: Not about Arsenal. No tool call.

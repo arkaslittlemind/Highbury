@@ -1,0 +1,309 @@
+{
+  "model": {
+    "id": "google_genai:gemini-3.8-flash",
+    "input_usd_per_mtok": 0.75,
+    "output_usd_per_mtok": 3.75,
+    "price_source": "https://ai.google.dev/gemini-api/docs/pricing",
+    "price_date": "2026-10-14",
+    "price_note": "Paid tier, standard. This price holds until 2026-12-31; from 2027-01-01 it is $1.50 and $7.50."
+  },
+  "run": 1,
+  "started_at": "2026-10-14T13:51:23+00:00",
+  "results": [
+    {
+      "id": "q01",
+      "status": "answered",
+      "charts": [
+        "shot_map"
+      ],
+      "tool_calls": 4,
+      "claims_checked": 3,
+      "claims_passed": 3,
+      "model_calls": 3,
+      "input_tokens": 13599,
+      "output_tokens": 1894,
+      "cost_usd": 0.017302,
+      "seconds": 20.5,
+      "expected": [
+        194.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q02",
+      "status": "answered",
+      "charts": [
+        "compare_bars"
+      ],
+      "tool_calls": 5,
+      "claims_checked": 6,
+      "claims_passed": 6,
+      "model_calls": 4,
+      "input_tokens": 21434,
+      "output_tokens": 4401,
+      "cost_usd": 0.032579,
+      "seconds": 37.12,
+      "expected": [
+        30.0,
+        7.0,
+        0.65,
+        0.35
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q03",
+      "status": "unavailable",
+      "charts": [],
+      "tool_calls": 2,
+      "claims_checked": 0,
+      "claims_passed": 0,
+      "model_calls": 3,
+      "input_tokens": 12963,
+      "output_tokens": 1175,
+      "cost_usd": 0.014129,
+      "seconds": 13.16,
+      "expected": [],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q04",
+      "status": "answered",
+      "charts": [
+        "shot_map"
+      ],
+      "tool_calls": 4,
+      "claims_checked": 3,
+      "claims_passed": 3,
+      "model_calls": 5,
+      "input_tokens": 29286,
+      "output_tokens": 4273,
+      "cost_usd": 0.037988,
+      "seconds": 16.05,
+      "expected": [
+        89.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q05",
+      "status": "out_of_scope",
+      "charts": [],
+      "tool_calls": 0,
+      "claims_checked": 0,
+      "claims_passed": 0,
+      "model_calls": 1,
+      "input_tokens": 3765,
+      "output_tokens": 292,
+      "cost_usd": 0.003919,
+      "seconds": 3.84,
+      "expected": [],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q06",
+      "status": "answered",
+      "charts": [
+        "shot_map"
+      ],
+      "tool_calls": 4,
+      "claims_checked": 6,
+      "claims_passed": 6,
+      "model_calls": 3,
+      "input_tokens": 13778,
+      "output_tokens": 2469,
+      "cost_usd": 0.019592,
+      "seconds": 22.95,
+      "expected": [
+        30.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q07",
+      "status": "answered",
+      "charts": [],
+      "tool_calls": 3,
+      "claims_checked": 5,
+      "claims_passed": 5,
+      "model_calls": 4,
+      "input_tokens": 18643,
+      "output_tokens": 3160,
+      "cost_usd": 0.025832,
+      "seconds": 28.28,
+      "expected": [
+        26.0,
+        12.0,
+        0.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q08",
+      "status": "answered",
+      "charts": [],
+      "tool_calls": 3,
+      "claims_checked": 3,
+      "claims_passed": 3,
+      "model_calls": 3,
+      "input_tokens": 13505,
+      "output_tokens": 4480,
+      "cost_usd": 0.026929,
+      "seconds": 38.3,
+      "expected": [
+        2239.0,
+        0.28
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q09",
+      "status": "answered",
+      "charts": [],
+      "tool_calls": 2,
+      "claims_checked": 2,
+      "claims_passed": 2,
+      "model_calls": 2,
+      "input_tokens": 8341,
+      "output_tokens": 2373,
+      "cost_usd": 0.015154,
+      "seconds": 21.99,
+      "expected": [
+        4.0,
+        2.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q10",
+      "status": "answered",
+      "charts": [
+        "pass_network"
+      ],
+      "tool_calls": 5,
+      "claims_checked": 3,
+      "claims_passed": 3,
+      "model_calls": 3,
+      "input_tokens": 14332,
+      "output_tokens": 3650,
+      "cost_usd": 0.024436,
+      "seconds": 33.73,
+      "expected": [
+        416.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q11",
+      "status": "answered",
+      "charts": [
+        "shot_map"
+      ],
+      "tool_calls": 5,
+      "claims_checked": 5,
+      "claims_passed": 5,
+      "model_calls": 6,
+      "input_tokens": 29823,
+      "output_tokens": 3535,
+      "cost_usd": 0.035624,
+      "seconds": 39.78,
+      "expected": [
+        14.0
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q12",
+      "status": "answered",
+      "charts": [],
+      "tool_calls": 4,
+      "claims_checked": 4,
+      "claims_passed": 4,
+      "model_calls": 5,
+      "input_tokens": 23552,
+      "output_tokens": 3051,
+      "cost_usd": 0.029105,
+      "seconds": 33.62,
+      "expected": [
+        552.0,
+        78.98
+      ],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q13",
+      "status": "unavailable",
+      "charts": [],
+      "tool_calls": 2,
+      "claims_checked": 0,
+      "claims_passed": 0,
+      "model_calls": 3,
+      "input_tokens": 12971,
+      "output_tokens": 952,
+      "cost_usd": 0.013298,
+      "seconds": 12.33,
+      "expected": [],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q14",
+      "status": "unavailable",
+      "charts": [],
+      "tool_calls": 1,
+      "claims_checked": 0,
+      "claims_passed": 0,
+      "model_calls": 2,
+      "input_tokens": 8222,
+      "output_tokens": 875,
+      "cost_usd": 0.009448,
+      "seconds": 11.0,
+      "expected": [],
+      "missing": [],
+      "correct": true,
+      "error": null
+    },
+    {
+      "id": "q15",
+      "status": "out_of_scope",
+      "charts": [],
+      "tool_calls": 0,
+      "claims_checked": 0,
+      "claims_passed": 0,
+      "model_calls": 1,
+      "input_tokens": 3767,
+      "output_tokens": 397,
+      "cost_usd": 0.004314,
+      "seconds": 4.62,
+      "expected": [],
+      "missing": [],
+      "correct": true,
+      "error": null
+    }
+  ]
+}
