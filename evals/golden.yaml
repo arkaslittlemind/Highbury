@@ -5,6 +5,7 @@
 # status: answered | unavailable | out_of_scope
 # chart: the chart type that the answer must show, or null for none
 # before: questions asked first in the same conversation, not scored
+# also_sql: queries of other fair readings; the answer must claim all values of one
 
 - id: q01
   question: Show me Thierry Henry's shots in 2003-04.
@@ -29,7 +30,21 @@
     WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_xg_per_90,
     (SELECT round((xg * 90.0 / minutes)::numeric, 2) FROM v_player_season
     WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_xg_per_90
-  note: Demo question 2. The answer also needs the caveat on the two xG models.
+  also_sql:
+    # The other fair reading: "per 90" also applies to the goals.
+    - >-
+      SELECT
+      (SELECT round((goals * 90.0 / minutes)::numeric, 2) FROM v_player_season
+      WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_goals_per_90,
+      (SELECT round((goals * 90.0 / minutes)::numeric, 2) FROM v_player_season
+      WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_goals_per_90,
+      (SELECT round((xg * 90.0 / minutes)::numeric, 2) FROM v_player_season
+      WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_xg_per_90,
+      (SELECT round((xg * 90.0 / minutes)::numeric, 2) FROM v_player_season
+      WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_xg_per_90
+  note: >-
+    Demo question 2. Two fair readings: goal totals with xG per 90, or goals per 90
+    with xG per 90. The answer also needs the caveat on the two xG models.
 
 - id: q03
   question: Show Saka's pass map from 2025-26.

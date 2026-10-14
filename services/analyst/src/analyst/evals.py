@@ -48,6 +48,9 @@ class GoldenItem(BaseModel):
     status: Status
     chart: ChartType | None = None
     sql: str | None = None
+    # The queries of other fair readings of the question. A correct answer claims
+    # every value of one reading.
+    also_sql: list[str] = []
     # Questions asked first in the same conversation. They are not scored.
     before: list[str] = []
     note: str | None = None
@@ -56,7 +59,12 @@ class GoldenItem(BaseModel):
     def sql_only_for_answers(self) -> "GoldenItem":
         if (self.status == "answered") != (self.sql is not None):
             raise ValueError("an answered item needs sql, and only an answered item has it")
+        if self.also_sql and self.status != "answered":
+            raise ValueError("only an answered item has also_sql")
         return self
+
+    def queries(self) -> list[str]:
+        return [self.sql, *self.also_sql] if self.sql else []
 
 
 class ModelEntry(BaseModel):
@@ -134,10 +142,11 @@ def load_golden(path: Path) -> list[GoldenItem]:
     if len(set(ids)) != len(ids):
         raise EvalError(f"{path} has an id two times.")
     for item in items:
-        try:
-            sql_guard.guard(item.sql or "SELECT 1")
-        except sql_guard.SqlRejected as error:
-            raise EvalError(f"{item.id}: {error}") from None
+        for sql in item.queries():
+            try:
+                sql_guard.guard(sql)
+            except sql_guard.SqlRejected as error:
+                raise EvalError(f"{item.id}: {error}") from None
     return items
 
 
@@ -189,15 +198,31 @@ def is_correct(item: GoldenItem, turn: Turn, missing: list[float]) -> bool:
     return not missing
 
 
+def closest_reading(
+    readings: list[list[float]], claimed: list[float]
+) -> tuple[list[float], list[float]]:
+    """The reading with the fewest values that no claim has, the first one on a tie,
+    and those values."""
+    options = [
+        (reading, [value for value in reading if not any(cell_matches(value, c) for c in claimed)])
+        for reading in readings
+    ]
+    return min(options or [([], [])], key=lambda option: len(option[1]))
+
+
 def score(
     item: GoldenItem,
     outcome: Turn | AgentError,
     usage: Usage,
     seconds: float,
-    expected: list[float],
+    readings: list[list[float]],
     model: ModelEntry,
 ) -> QuestionResult:
-    """Score one turn. usage is the usage of the item, its before questions included."""
+    """Score one turn. usage is the usage of the item, its before questions included.
+    readings holds the expected values of each fair reading of the question."""
+    # The answer of a turn holds only the claims that passed the verifier.
+    claimed = [] if isinstance(outcome, AgentError) else [c.value for c in outcome.answer.claims]
+    expected, missing = closest_reading(readings, claimed)
     common = {
         "id": item.id,
         "model_calls": usage.model_calls,
@@ -212,9 +237,6 @@ def score(
             **common, status=None, charts=[], tool_calls=0, claims_checked=0,
             claims_passed=0, missing=expected, correct=False, error=str(outcome),
         )  # fmt: skip
-    # The answer of a turn holds only the claims that passed the verifier.
-    claimed = [claim.value for claim in outcome.answer.claims]
-    missing = [value for value in expected if not any(cell_matches(value, c) for c in claimed)]
     return QuestionResult(
         **common,
         status=outcome.answer.status,
@@ -349,11 +371,14 @@ def results_table(models: list[str], by_model: dict[str, list[Summary]]) -> list
 
 
 def expected_text(item: GoldenItem, runs: list[RunFile]) -> str:
+    """The expected values of each reading that the answers matched, or the status."""
+    readings: list[str] = []
     for run in runs:
-        found = next((r for r in run.results if r.id == item.id), None)
-        if found and found.expected:
-            return ", ".join(f"{value:g}" for value in found.expected)
-    return item.status
+        for result in run.results:
+            text = ", ".join(f"{value:g}" for value in result.expected)
+            if result.id == item.id and text and text not in readings:
+                readings.append(text)
+    return " or ".join(readings) or item.status
 
 
 def question_table(models: list[str], runs: list[RunFile], items: list[GoldenItem]) -> list[str]:
@@ -509,20 +534,21 @@ def ask_item(
     return outcome, usage, clock() - start
 
 
-def golden_expected(items: list[GoldenItem]) -> dict[str, list[float]]:
-    """Run each golden query. A query that fails stops the evals before any model call."""
+def golden_expected(items: list[GoldenItem]) -> dict[str, list[list[float]]]:
+    """Run each golden query and return the values of each reading of each item. A query
+    that fails stops the evals before any model call."""
     expected = {}
     for item in items:
-        if item.sql is None:
-            expected[item.id] = []
-            continue
-        result = tools.run_sql(item.sql)
-        if not result.ok:
-            raise EvalError(f"{item.id}: the golden query failed: {result.error}")
-        try:
-            expected[item.id] = expected_values(result.columns, result.rows)
-        except EvalError as error:
-            raise EvalError(f"{item.id}: {error}") from None
+        readings = []
+        for sql in item.queries():
+            result = tools.run_sql(sql)
+            if not result.ok:
+                raise EvalError(f"{item.id}: the golden query failed: {result.error}")
+            try:
+                readings.append(expected_values(result.columns, result.rows))
+            except EvalError as error:
+                raise EvalError(f"{item.id}: {error}") from None
+        expected[item.id] = readings
     return expected
 
 
@@ -579,7 +605,7 @@ def load_agent(model: ModelEntry, load_model: Callable[[str], BaseChatModel]) ->
 def run_model(
     model: ModelEntry,
     items: list[GoldenItem],
-    expected: dict[str, list[float]],
+    expected: dict[str, list[list[float]]],
     args: argparse.Namespace,
     runs_dir: Path,
     deps: Deps,

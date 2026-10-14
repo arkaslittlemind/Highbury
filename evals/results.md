@@ -29,17 +29,17 @@ results are in `runs/`.
 
 | Metric | `google_genai:gemini-3.8-flash` (2 runs) | `google_genai:gemini-3.5-flash-lite` (2 runs) |
 |---|---|---|
-| Correct answers | 15.0 | 13.5 (13.0 to 14.0) |
-| Correct answers (%) | 100 | 90 (87 to 93) |
+| Correct answers | 15.0 | 15.0 |
+| Correct answers (%) | 100 | 100 |
 | Verified-claim rate (%) | 100 | 100 |
-| Chart type matches | 4.0 | 3.5 (3.0 to 4.0) |
+| Chart type matches | 4.0 | 4.0 |
 | Correct refusals | 5.0 | 5.0 |
-| Tool calls per question | 2.9 | 1.7 (1.7 to 1.8) |
-| Median seconds | 21.0 (20.1 to 22.0) | 4.4 (4.1 to 4.7) |
-| Mean seconds | 23.7 (22.5 to 24.8) | 4.8 (4.5 to 5.1) |
-| Cost per question (USD) | 0.0209 (0.0206 to 0.0211) | 0.0046 (0.0041 to 0.0051) |
-| Cost of a run (USD) | 0.3134 (0.3096 to 0.3171) | 0.0694 (0.0622 to 0.0766) |
-| Errors | 0.0 | 0.5 (0.0 to 1.0) |
+| Tool calls per question | 3.0 (2.9 to 3.1) | 1.9 (1.9 to 2.0) |
+| Median seconds | 22.3 (18.9 to 25.8) | 3.8 (3.4 to 4.1) |
+| Mean seconds | 24.9 (24.3 to 25.5) | 4.5 (4.4 to 4.6) |
+| Cost per question (USD) | 0.0227 (0.0226 to 0.0228) | 0.0044 (0.0043 to 0.0045) |
+| Cost of a run (USD) | 0.3411 (0.3395 to 0.3427) | 0.0656 (0.0638 to 0.0674) |
+| Errors | 0.0 | 0.0 |
 | Out of | 15 questions, 4 charts, 5 refusals | 15 questions, 4 charts, 5 refusals |
 
 ## Each question
@@ -47,9 +47,9 @@ results are in `runs/`.
 | Id | Question | Expected | `google_genai:gemini-3.8-flash` | `google_genai:gemini-3.5-flash-lite` |
 |---|---|---|---|---|
 | q01 | Show me Thierry Henry's shots in 2003-04. | 194 | 2 of 2 | 2 of 2 |
-| q02 | Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90. | 30, 7, 0.65, 0.35 | 2 of 2 | 0 of 2 |
+| q02 | Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90. | 0.81, 0.28, 0.65, 0.35 | 2 of 2 | 2 of 2 |
 | q03 | Show Saka's pass map from 2025-26. | unavailable | 2 of 2 | 2 of 2 |
-| q04 | Only the ones inside the box. | 89 | 2 of 2 | 1 of 2 |
+| q04 | Only the ones inside the box. | 89 | 2 of 2 | 2 of 2 |
 | q05 | Who will win the Champions League? | out_of_scope | 2 of 2 | 2 of 2 |
 | q06 | How many league goals did Thierry Henry score in 2003-04? | 30 | 2 of 2 | 2 of 2 |
 | q07 | What was Arsenal's league record in 2003-04, in wins, draws, and losses? | 26, 12, 0 | 2 of 2 | 2 of 2 |
@@ -64,12 +64,10 @@ results are in `runs/`.
 
 ## Failed questions
 
-- q02, `google_genai:gemini-3.5-flash-lite`, run 1: no passed claim for 30, 7
-- q02, `google_genai:gemini-3.5-flash-lite`, run 2: no passed claim for 30, 7
-- q04, `google_genai:gemini-3.5-flash-lite`, run 2: error: The question needed more than 10 tool calls.
+None.
 
 ## Decision
 
-The rule of the spec proposes `google_genai:gemini-3.8-flash`.
+The rule of the spec proposes `google_genai:gemini-3.5-flash-lite`.
 
-Chosen: `google_genai:gemini-3.8-flash`. It answered all 15 questions correctly in both runs, against 13.5 for gemini-3.5-flash-lite. Flash-Lite left out the goal totals of the cross-era comparison (demo question 2) in both runs, and went past the limit of 10 tool calls on the inside-the-box follow-up (demo question 4) in one run. Flash-Lite is about 5 times faster (4.4 s against 21 s median) and about 4.5 times cheaper ($0.005 against $0.021 a question), but the gap of 1.5 questions is more than the tie of one question, and both misses are demo questions. The current model stays, so production does not change.
+Chosen: `google_genai:gemini-3.8-flash`. After q02 accepted both fair readings, both models answered 15 of 15 questions in both runs, so the rule proposes gemini-3.5-flash-lite: about 6 times faster (3.8 s against 22.3 s median) and about 5 times cheaper ($0.004 against $0.023 a question). The current model stays for the reliability of the demo follow-up (q04, "Only the ones inside the box."), which is never a kept answer. In a check of 5 conversations on 2026-10-14, Flash-Lite failed one with a tool error and gave no answer, and it failed the same follow-up once in the first evals (past the limit of 10 tool calls): 2 failures in 9 tries. Flash has not failed it. Look at Flash-Lite again after a fix that makes the follow-up reliable on it. Production does not change.

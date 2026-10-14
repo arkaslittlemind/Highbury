@@ -58,9 +58,10 @@ def turn(
     )
 
 
-def score(item, outcome, expected=(), seconds=2.0, usage=None):
+def score(item, outcome, expected=(), seconds=2.0, usage=None, readings=None):
     usage = usage or getattr(outcome, "usage", None) or Usage()
-    return evals.score(item, outcome, usage, seconds, list(expected), MODEL)
+    readings = readings if readings is not None else [list(expected)]
+    return evals.score(item, outcome, usage, seconds, readings, MODEL)
 
 
 def test_the_golden_set_has_15_items_with_sql_on_each_answered_item():
@@ -84,9 +85,12 @@ def test_the_model_file_names_both_models_with_prices():
 
 
 def test_each_golden_query_runs_on_the_views(seeded):
-    for item in evals.load_golden(EVALS_DIR / "golden.yaml"):
-        if item.sql:
-            result = tools.run_sql(item.sql)
+    items = evals.load_golden(EVALS_DIR / "golden.yaml")
+
+    assert [item.id for item in items if item.also_sql] == ["q02"]
+    for item in items:
+        for sql in item.queries():
+            result = tools.run_sql(sql)
             assert result.ok, (item.id, result.error)
 
 
@@ -99,6 +103,11 @@ def test_each_golden_query_runs_on_the_views(seeded):
         ("- {id: q01, question: Q, status: maybe}", "Input should be"),
         ("- {id: q01, question: Q, status: unavailable, extra: 1}", "Extra inputs"),
         ("- {id: q01, question: Q, status: answered, sql: DROP TABLE shots}", "q01:"),
+        ("- {id: q01, question: Q, status: unavailable, also_sql: [SELECT 1]}", "only an answered"),
+        (
+            "- {id: q01, question: Q, status: answered, sql: SELECT 1, also_sql: [DROP TABLE x]}",
+            "q01:",
+        ),
         (
             "- {id: q01, question: Q, status: unavailable}\n"
             "- {id: q01, question: R, status: unavailable}",
@@ -147,6 +156,31 @@ def test_a_wrong_value_or_a_value_only_in_a_removed_claim_is_not_correct():
     assert not result.correct
     assert result.missing == [194]
     assert (result.claims_checked, result.claims_passed) == (2, 1)
+
+
+TOTALS = [30, 7, 0.65, 0.35]
+PER_90 = [0.81, 0.28, 0.65, 0.35]
+
+
+def test_an_answer_that_claims_every_value_of_the_second_reading_is_correct():
+    result = score(ANSWERED, turn(values=PER_90), readings=[TOTALS, PER_90])
+
+    assert result.correct
+    assert (result.expected, result.missing) == (PER_90, [])
+
+
+def test_an_answer_with_half_of_each_reading_is_wrong_and_names_the_closer_reading():
+    result = score(ANSWERED, turn(values=(30, 0.81, 0.28, 0.65)), readings=[TOTALS, PER_90])
+
+    assert not result.correct
+    # Per 90 misses only 0.35; the totals miss 7 and 0.35.
+    assert (result.expected, result.missing) == (PER_90, [0.35])
+
+
+def test_with_no_reading_closer_the_first_reading_is_named():
+    result = score(ANSWERED, turn(values=()), readings=[TOTALS, PER_90])
+
+    assert (result.expected, result.missing) == (TOTALS, TOTALS)
 
 
 def test_a_whole_number_must_be_exact_and_a_decimal_within_one_hundredth():
@@ -270,6 +304,16 @@ def test_the_report_has_the_prices_the_table_each_question_and_the_failures():
     assert "- q01, `test:model`, run 2: error: boom" in text
     # One question apart is a tie, and test:model costs less for each question.
     assert "The rule of the spec proposes `test:model`." in text
+
+
+def test_the_report_names_each_reading_that_the_answers_matched():
+    totals = result("q01").model_copy(update={"expected": [30, 7]})
+    per_90 = result("q01").model_copy(update={"expected": [0.81, 0.28]})
+    runs = [run_file(MODEL, 1, totals), run_file(MODEL, 2, per_90), run_file(MODEL, 3, totals)]
+
+    text = evals.render(evals.ModelFile(models=[MODEL]), runs, ITEMS)
+
+    assert "| q01 | Henry's shots? | 30, 7 or 0.81, 0.28 | 3 of 3 |" in text
 
 
 def test_the_report_of_no_run_says_so():
