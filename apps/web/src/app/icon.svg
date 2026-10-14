@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- A plain football, no crest, in the colours of the page. -->
+  <defs><clipPath id="ball"><circle cx="32" cy="32" r="21.8"/></clipPath></defs>
+  <rect width="64" height="64" rx="14" fill="#142E1D"/>
+  <circle cx="32" cy="32" r="24" fill="#F1EEE6"/>
+  <g clip-path="url(#ball)" fill="#142E1D" stroke="#142E1D" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M32.00 14.50L24.87 9.32L27.59 0.93L36.41 0.93L39.13 9.32ZM48.64 26.59L51.37 18.21L60.18 18.21L62.91 26.59L55.78 31.77ZM42.29 46.16L51.10 46.16L53.83 54.54L46.69 59.73L39.56 54.54ZM21.71 46.16L24.44 54.54L17.31 59.73L10.17 54.54L12.90 46.16ZM15.36 26.59L8.22 31.77L1.09 26.59L3.82 18.21L12.63 18.21Z"/>
+    <path d="M32.00 24.00L32.00 14.50M39.61 29.53L48.64 26.59M36.70 38.47L42.29 46.16M27.30 38.47L21.71 46.16M24.39 29.53L15.36 26.59" fill="none"/>
+  </g>
+  <path d="M32.00 24.00L39.61 29.53L36.70 38.47L27.30 38.47L24.39 29.53Z" fill="#C8202B" stroke="#C8202B" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
