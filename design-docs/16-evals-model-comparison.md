@@ -5,6 +5,7 @@
 | Work | Feature: a command that asks 15 fixed questions through the agent on each model, scores the answers, and writes a table |
 | Change | `3b82bdf` on `main`, 2026-10-14 |
 | Evidence | `blueprint/history/features/16-evals-model-comparison.md` (spec and completion record. Local, not in Git). The commit message. The build conversation, with the smoke runs and the full runs. |
+| Revised | 2026-10-14, after the fix `17e6017`. That fix changed the result for q02 and the reason for the decision. See [Accept both readings of a golden question](2026-10-14-accept-both-readings-of-a-golden-question.md). |
 | Reader | A learner who can write basic code and is new to this stack |
 
 This document obeys the rules of ASD-STE100 Simplified Technical
@@ -19,8 +20,10 @@ with a table of correct answers, verified claims, charts, refusals, tool calls,
 seconds, and cost.
 
 The first full run compared `gemini-3.8-flash` with `gemini-3.5-flash-lite`.
-Flash was correct on 15 of 15 in both runs, and Flash-Lite on 13.5. Thus the
-current model stays.
+Flash was correct on 15 of 15 in both runs, and Flash-Lite on 13.5. A later fix
+found that one golden query held only one fair reading of q02. After that fix,
+both models got 15 of 15. The current model stays, because Flash-Lite failed the
+demo follow-up 2 times in 9.
 
 The one idea to remember: an eval measures what the visitor sees. A correct
 number counts only when the verifier lets it through.
@@ -78,15 +81,15 @@ measures the product, with its tool limits and its verifier.
 Example input: `uv run --env-file .env evals`, with item q09, "What was the score
 of Arsenal's home match against Liverpool in 2003-04?"
 
-1. `main` reads the arguments and loads both files. (`evals.py:608`)
-2. `load_golden` checks each golden query with the SQL guard. (`evals.py:122`)
-3. `golden_expected` runs the q09 query and keeps 4 and 2. (`evals.py:512`)
-4. `run_model` loads the model with a 120 s timeout. (`evals.py:579`)
-5. `ask_item` asks q09 on a new conversation and times it. (`evals.py:489`)
+1. `main` reads the arguments and loads both files. (`evals.py:634`)
+2. `load_golden` checks each golden query with the SQL guard. (`evals.py:130`)
+3. `golden_expected` runs the q09 query and keeps 4 and 2. (`evals.py:537`)
+4. `run_model` loads the model with a 120 s timeout. (`evals.py:605`)
+5. `ask_item` asks q09 on a new conversation and times it. (`evals.py:514`)
 6. `agent.ask` runs the tools and the verifier, and returns a `Turn`. (`agent.py:261`)
-7. `score` looks for 4 and 2 among the passed claims. (`evals.py:192`)
-8. `run_model` writes the run file and prints one line. (`evals.py:579`)
-9. `render` writes `evals/results.md` from all run files. (`evals.py:416`)
+7. `score` looks for 4 and 2 among the passed claims. (`evals.py:213`)
+8. `run_model` writes the run file and prints one line. (`evals.py:605`)
+9. `render` writes `evals/results.md` from all run files. (`evals.py:441`)
 
 On Flash, q09 was correct in both runs. The full run asked 60 questions and cost
 $0.77 with the smoke runs.
@@ -110,7 +113,7 @@ sequenceDiagram
 - **Choice:** `score` looks for each expected value in the claims of the answer. These are the claims that passed the verifier.
 - **Alternatives:** Look in the summary text, or ask a second model to grade the answer.
 - **Reason:** Recorded: "A correct number that the verifier removed does not count: the eval measures what the visitor sees." Source: spec, Notes for the AI.
-- **Cost:** An answer with the right chart but no claim for the asked number fails. Flash-Lite failed q02 for this reason.
+- **Cost:** An answer with the right chart but no claim for the asked number fails. Also, the eval accepts only the values of the readings that the golden set names. The first run marked q02 of Flash-Lite wrong for this second reason.
 
 ### 5.2 Expected values come from hand-written SQL
 
@@ -124,7 +127,7 @@ sequenceDiagram
 - **Choice:** More correct answers win. A gap of one question or less is a tie, and then the lower cost wins.
 - **Alternatives:** A weighted score of accuracy, time, and cost.
 - **Reason:** Recorded: the MVP plan picks "on accuracy, latency and cost", and the spec writes it as this rule. Source: spec, step 5.
-- **Cost:** The rule ignores time. Flash-Lite is about five times faster, but it lost by 1.5 questions.
+- **Cost:** The rule ignores time and reliability. After the fix of q02, the two models tied, so the rule proposed Flash-Lite. The user kept Flash for the demo follow-up, and `models.yaml` records the reason.
 
 ### 5.4 A timeout on each model call
 
@@ -186,13 +189,13 @@ the current model.
 
 1. [`evals/golden.yaml`](../evals/golden.yaml) - Look for: q04, the follow-up with `before`.
 2. [`evals.py:43`](../services/analyst/src/analyst/evals.py#L43) - Look for: the rule that only an answered item has SQL.
-3. [`evals.py:151`](../services/analyst/src/analyst/evals.py#L151) - Look for: a boolean is not a number.
-4. [`evals.py:192`](../services/analyst/src/analyst/evals.py#L192) - Look for: how a passed claim matches an expected value.
-5. [`evals.py:248`](../services/analyst/src/analyst/evals.py#L248) - Look for: the metrics of one run.
-6. [`evals.py:309`](../services/analyst/src/analyst/evals.py#L309) - Look for: the tie of one question.
-7. [`evals.py:489`](../services/analyst/src/analyst/evals.py#L489) - Look for: time only for the scored question, cost for all questions.
-8. [`evals.py:555`](../services/analyst/src/analyst/evals.py#L555) - Look for: the timeout of a model call.
-9. [`evals/results.md`](../evals/results.md) - Look for: the failed questions and their causes.
+3. [`evals.py:160`](../services/analyst/src/analyst/evals.py#L160) - Look for: a boolean is not a number.
+4. [`evals.py:213`](../services/analyst/src/analyst/evals.py#L213) - Look for: how a passed claim matches an expected value.
+5. [`evals.py:270`](../services/analyst/src/analyst/evals.py#L270) - Look for: the metrics of one run.
+6. [`evals.py:331`](../services/analyst/src/analyst/evals.py#L331) - Look for: the tie of one question.
+7. [`evals.py:514`](../services/analyst/src/analyst/evals.py#L514) - Look for: time only for the scored question, cost for all questions.
+8. [`evals.py:581`](../services/analyst/src/analyst/evals.py#L581) - Look for: the timeout of a model call.
+9. [`evals/results.md`](../evals/results.md) - Look for: the Decision section, where the choice is not the model that the rule proposes.
 
 ## 8. Known limits
 
@@ -207,7 +210,9 @@ the current model.
   `models.yaml` when Google serves it again.
 - The Flash price in `models.yaml` holds until 2026-12-31. From 2027-01-01 it is
   two times higher.
-- The debrief found no new defect.
+- The first version of this debrief found no new defect. Then the fix
+  `17e6017` found one: the golden query of q02 held only one of two fair
+  readings, so a correct answer failed.
 
 ## 9. Self-test
 
@@ -222,7 +227,7 @@ the current model.
 
 1. The eval measures what the visitor sees, and the verifier removes that claim before the visitor sees it. See section 5.1.
 2. `golden_expected` stops the command before any model call. See section 6.1.
-3. Flash was correct on 1.5 more questions, which is more than the tie of one question. See section 5.3.
+3. After the fix of q02, the rule proposed Flash-Lite, but Flash-Lite failed the demo follow-up 2 times in 9. See section 5.3.
 4. The call stops at 120 s, then one retry. If it fails, the question is a wrong result with its error. See section 5.4.
 5. The expected values come from the SQL at run time, so they change with the data. See section 5.2 and section 6.3.
 
