@@ -25,10 +25,10 @@ logging.getLogger("sqlglot").setLevel(logging.CRITICAL)
 # These can be anywhere below a SELECT: a CTE that writes, SELECT INTO, FOR UPDATE.
 FORBIDDEN_NODES = (exp.DML, exp.DDL, exp.Command, exp.Into, exp.Lock)
 
-# Functions that change a session, signal other sessions, read files or large
-# objects, or run a SQL string that this parser never sees.
+# Functions that change a session or a sequence, signal other sessions, read files
+# or large objects, or run a SQL string that this parser never sees.
 FORBIDDEN_FUNCTION_PREFIXES = ("pg_", "lo_", "dblink")
-FORBIDDEN_FUNCTIONS = ("set_config", "ts_stat", "ts_rewrite")
+FORBIDDEN_FUNCTIONS = ("set_config", "ts_stat", "ts_rewrite", "nextval", "setval")
 FORBIDDEN_FUNCTION_PARTS = ("_to_xml",)
 
 # PostgreSQL folds only A to Z in a name without quotes. str.lower folds more:
@@ -96,7 +96,11 @@ def check_function(func: exp.Func) -> None:
     name = func.name if isinstance(func, exp.Anonymous) else func.sql_name()
     name = name.translate(ASCII_LOWER)
     if (
-        name.startswith(FORBIDDEN_FUNCTION_PREFIXES)
+        # sqlglot writes an unknown name with str.upper, which makes some other
+        # letters ASCII (the long s becomes S). The database would get a name
+        # that this check never saw.
+        not name.isascii()
+        or name.startswith(FORBIDDEN_FUNCTION_PREFIXES)
         or name in FORBIDDEN_FUNCTIONS
         or any(part in name for part in FORBIDDEN_FUNCTION_PARTS)
     ):

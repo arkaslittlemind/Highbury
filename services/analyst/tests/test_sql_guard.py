@@ -134,6 +134,15 @@ def test_a_recursive_with_is_rejected():
         ("SELECT query_to_xml('SELECT * FROM players', true, false, '')", "query_to_xml"),
         ("SELECT table_to_xml('players', true, false, '')", "table_to_xml"),
         ("SELECT * FROM dblink('dbname=highbury', 'SELECT 1') AS t(a int)", "dblink"),
+        ("SELECT nextval('events_id_seq'::regclass)", "nextval"),
+        ("SELECT NEXTVAL('events_id_seq')", "nextval"),
+        ("SELECT \"nextval\"('events_id_seq')", "nextval"),
+        ("SELECT setval('events_id_seq', 1)", "setval"),
+        ("SELECT pg_catalog.setval('events_id_seq', 1)", "setval"),
+        # str.upper writes these as SETVAL, SET_CONFIG, and TS_STAT.
+        ("SELECT ſetval('events_id_seq', 1)", "ſetval"),
+        ("SELECT set_confıg('statement_timeout', '0', false)", "set_confıg"),
+        ("SELECT * FROM ts_ﬆat('SELECT to_tsvector(name) FROM players')", "ts_ﬆat"),
     ],
 )
 def test_a_function_that_can_do_harm_is_rejected(sql, function):
