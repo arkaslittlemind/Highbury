@@ -162,6 +162,7 @@ def test_a_function_that_can_do_harm_is_rejected(sql, function):
         "WITH top AS (SELECT player, goals FROM v_player_season) SELECT * FROM top",
         "WITH a AS (SELECT * FROM v_shots), b AS (SELECT * FROM a) SELECT * FROM b",
         "SELECT player FROM v_shots UNION SELECT player FROM v_passes",
+        "SELECT min(minute) FROM v_substitutions WHERE team = 'Arsenal'",
         "SELECT player FROM v_shots WHERE xg > (SELECT avg(xg) FROM v_shots)",
         "SELECT * FROM (SELECT player, sum(xg) AS xg FROM v_shots GROUP BY player) t",
         "SELECT player, rank() OVER (PARTITION BY season ORDER BY goals DESC) FROM v_player_season",

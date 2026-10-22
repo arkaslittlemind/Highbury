@@ -44,7 +44,12 @@ SHOT_OUTCOMES = {
     "Post": "post",
 }
 # StatsBomb type name -> stored type, which is also the key of the event's detail record.
-EVENT_TYPES = {"Pass": "pass", "Carry": "carry", "Pressure": "pressure"}
+EVENT_TYPES = {
+    "Pass": "pass",
+    "Carry": "carry",
+    "Pressure": "pressure",
+    "Substitution": "substitution",
+}
 REGULAR_PERIODS = (1, 2)
 SENDING_OFF_CARDS = ("Red Card", "Second Yellow")
 
@@ -223,7 +228,8 @@ def event_row(event: dict, match_id: str) -> EventRow:
         outcome=lower_name(detail.get("outcome")),
         under_pressure=event.get("under_pressure", False),
         possession=event.get("possession"),
-        recipient=player_id(detail.get("recipient")),
+        # A substitution stores the player who comes on as its recipient.
+        recipient=player_id(detail.get("recipient") or detail.get("replacement")),
     )
 
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  defaultMinPasses,
   LABEL_SIZE,
   labelOffset,
   labelSides,
@@ -14,6 +15,9 @@ import {
   shortName,
   summaryText,
   tooltipLines,
+  visibleLinks,
+  windowText,
+  type Link,
   type PassNetworkSpec,
 } from "@/lib/pass-network";
 
@@ -189,20 +193,77 @@ describe("nodeTooltipPlace", () => {
   });
 });
 
+function link(a: string, b: string, aToB: number, bToA: number): Link {
+  return { a, b, aToB, bToA, passes: aToB + bToA };
+}
+
+describe("defaultMinPasses", () => {
+  it("is 3 when a link has at least 3 passes", () => {
+    expect(defaultMinPasses([link("A", "B", 2, 0), link("A", "C", 9, 4)])).toBe(3);
+  });
+
+  it("is the most passes on a link when that is below 3, so a line is still drawn", () => {
+    expect(defaultMinPasses([link("A", "B", 1, 1), link("A", "C", 1, 0)])).toBe(2);
+  });
+
+  it("is 1 for a network with no links", () => {
+    expect(defaultMinPasses([])).toBe(1);
+  });
+});
+
+describe("visibleLinks", () => {
+  const all = [link("A", "B", 9, 4), link("A", "C", 2, 1), link("B", "C", 1, 0)];
+
+  it("keeps the links with at least the minimum passes, both directions together", () => {
+    expect(visibleLinks(all, 3)).toEqual([all[0], all[1]]);
+  });
+
+  it("keeps the order of links(), so the table lists the lines in the same order", () => {
+    const ordered = links(network());
+    expect(visibleLinks(ordered, 1).map((each) => [each.a, each.b])).toEqual(
+      ordered.map((each) => [each.a, each.b]),
+    );
+  });
+
+  it("keeps every link at 1, and none above the most passes", () => {
+    expect(visibleLinks(all, 1)).toEqual(all);
+    expect(visibleLinks(all, 14)).toEqual([]);
+  });
+});
+
+describe("windowText", () => {
+  it("names the minute of the first substitution", () => {
+    expect(windowText(network({ until_minute: 71 }))).toBe(
+      "Passes before the first substitution, 71'",
+    );
+  });
+
+  it("is the whole match with no minute, also for a spec from before the field", () => {
+    expect(windowText(network({ until_minute: null }))).toBe("Whole match");
+    expect(windowText(network())).toBe("Whole match");
+  });
+});
+
 describe("summaryText", () => {
   it("counts the players and links, and names the most passes and the strongest link", () => {
-    expect(summaryText(network())).toBe(
-      "3 players, 2 passing links. Most passes: Patrick Vieira (48). Strongest link: Patrick Vieira and Robert Pirès (13 passes).",
+    expect(summaryText(network({ until_minute: 71 }), 1)).toBe(
+      "Passes before the first substitution, 71'. 3 players, 2 passing links. Most passes: Patrick Vieira (48). Strongest link: Patrick Vieira and Robert Pirès (13 passes).",
+    );
+  });
+
+  it("says how many links the minimum hides", () => {
+    expect(summaryText(network(), 7)).toBe(
+      "Whole match. 3 players, 2 passing links. Most passes: Patrick Vieira (48). Strongest link: Patrick Vieira and Robert Pirès (13 passes). 1 of 2 links shown, each with at least 7 passes.",
     );
   });
 
   it("says when there are no links", () => {
-    expect(summaryText(network({ nodes: [VIEIRA], edges: [] }))).toBe(
-      "1 player, no passing links. Most passes: Patrick Vieira (48).",
+    expect(summaryText(network({ nodes: [VIEIRA], edges: [] }), 1)).toBe(
+      "Whole match. 1 player, no passing links. Most passes: Patrick Vieira (48).",
     );
   });
 
   it("says when the network is empty", () => {
-    expect(summaryText(network({ nodes: [], edges: [] }))).toBe("This network has no passes.");
+    expect(summaryText(network({ nodes: [], edges: [] }), 1)).toBe("This network has no passes.");
   });
 });

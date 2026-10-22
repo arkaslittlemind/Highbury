@@ -12,7 +12,14 @@ from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
 # The relations the agent can read. get_schema describes exactly these.
-AGENT_VIEWS = ("v_matches", "v_shots", "v_player_match", "v_player_season", "v_passes")
+AGENT_VIEWS = (
+    "v_matches",
+    "v_shots",
+    "v_player_match",
+    "v_player_season",
+    "v_passes",
+    "v_substitutions",
+)
 
 # Each row goes into the model's context. 500 holds one player's shots of a season.
 MAX_ROWS = 500

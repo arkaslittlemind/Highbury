@@ -321,7 +321,8 @@ def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResu
     Each other column is a metric and must be a number for both players.
     pass_network: one row for each pair of passer and recipient, with player,
     recipient, passes (the count), x and y (the mean start position). Group
-    v_passes by player and recipient.
+    v_passes by player and recipient. An optional until_minute column, the same on
+    every row, is the minute the passes stop; leave it out for the whole match.
     """
     try:
         title = charts.check_request(chart_type, title)

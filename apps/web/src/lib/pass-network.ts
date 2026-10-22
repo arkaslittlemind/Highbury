@@ -14,6 +14,8 @@ export type Partner = { player: string; to: number; from: number; passes: number
 
 // The number of partners that a label and a tooltip name.
 const TOP_PARTNERS = 3;
+// The links with fewer passes are noise for the shape of the team, so they start hidden.
+const DEFAULT_MIN_PASSES = 3;
 
 /**
  * One link for each pair of players. Two directed lines that lie on top of each
@@ -39,6 +41,27 @@ export function links(spec: PassNetworkSpec): Link[] {
     (first, second) =>
       second.passes - first.passes || first.a.localeCompare(second.a) || first.b.localeCompare(second.b),
   );
+}
+
+/** The first minimum of passes per link. It never hides every link of a network. */
+export function defaultMinPasses(allLinks: Link[]): number {
+  const most = Math.max(1, ...allLinks.map((link) => link.passes));
+  return Math.min(DEFAULT_MIN_PASSES, most);
+}
+
+/**
+ * The links that are drawn, in the order of links(): those with at least minPasses,
+ * both directions together. The data table lists the same links.
+ */
+export function visibleLinks(allLinks: Link[], minPasses: number): Link[] {
+  return allLinks.filter((link) => link.passes >= minPasses);
+}
+
+/** Which passes the network holds. The minute comes from the spec, never from the page. */
+export function windowText(spec: PassNetworkSpec): string {
+  return spec.until_minute == null
+    ? "Whole match"
+    : `Passes before the first substitution, ${spec.until_minute}'`;
 }
 
 /** The players from the most passes to the fewest. The keyboard and the drawing use this order. */
@@ -162,8 +185,8 @@ export function nodeTooltipPlace(node: PassNode, maxPasses: number): TooltipPlac
   return tooltipPlaceAt(toPitchPoint(node.x, node.y), nodeRadius(node.passes, maxPasses), "full");
 }
 
-/** The chart in words. It holds counts from the spec only. */
-export function summaryText(spec: PassNetworkSpec): string {
+/** The chart in words. It holds counts from the spec and the minimum the visitor chose. */
+export function summaryText(spec: PassNetworkSpec, minPasses: number): string {
   if (spec.nodes.length === 0) return "This network has no passes.";
   const allLinks = links(spec);
   const [most] = nodeOrder(spec.nodes);
@@ -172,11 +195,21 @@ export function summaryText(spec: PassNetworkSpec): string {
     allLinks.length === 0
       ? "no passing links"
       : `${allLinks.length} ${allLinks.length === 1 ? "passing link" : "passing links"}`;
-  const parts = [`${players}, ${linkCount}.`, `Most passes: ${most.player} (${most.passes}).`];
+  const parts = [
+    `${windowText(spec)}.`,
+    `${players}, ${linkCount}.`,
+    `Most passes: ${most.player} (${most.passes}).`,
+  ];
   const [strongest] = allLinks;
   if (strongest) {
     parts.push(
       `Strongest link: ${strongest.a} and ${strongest.b} (${passesText(strongest.passes)}).`,
+    );
+  }
+  const shown = visibleLinks(allLinks, minPasses).length;
+  if (shown < allLinks.length) {
+    parts.push(
+      `${shown} of ${allLinks.length} links shown, each with at least ${passesText(minPasses)}.`,
     );
   }
   return parts.join(" ");

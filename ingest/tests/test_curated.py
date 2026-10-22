@@ -218,6 +218,7 @@ MATRIX = {
     ("2003-04", "passes"): True,
     ("2003-04", "pressures"): True,
     ("2003-04", "pass_networks"): True,
+    ("2003-04", "substitutions"): True,
     ("2025-26", "results"): True,
     ("2025-26", "shots"): True,
     ("2025-26", "xg"): True,
@@ -225,6 +226,7 @@ MATRIX = {
     ("2025-26", "passes"): False,
     ("2025-26", "pressures"): False,
     ("2025-26", "pass_networks"): False,
+    ("2025-26", "substitutions"): False,
 }
 
 
@@ -311,8 +313,8 @@ def test_the_command_loads_both_and_the_analyst_can_read_them(
     assert curated.run(alias_file(tmp_path), env(db)) == 0
 
     assert capsys.readouterr().out == first
-    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 14"]
-    assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (14,)
+    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 16"]
+    assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (16,)
     assert analyst.execute(
         "SELECT source_name FROM player_aliases WHERE source = 'manual' ORDER BY 1"
     ).fetchall() == [("Henry",), ("Titi",)]

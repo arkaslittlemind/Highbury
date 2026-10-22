@@ -1,7 +1,14 @@
 import psycopg
 import pytest
 
-VIEWS = ["v_matches", "v_shots", "v_player_match", "v_player_season", "v_passes"]
+VIEWS = [
+    "v_matches",
+    "v_shots",
+    "v_player_match",
+    "v_player_season",
+    "v_passes",
+    "v_substitutions",
+]
 
 
 @pytest.fixture
@@ -65,7 +72,7 @@ def test_every_view_column_has_a_comment(conn):
     assert missing == []
 
 
-def test_all_five_views_exist(conn):
+def test_all_six_views_exist(conn):
     rows = conn.execute("SELECT viewname FROM pg_views WHERE schemaname = 'public'")
 
     assert sorted(row[0] for row in rows) == sorted(VIEWS)
@@ -132,6 +139,18 @@ def test_passes_view_holds_only_pass_events(conn):
     rows = conn.execute("SELECT player, recipient, opponent FROM v_passes").fetchall()
 
     assert rows == [("Thierry Henry", None, "Leeds")]
+
+
+def test_substitutions_view_holds_only_substitution_events(conn):
+    ids = insert_match(conn)
+    insert_event(conn, ids, event_type="pass", source_id="e1")
+    insert_event(conn, ids, event_type="substitution", source_id="e2")
+
+    rows = conn.execute(
+        "SELECT season, team, opponent, minute, second, player_off FROM v_substitutions"
+    ).fetchall()
+
+    assert rows == [("2003-04", "Arsenal", "Leeds", 1, 0, "Thierry Henry")]
 
 
 def test_shot_rejects_an_outcome_that_is_not_lowercase(conn):

@@ -45,6 +45,8 @@ const passNetworkSchema = z.object({
   title: z.string(),
   nodes: z.array(z.object({ player: text, x: pitchX, y: pitchY, passes: passCount })),
   edges: z.array(z.object({ source: text, target: text, passes: passCount })),
+  // The minute the drawn passes stop. Null or missing: the whole match.
+  until_minute: z.number().int().min(0).max(130).nullable().optional(),
 });
 
 export const chartSpecSchema = z.discriminatedUnion("type", [

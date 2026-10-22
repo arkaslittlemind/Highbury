@@ -16,6 +16,8 @@ MAX_TITLE = 120
 PitchX = Annotated[float, Field(ge=0, le=120)]
 PitchY = Annotated[float, Field(ge=0, le=80)]
 Text = Annotated[str, Field(min_length=1)]
+# The minute columns of the views hold a match minute, stoppage time included.
+Minute = Annotated[int, Field(ge=0, le=130)]
 
 
 class ChartRejected(Exception):
@@ -84,6 +86,8 @@ class PassNetwork(Spec):
     title: str
     nodes: list[Node]
     edges: list[Edge]
+    # The minute the drawn passes stop, as the query found it. None: the whole match.
+    until_minute: Minute | None = None
 
 
 class PassPair(Spec):
@@ -94,6 +98,7 @@ class PassPair(Spec):
     passes: Annotated[int, Field(ge=1)]
     x: PitchX
     y: PitchY
+    until_minute: Minute | None = None
 
 
 ChartSpec = Annotated[ShotMap | CompareBars | PassNetwork, Field(discriminator="type")]
@@ -200,6 +205,11 @@ def pass_network(columns: Columns, rows: Rows, title: str, chart_id: str) -> Pas
             )
         seen.add((pair.player, pair.recipient))
         by_passer.setdefault(pair.player, []).append(pair)
+        if pair.until_minute != pairs[0].until_minute:
+            raise ChartRejected(
+                f"Row {number}: until_minute is {pair.until_minute} here and"
+                f" {pairs[0].until_minute} in row 1. The passes of one network stop at one minute."
+            )
 
     nodes = []
     for player, made in sorted(by_passer.items()):
@@ -218,7 +228,10 @@ def pass_network(columns: Columns, rows: Rows, title: str, chart_id: str) -> Pas
         for pair in pairs
         if pair.recipient in by_passer
     ]
-    return PassNetwork(id=chart_id, title=title, nodes=nodes, edges=edges)
+    until_minute = pairs[0].until_minute if pairs else None
+    return PassNetwork(
+        id=chart_id, title=title, nodes=nodes, edges=edges, until_minute=until_minute
+    )
 
 
 BUILDERS = {"shot_map": shot_map, "compare_bars": compare_bars, "pass_network": pass_network}

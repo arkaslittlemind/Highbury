@@ -291,12 +291,28 @@ def test_shots_carry_xg_and_shared_outcomes_for_both_teams():
     assert shots["s3"].team == "Everton"
 
 
-def test_only_passes_carries_and_pressures_become_events():
-    rows = statsbomb.build_rows(small_season())
+def pires_off_for_wiltord():
+    return raw_event(
+        "sub1",
+        "Substitution",
+        player=PIRES,
+        location=None,
+        period=2,
+        minute=60,
+        second=4,
+        substitution={"replacement": WILTORD, "outcome": {"name": "Tactical"}},
+    )
+
+
+def test_only_passes_carries_pressures_and_substitutions_become_events():
+    season = small_season()
+    season.events[100].append(pires_off_for_wiltord())
+
+    rows = statsbomb.build_rows(season)
 
     events = {event.source_id: event for event in rows.events}
-    assert sorted(events) == ["c1", "p1", "p2", "pr1"]
-    assert {event.type for event in rows.events} == {"pass", "carry", "pressure"}
+    assert sorted(events) == ["c1", "p1", "p2", "pr1", "sub1"]
+    assert {event.type for event in rows.events} == {"pass", "carry", "pressure", "substitution"}
 
     completed = events["p1"]
     assert (completed.x, completed.y, completed.end_x, completed.end_y) == (80.0, 20.0, 100.0, 35.0)
@@ -312,6 +328,18 @@ def test_only_passes_carries_and_pressures_become_events():
 
     pressure = events["pr1"]
     assert (pressure.x, pressure.y, pressure.end_x, pressure.end_y) == (70.0, 10.0, None, None)
+
+
+def test_a_substitution_stores_the_player_off_the_replacement_and_the_reason():
+    season = small_season()
+    season.events[100].append(pires_off_for_wiltord())
+
+    [sub] = [event for event in statsbomb.build_rows(season).events if event.source_id == "sub1"]
+
+    assert (sub.player, sub.recipient, sub.outcome, sub.team) == ("11", "12", "tactical", "Arsenal")
+    # The clock of the event, as the passes have, so a pass can be compared with it.
+    assert (sub.minute, sub.second) == (60, 4)
+    assert (sub.x, sub.y, sub.end_x, sub.end_y) == (None, None, None, None)
 
 
 def test_player_match_stats_count_minutes_goals_assists_xg_and_xa():

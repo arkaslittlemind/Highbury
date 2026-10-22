@@ -89,7 +89,8 @@ def test_the_pass_examples_make_a_network_and_its_totals(liverpool_home):
     totals = tools.run_sql(by_purpose[prompt.PASS_TOTALS_EXAMPLE])
 
     assert chart.ok, chart.error
-    # The failed pass of Henry and the pass of Liverpool are not in the network.
+    # The failed pass of Henry, the pass of Liverpool, and the pass of Edu after the
+    # substitution are not in the network.
     assert [node.model_dump() for node in chart.chart.nodes] == [
         {"player": "Robert Pirès", "x": 50.0, "y": 30.0, "passes": 1},
         {"player": "Thierry Henry", "x": 70.0, "y": 30.0, "passes": 2},
@@ -98,6 +99,10 @@ def test_the_pass_examples_make_a_network_and_its_totals(liverpool_home):
         {"source": "Robert Pirès", "target": "Thierry Henry", "passes": 1},
         {"source": "Thierry Henry", "target": "Robert Pirès", "passes": 2},
     ]
-    # The claims count the same passes that the chart draws.
+    assert chart.chart.until_minute == 71
+    # The claims count the same passes that the chart draws, and back its minute.
     assert totals.ok, totals.error
-    assert (totals.columns, totals.rows) == (["completed_passes", "passers"], [[3, 2]])
+    assert (totals.columns, totals.rows) == (
+        ["completed_passes", "passers", "until_minute"],
+        [[3, 2, 71]],
+    )

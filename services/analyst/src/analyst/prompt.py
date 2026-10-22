@@ -31,20 +31,36 @@ RULES = (
     " many rows with run_sql only to show them. List in charts only chart ids that"
     " build_chart returned in this conversation.",
     "The penalty area on the 120 x 80 pitch is x >= 102 AND y BETWEEN 18 AND 62.",
+    "A pass_network shows the starting XI by default: only the passes before Arsenal's"
+    " first substitution, with the minute of that substitution as until_minute, as the"
+    " example does. Draw the whole match, with no until_minute, only when the question"
+    " asks for it.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",
 )
 
 SHOT_MAP_EXAMPLE = "The shots of one player in one season, for a shot_map chart"
-PASS_NETWORK_EXAMPLE = "The completed passes of Arsenal in one match, for a pass_network chart"
-PASS_TOTALS_EXAMPLE = "The completed passes of Arsenal in the same match, for the claims"
+PASS_NETWORK_EXAMPLE = (
+    "The completed passes of Arsenal's starting XI in one match, for a pass_network chart"
+)
+PASS_TOTALS_EXAMPLE = "The completed passes of the same starting XI, for the claims"
 
-# The passes that a pass network draws: completed passes of Arsenal in one match.
+LIVERPOOL_HOME = (
+    "(SELECT match_id FROM v_matches WHERE season = '2003-04'"
+    " AND home_team = 'Arsenal' AND away_team = 'Liverpool')"
+)
+ARSENAL_SUBSTITUTIONS = (
+    f"FROM v_substitutions WHERE team = 'Arsenal' AND match_id = {LIVERPOOL_HOME}"
+)
+# The minute of Arsenal's first substitution: null when Arsenal made none.
+UNTIL_MINUTE = f"(SELECT min(minute) {ARSENAL_SUBSTITUTIONS}) AS until_minute"
+# The passes that a pass network draws: completed passes of Arsenal in one match, before
+# the first substitution. A match with no substitution keeps every pass.
 LIVERPOOL_HOME_PASSES = (
     "FROM v_passes WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL"
-    " AND match_id = (SELECT match_id FROM v_matches WHERE season = '2003-04'"
-    " AND home_team = 'Arsenal' AND away_team = 'Liverpool')"
+    f" AND match_id = {LIVERPOOL_HOME} AND minute * 60 + second < COALESCE((SELECT"
+    f" min(minute * 60 + second) {ARSENAL_SUBSTITUTIONS}), 100000)"
 )
 
 # (what the query is for, the query). Each one must run on the views as they are:
@@ -87,13 +103,13 @@ SQL_EXAMPLES = (
     (
         PASS_NETWORK_EXAMPLE,
         "SELECT player, recipient, count(*) AS passes, round(avg(x)::numeric, 2) AS x,"
-        f" round(avg(y)::numeric, 2) AS y {LIVERPOOL_HOME_PASSES}"
+        f" round(avg(y)::numeric, 2) AS y, {UNTIL_MINUTE} {LIVERPOOL_HOME_PASSES}"
         " GROUP BY player, recipient ORDER BY player, recipient",
     ),
     (
         PASS_TOTALS_EXAMPLE,
-        "SELECT count(*) AS completed_passes, count(DISTINCT player) AS passers"
-        f" {LIVERPOOL_HOME_PASSES}",
+        "SELECT count(*) AS completed_passes, count(DISTINCT player) AS passers,"
+        f" {UNTIL_MINUTE} {LIVERPOOL_HOME_PASSES}",
     ),
 )
 

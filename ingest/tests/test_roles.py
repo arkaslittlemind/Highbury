@@ -19,8 +19,9 @@ def ingest(db):
         conn.rollback()
 
 
-def test_analyst_can_select_from_a_view(analyst):
-    assert analyst.execute("SELECT count(*) FROM v_shots").fetchone() == (0,)
+@pytest.mark.parametrize("view", ["v_shots", "v_passes", "v_substitutions"])
+def test_analyst_can_select_from_a_view(analyst, view):
+    assert analyst.execute(f"SELECT count(*) FROM {view}").fetchone() == (0,)
 
 
 def test_analyst_can_select_from_a_base_table(analyst):

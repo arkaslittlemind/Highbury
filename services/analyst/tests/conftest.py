@@ -150,6 +150,7 @@ def liverpool_home(analyst_env, ingest):
             [
                 ("10", "Thierry Henry", "Thierry Henry", "Arsenal"),
                 ("11", "Robert Pirès", "Robert Pirès", "Arsenal"),
+                ("12", "Edu Gaspar", "Edu Gaspar", "Arsenal"),
                 ("14", "Steven Gerrard", "Steven Gerrard", "Liverpool"),
                 ("15", "Jamie Carragher", "Jamie Carragher", "Liverpool"),
             ],
@@ -160,6 +161,20 @@ def liverpool_home(analyst_env, ingest):
                 pass_event("e4", "10", None, 100.0, 70.0),
                 # Completed and received, so only the team leaves it out.
                 replace(pass_event("e5", "14", "15", 40.0, 40.0), team="Liverpool"),
+                # Pirès goes off at 71:42, so the starting XI ends there.
+                replace(
+                    pass_event("sub1", "11", "12", 0.0, 0.0),
+                    type="substitution",
+                    minute=71,
+                    second=42,
+                    x=None,
+                    y=None,
+                    end_x=None,
+                    end_y=None,
+                    outcome="tactical",
+                ),
+                # One second after the substitution: completed, but not of the starting XI.
+                replace(pass_event("e6", "12", "10", 70.0, 40.0), minute=71, second=43),
             ],
             opponent="Liverpool",
         ),

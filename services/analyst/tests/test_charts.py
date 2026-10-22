@@ -232,6 +232,50 @@ def test_a_pass_network_puts_each_passer_at_the_mean_start_of_their_passes():
         {"source": "Patrick Vieira", "target": "Robert Pires", "passes": 1},
         {"source": "Thierry Henry", "target": "Robert Pires", "passes": 2},
     ]
+    # With no until_minute column, the network is of the whole match.
+    assert chart.until_minute is None
+
+
+WINDOW_COLUMNS = [*PASS_COLUMNS, "until_minute"]
+
+
+@pytest.mark.parametrize(("minute", "expected"), [(71, 71), (None, None)])
+def test_a_pass_network_takes_the_minute_its_passes_stop_from_the_rows(minute, expected):
+    chart = pass_network(
+        WINDOW_COLUMNS,
+        [
+            ["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, minute],
+            ["Thierry Henry", "Patrick Vieira", 1, 90.0, 30.0, minute],
+        ],
+    )
+
+    assert chart.until_minute == expected
+
+
+@pytest.mark.parametrize(
+    ("second", "reason"),
+    [
+        (
+            65,
+            "Row 2: until_minute is 65 here and 71 in row 1. The passes of one network stop at"
+            " one minute.",
+        ),
+        (None, "Row 2: until_minute is None here and 71 in row 1."),
+        (131, "Row 2, column until_minute:"),
+        ("71", "Row 2, column until_minute:"),
+    ],
+)
+def test_a_pass_network_rejects_an_until_minute_that_is_not_one_minute(second, reason):
+    with pytest.raises(charts.ChartRejected) as rejected:
+        pass_network(
+            WINDOW_COLUMNS,
+            [
+                ["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, 71],
+                ["Thierry Henry", "Patrick Vieira", 1, 90.0, 30.0, second],
+            ],
+        )
+
+    assert str(rejected.value).startswith(reason)
 
 
 @pytest.mark.parametrize(
@@ -312,6 +356,7 @@ def test_a_chart_survives_the_trip_through_json():
                 ["Thierry Henry", "Patrick Vieira", 1, 90.0, 30.0],
             ],
         ),
+        pass_network(WINDOW_COLUMNS, [["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, 71]]),
     ]
 
     for chart in built:

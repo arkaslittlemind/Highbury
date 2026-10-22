@@ -54,6 +54,13 @@ CATALOG = (
         STATSBOMB,
         "Built from the passes of one match: who passed to whom, and how often.",
     ),
+    (
+        "2003-04",
+        "substitutions",
+        True,
+        STATSBOMB,
+        "Every substitution, with the minute, the player off, and the player on.",
+    ),
     ("2025-26", "results", True, UNDERSTAT, "All 38 Arsenal league matches: date, teams, score."),
     ("2025-26", "shots", True, UNDERSTAT, "Every shot of both teams, with pitch coordinates."),
     (
@@ -92,6 +99,13 @@ CATALOG = (
         False,
         None,
         f"{NO_EVENTS} Offer a 2003-04 pass network or a 2025-26 shot map instead.",
+    ),
+    (
+        "2025-26",
+        "substitutions",
+        False,
+        None,
+        "Substitutions are not loaded for 2025-26. Offer the minutes of each player instead.",
     ),
 )
 

@@ -70,6 +70,18 @@ describe("a payload that the service cannot send", () => {
     expect(chartSpecSchema.safeParse({ ...COMPARE_BARS, metrics: [] }).success).toBe(false);
   });
 
+  it("reads a pass_network with or without the minute its passes stop", () => {
+    for (const until_minute of [71, null, undefined]) {
+      expect(chartSpecSchema.safeParse({ ...PASS_NETWORK, until_minute }).success).toBe(true);
+    }
+  });
+
+  it("rejects a pass_network minute that is not a match minute", () => {
+    for (const until_minute of [131, -1, 71.5, "71"]) {
+      expect(chartSpecSchema.safeParse({ ...PASS_NETWORK, until_minute }).success).toBe(false);
+    }
+  });
+
   it("rejects a pass_network node with no passes", () => {
     const chart = { ...PASS_NETWORK, nodes: [{ ...PASS_NETWORK.nodes[0], passes: 0 }] };
     expect(chartSpecSchema.safeParse(chart).success).toBe(false);
