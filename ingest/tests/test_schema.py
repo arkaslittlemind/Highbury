@@ -141,6 +141,34 @@ def test_passes_view_holds_only_pass_events(conn):
     assert rows == [("Thierry Henry", None, "Leeds")]
 
 
+def test_substitutions_view_names_the_player_off_the_player_on_and_the_reason(conn):
+    ids = insert_match(conn)
+    on = conn.execute("INSERT INTO players (name) VALUES ('Edu') RETURNING id").fetchone()[0]
+    conn.execute(
+        "INSERT INTO events (match_id, player_id, team_id, type, period, minute, second,"
+        " outcome, recipient_id, source_event_id)"
+        " VALUES (%s, %s, %s, 'substitution', 2, 45, 0, 'tactical', %s, 'sub1')",
+        (ids["match"], ids["player"], ids["home"], on),
+    )
+
+    rows = conn.execute(
+        "SELECT player_off, player_on, reason, period, minute, second FROM v_substitutions"
+    ).fetchall()
+
+    assert rows == [("Thierry Henry", "Edu", "tactical", 2, 45, 0)]
+
+
+def test_an_event_period_outside_the_match_is_rejected(conn):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "INSERT INTO events (match_id, team_id, type, period, minute, second,"
+            " source_event_id) VALUES (%s, %s, 'pass', 6, 1, 0, 'e1')",
+            (ids["match"], ids["home"]),
+        )
+
+
 def test_substitutions_view_holds_only_substitution_events(conn):
     ids = insert_match(conn)
     insert_event(conn, ids, event_type="pass", source_id="e1")

@@ -17,11 +17,62 @@ def shot(source_id, player, outcome, xg):
 
 
 def pass_event(source_id, player, recipient, x, y):
-    """A pass of Arsenal. With no recipient, the pass failed."""
+    """A pass of Arsenal in the first half. With no recipient, the pass failed."""
     outcome = None if recipient else "incomplete"
     return load.EventRow(
-        source_id, "m1", player, "Arsenal", "pass", 5, 0, x, y, x, y, outcome, False, 1, recipient
+        source_id,
+        "m1",
+        player,
+        "Arsenal",
+        "pass",
+        5,
+        0,
+        x,
+        y,
+        x,
+        y,
+        outcome,
+        False,
+        1,
+        recipient,
+        1,
     )
+
+
+def substitution(source_id, player_off, player_on, period, minute, second):
+    """A substitution of Arsenal. StatsBomb gives it no location."""
+    return replace(
+        pass_event(source_id, player_off, player_on, 0.0, 0.0),
+        type="substitution",
+        period=period,
+        minute=minute,
+        second=second,
+        x=None,
+        y=None,
+        end_x=None,
+        end_y=None,
+        outcome="tactical",
+    )
+
+
+LIVERPOOL_PLAYERS = [
+    ("10", "Thierry Henry", "Thierry Henry", "Arsenal"),
+    ("11", "Robert Pirès", "Robert Pirès", "Arsenal"),
+    ("12", "Edu Gaspar", "Edu Gaspar", "Arsenal"),
+    ("14", "Steven Gerrard", "Steven Gerrard", "Liverpool"),
+    ("15", "Jamie Carragher", "Jamie Carragher", "Liverpool"),
+]
+
+
+def load_liverpool_home(ingest, events):
+    """Load the 2003-04 home match against Liverpool with these events."""
+    load.load(
+        ingest,
+        season(
+            2003, "2003-04", "statsbomb", LIVERPOOL_PLAYERS, events=events, opponent="Liverpool"
+        ),
+    )
+    ingest.commit()
 
 
 def season(
@@ -141,42 +192,47 @@ def seeded(analyst_env, ingest):
 @pytest.fixture
 def liverpool_home(analyst_env, ingest):
     """The 2003-04 home match against Liverpool, with the passes of a small network."""
-    load.load(
+    load_liverpool_home(
         ingest,
-        season(
-            2003,
-            "2003-04",
-            "statsbomb",
-            [
-                ("10", "Thierry Henry", "Thierry Henry", "Arsenal"),
-                ("11", "Robert Pirès", "Robert Pirès", "Arsenal"),
-                ("12", "Edu Gaspar", "Edu Gaspar", "Arsenal"),
-                ("14", "Steven Gerrard", "Steven Gerrard", "Liverpool"),
-                ("15", "Jamie Carragher", "Jamie Carragher", "Liverpool"),
-            ],
-            events=[
-                pass_event("e1", "10", "11", 60.0, 40.0),
-                pass_event("e2", "10", "11", 80.0, 20.0),
-                pass_event("e3", "11", "10", 50.0, 30.0),
-                pass_event("e4", "10", None, 100.0, 70.0),
-                # Completed and received, so only the team leaves it out.
-                replace(pass_event("e5", "14", "15", 40.0, 40.0), team="Liverpool"),
-                # Pirès goes off at 71:42, so the starting XI ends there.
-                replace(
-                    pass_event("sub1", "11", "12", 0.0, 0.0),
-                    type="substitution",
-                    minute=71,
-                    second=42,
-                    x=None,
-                    y=None,
-                    end_x=None,
-                    end_y=None,
-                    outcome="tactical",
-                ),
-                # One second after the substitution: completed, but not of the starting XI.
-                replace(pass_event("e6", "12", "10", 70.0, 40.0), minute=71, second=43),
-            ],
-            opponent="Liverpool",
-        ),
+        [
+            pass_event("e1", "10", "11", 60.0, 40.0),
+            pass_event("e2", "10", "11", 80.0, 20.0),
+            pass_event("e3", "11", "10", 50.0, 30.0),
+            pass_event("e4", "10", None, 100.0, 70.0),
+            # Completed and received, so only the team leaves it out.
+            replace(pass_event("e5", "14", "15", 40.0, 40.0), team="Liverpool"),
+            # Pirès goes off at 71:42, so the starting XI ends there.
+            substitution("sub1", "11", "12", 2, 71, 42),
+            # One second after the substitution: completed, but not of the starting XI.
+            replace(pass_event("e6", "12", "10", 70.0, 40.0), period=2, minute=71, second=43),
+        ],
     )
-    ingest.commit()
+
+
+@pytest.fixture
+def liverpool_home_half_time(analyst_env, ingest):
+    """The same match with a change at half time, where the clock starts again at 45:00."""
+    load_liverpool_home(
+        ingest,
+        [
+            pass_event("e1", "11", "10", 40.0, 20.0),
+            # First-half stoppage time: later on the clock than the change, but before it.
+            replace(pass_event("e2", "10", "11", 70.0, 40.0), minute=46, second=10),
+            replace(pass_event("e3", "10", "11", 90.0, 20.0), minute=30),
+            substitution("sub1", "11", "12", 2, 45, 0),
+            # The first pass of the second half: Edu is on, so it is not of the starting XI.
+            replace(pass_event("e4", "12", "10", 60.0, 40.0), period=2, minute=45, second=30),
+        ],
+    )
+
+
+@pytest.fixture
+def liverpool_home_no_substitution(analyst_env, ingest):
+    """The same match with no Arsenal substitution: the network keeps every pass."""
+    load_liverpool_home(
+        ingest,
+        [
+            pass_event("e1", "10", "11", 60.0, 40.0),
+            replace(pass_event("e2", "11", "10", 80.0, 20.0), period=2, minute=89),
+        ],
+    )

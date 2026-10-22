@@ -115,11 +115,21 @@
   question: Show Arsenal's pass network vs Liverpool at home.
   status: answered
   chart: pass_network
+  # The default network is the starting XI: the passes before Arsenal's first change.
   sql: >-
     SELECT count(*) AS completed_passes FROM v_passes
     WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL
     AND match_id = (SELECT match_id FROM v_matches
     WHERE season = '2003-04' AND home_team = 'Arsenal' AND away_team = 'Liverpool')
+    AND (period, minute, second) < ALL (SELECT period, minute, second
+    FROM v_substitutions WHERE team = 'Arsenal' AND match_id = v_passes.match_id)
+  also_sql:
+    # The other fair reading: the network of the whole match.
+    - >-
+      SELECT count(*) AS completed_passes FROM v_passes
+      WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL
+      AND match_id = (SELECT match_id FROM v_matches
+      WHERE season = '2003-04' AND home_team = 'Arsenal' AND away_team = 'Liverpool')
   note: The fourth suggestion chip.
 
 - id: q11

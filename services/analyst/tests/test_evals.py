@@ -87,7 +87,7 @@ def test_the_model_file_names_both_models_with_prices():
 def test_each_golden_query_runs_on_the_views(seeded):
     items = evals.load_golden(EVALS_DIR / "golden.yaml")
 
-    assert [item.id for item in items if item.also_sql] == ["q02"]
+    assert [item.id for item in items if item.also_sql] == ["q02", "q10"]
     for item in items:
         for sql in item.queries():
             result = tools.run_sql(sql)

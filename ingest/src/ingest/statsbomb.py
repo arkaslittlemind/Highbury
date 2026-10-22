@@ -230,6 +230,7 @@ def event_row(event: dict, match_id: str) -> EventRow:
         possession=event.get("possession"),
         # A substitution stores the player who comes on as its recipient.
         recipient=player_id(detail.get("recipient") or detail.get("replacement")),
+        period=event["period"],
     )
 
 

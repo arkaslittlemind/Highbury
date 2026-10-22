@@ -106,3 +106,39 @@ def test_the_pass_examples_make_a_network_and_its_totals(liverpool_home):
         ["completed_passes", "passers", "until_minute"],
         [[3, 2, 71]],
     )
+
+
+def test_the_pass_examples_keep_first_half_stoppage_passes_before_a_half_time_change(
+    liverpool_home_half_time,
+):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart(
+        "pass_network", by_purpose[prompt.PASS_NETWORK_EXAMPLE], "Arsenal v Liverpool"
+    )
+    totals = tools.run_sql(by_purpose[prompt.PASS_TOTALS_EXAMPLE])
+
+    assert chart.ok, chart.error
+    # Henry's pass at 46:10 of the first half is in. Edu's pass at 45:30 of the second
+    # half is out, although its clock reads earlier.
+    assert [node.model_dump() for node in chart.chart.nodes] == [
+        {"player": "Robert Pirès", "x": 40.0, "y": 20.0, "passes": 1},
+        {"player": "Thierry Henry", "x": 80.0, "y": 30.0, "passes": 2},
+    ]
+    assert chart.chart.until_minute == 45
+    assert totals.ok, totals.error
+    assert totals.rows == [[3, 2, 45]]
+
+
+def test_the_pass_examples_keep_every_pass_of_a_match_with_no_substitution(
+    liverpool_home_no_substitution,
+):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart(
+        "pass_network", by_purpose[prompt.PASS_NETWORK_EXAMPLE], "Arsenal v Liverpool"
+    )
+
+    assert chart.ok, chart.error
+    assert [node.passes for node in chart.chart.nodes] == [1, 1]
+    assert chart.chart.until_minute is None

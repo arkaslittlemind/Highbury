@@ -82,6 +82,8 @@ class EventRow:
     under_pressure: bool
     possession: int | None
     recipient: str | None
+    # Last, with a default, because tests build this row by position.
+    period: int | None = None
 
 
 @dataclass(frozen=True)
@@ -227,15 +229,16 @@ def load(conn: psycopg.Connection, rows: SeasonRows) -> None:
         )
         cur.executemany(
             "INSERT INTO events (match_id, player_id, team_id, type, minute, second, x, y,"
-            " end_x, end_y, outcome, under_pressure, possession, recipient_id, source_event_id)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " end_x, end_y, outcome, under_pressure, possession, recipient_id, period,"
+            " source_event_id)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             " ON CONFLICT (source_event_id) DO UPDATE SET"
             " match_id = EXCLUDED.match_id, player_id = EXCLUDED.player_id,"
             " team_id = EXCLUDED.team_id, type = EXCLUDED.type, minute = EXCLUDED.minute,"
             " second = EXCLUDED.second, x = EXCLUDED.x, y = EXCLUDED.y,"
             " end_x = EXCLUDED.end_x, end_y = EXCLUDED.end_y, outcome = EXCLUDED.outcome,"
             " under_pressure = EXCLUDED.under_pressure, possession = EXCLUDED.possession,"
-            " recipient_id = EXCLUDED.recipient_id",
+            " recipient_id = EXCLUDED.recipient_id, period = EXCLUDED.period",
             [
                 (
                     match_ids[event.match],
@@ -252,6 +255,7 @@ def load(conn: psycopg.Connection, rows: SeasonRows) -> None:
                     event.under_pressure,
                     event.possession,
                     player(event.recipient),
+                    event.period,
                     event.source_id,
                 )
                 for event in rows.events

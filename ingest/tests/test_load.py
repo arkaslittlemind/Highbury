@@ -52,11 +52,11 @@ def two_matches() -> load.SeasonRows:
         events=[
             load.EventRow(
                 "p1", "100", "11", "Arsenal", "pass", 12, 30, 80.0, 20.0, 100.0, 35.0,
-                None, True, 7, "10",
+                None, True, 7, "10", 1,
             ),
             load.EventRow(
                 "p2", "100", "20", "Everton", "pass", 30, 5, 40.0, 40.0, 120.0, 80.0,
-                "incomplete", False, 21, None,
+                "incomplete", False, 21, None, 2,
             ),
             load.EventRow(
                 "c1", "100", "10", "Arsenal", "carry", 12, 33, 50.0, 30.0, 58.0, 33.0,
@@ -152,11 +152,11 @@ def test_the_analyst_reads_the_loaded_season_through_the_views(ingest, analyst):
         " WHERE player = 'Thierry Henry' AND season = '2003-04'"
     ).fetchone() == (2, 165, 2, 0, 3)
     assert analyst.execute(
-        "SELECT player, recipient, team, opponent, outcome, under_pressure FROM v_passes"
-        " ORDER BY minute"
+        "SELECT player, recipient, team, opponent, outcome, under_pressure, period"
+        " FROM v_passes ORDER BY minute"
     ).fetchall() == [
-        ("Robert Pires", "Thierry Henry", "Arsenal", "Everton", None, True),
-        ("Wayne Rooney", None, "Everton", "Arsenal", "incomplete", False),
+        ("Robert Pires", "Thierry Henry", "Arsenal", "Everton", None, True, 1),
+        ("Wayne Rooney", None, "Everton", "Arsenal", "incomplete", False, 2),
     ]
 
 

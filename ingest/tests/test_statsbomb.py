@@ -319,6 +319,7 @@ def test_only_passes_carries_pressures_and_substitutions_become_events():
     assert (completed.player, completed.recipient, completed.outcome) == ("11", "10", None)
     assert completed.under_pressure is True
     assert (completed.minute, completed.second, completed.possession) == (12, 30, 7)
+    assert completed.period == 1
 
     failed = events["p2"]
     assert (failed.outcome, failed.recipient, failed.under_pressure) == ("incomplete", None, False)
@@ -337,8 +338,8 @@ def test_a_substitution_stores_the_player_off_the_replacement_and_the_reason():
     [sub] = [event for event in statsbomb.build_rows(season).events if event.source_id == "sub1"]
 
     assert (sub.player, sub.recipient, sub.outcome, sub.team) == ("11", "12", "tactical", "Arsenal")
-    # The clock of the event, as the passes have, so a pass can be compared with it.
-    assert (sub.minute, sub.second) == (60, 4)
+    # Both halves start their clock at minute 45, so the period orders the events.
+    assert (sub.period, sub.minute, sub.second) == (2, 60, 4)
     assert (sub.x, sub.y, sub.end_x, sub.end_y) == (None, None, None, None)
 
 

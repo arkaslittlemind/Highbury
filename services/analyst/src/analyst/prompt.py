@@ -53,14 +53,18 @@ LIVERPOOL_HOME = (
 ARSENAL_SUBSTITUTIONS = (
     f"FROM v_substitutions WHERE team = 'Arsenal' AND match_id = {LIVERPOOL_HOME}"
 )
-# The minute of Arsenal's first substitution: null when Arsenal made none.
-UNTIL_MINUTE = f"(SELECT min(minute) {ARSENAL_SUBSTITUTIONS}) AS until_minute"
+# Each half starts its own clock (the second half at 45:00), so events are ordered by
+# (period, minute, second). The minute of Arsenal's first substitution: null when none.
+UNTIL_MINUTE = (
+    f"(SELECT minute {ARSENAL_SUBSTITUTIONS} ORDER BY period, minute, second LIMIT 1)"
+    " AS until_minute"
+)
 # The passes that a pass network draws: completed passes of Arsenal in one match, before
-# the first substitution. A match with no substitution keeps every pass.
+# the first substitution. ALL over no rows is true, so a match with no change keeps them all.
 LIVERPOOL_HOME_PASSES = (
     "FROM v_passes WHERE team = 'Arsenal' AND outcome IS NULL AND recipient IS NOT NULL"
-    f" AND match_id = {LIVERPOOL_HOME} AND minute * 60 + second < COALESCE((SELECT"
-    f" min(minute * 60 + second) {ARSENAL_SUBSTITUTIONS}), 100000)"
+    f" AND match_id = {LIVERPOOL_HOME} AND (period, minute, second) < ALL"
+    f" (SELECT period, minute, second {ARSENAL_SUBSTITUTIONS})"
 )
 
 # (what the query is for, the query). Each one must run on the views as they are:
