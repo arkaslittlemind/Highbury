@@ -209,7 +209,7 @@ def test_an_alias_can_repeat_the_name_of_its_own_player(ingest):
     assert manual_aliases(ingest) == [("Thierry Henry", "thierry henry", None)]
 
 
-# The availability matrix of build-plan feature 4: what each season can answer.
+# The availability matrix of build-plan features 4 and 19: what each season can answer.
 MATRIX = {
     ("2003-04", "results"): True,
     ("2003-04", "shots"): True,
@@ -219,6 +219,9 @@ MATRIX = {
     ("2003-04", "pressures"): True,
     ("2003-04", "pass_networks"): True,
     ("2003-04", "substitutions"): True,
+    ("2003-04", "league_results"): True,
+    ("2003-04", "team_match_stats"): True,
+    ("2003-04", "league_table"): True,
     ("2025-26", "results"): True,
     ("2025-26", "shots"): True,
     ("2025-26", "xg"): True,
@@ -227,6 +230,9 @@ MATRIX = {
     ("2025-26", "pressures"): False,
     ("2025-26", "pass_networks"): False,
     ("2025-26", "substitutions"): False,
+    ("2025-26", "league_results"): True,
+    ("2025-26", "team_match_stats"): True,
+    ("2025-26", "league_table"): True,
 }
 
 
@@ -256,7 +262,10 @@ def test_an_available_row_has_a_source_and_an_unavailable_row_says_why(ingest):
 
     for label, metric, available, source, notes in catalog(ingest):
         assert notes, (label, metric)
-        if available:
+        league = metric in {name for name, _ in curated.LEAGUE_ROWS}
+        if available and league:
+            assert source == "football-data.co.uk", (label, metric)
+        elif available:
             assert source == {"2003-04": "StatsBomb Open Data", "2025-26": "Understat"}[label]
         else:
             assert source is None, (label, metric)
@@ -313,8 +322,10 @@ def test_the_command_loads_both_and_the_analyst_can_read_them(
     assert curated.run(alias_file(tmp_path), env(db)) == 0
 
     assert capsys.readouterr().out == first
-    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 16"]
-    assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (16,)
+    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 22"]
+    assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (
+        len(curated.CATALOG),
+    )
     assert analyst.execute(
         "SELECT source_name FROM player_aliases WHERE source = 'manual' ORDER BY 1"
     ).fetchall() == [("Henry",), ("Titi",)]

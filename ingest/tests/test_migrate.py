@@ -12,6 +12,7 @@ TABLES = {
     "shots",
     "events",
     "player_match_stats",
+    "team_match_stats",
     "data_catalog",
 }
 

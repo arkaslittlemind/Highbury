@@ -24,6 +24,26 @@ SOURCE = "manual"
 STATSBOMB = "StatsBomb Open Data"
 UNDERSTAT = "Understat"
 NO_EVENTS = "Understat has shots but no pass, carry, or pressure events."
+FOOTBALL_DATA = "football-data.co.uk"
+# The source holds every league match of both seasons, so each season gets the same rows.
+LEAGUE_ROWS = (
+    (
+        "league_results",
+        "All 380 league matches of every team in v_league_matches: date, teams, score, and"
+        " half-time score. v_matches holds only Arsenal's matches.",
+    ),
+    (
+        "team_match_stats",
+        "Shots, shots on target, corners, fouls, yellow and red cards, and the referee for"
+        " each team in each match, in v_league_matches. No xG, and the shot counts are not"
+        " the shots of v_shots.",
+    ),
+    (
+        "league_table",
+        "The final league table in v_league_table: position, points, and goal difference,"
+        " from the scores.",
+    ),
+)
 
 # (season label, metric, available, source, notes). The agent reads these rows
 # before a claim about one season, so each note is written for the model.
@@ -61,6 +81,7 @@ CATALOG = (
         STATSBOMB,
         "Every substitution, with the minute, the player off, and the player on.",
     ),
+    *(("2003-04", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
     ("2025-26", "results", True, UNDERSTAT, "All 38 Arsenal league matches: date, teams, score."),
     ("2025-26", "shots", True, UNDERSTAT, "Every shot of both teams, with pitch coordinates."),
     (
@@ -107,6 +128,7 @@ CATALOG = (
         None,
         "Substitutions are not loaded for 2025-26. Offer the minutes of each player instead.",
     ),
+    *(("2025-26", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
 )
 
 

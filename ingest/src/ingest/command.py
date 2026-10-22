@@ -20,19 +20,25 @@ class FetchError(Exception):
     """A raw file could not be downloaded."""
 
 
-def cached_json(path: Path, fetch: Callable[[], Any]) -> Any:
-    """Return the JSON in the cache file, downloading it first when it is absent."""
+def cached_text(path: Path, fetch: Callable[[], str], encoding: str = "utf-8") -> str:
+    """Return the text in the cache file, downloading it first when it is absent."""
     if not path.exists():
         try:
-            data = fetch()
+            text = fetch()
         except (OSError, ValueError) as error:
             raise FetchError(f"cannot download {path.stem}: {type(error).__name__}") from error
         path.parent.mkdir(parents=True, exist_ok=True)
         # A rename is atomic, so an interrupted download never looks cached.
         partial = path.with_suffix(".tmp")
-        partial.write_text(json.dumps(data), encoding="utf-8")
+        # newline="" keeps the line ends of the download as they are, on Windows too.
+        partial.write_text(text, encoding=encoding, newline="")
         partial.replace(path)
-    return json.loads(path.read_text(encoding="utf-8"))
+    return path.read_text(encoding=encoding)
+
+
+def cached_json(path: Path, fetch: Callable[[], Any]) -> Any:
+    """Return the JSON in the cache file, downloading it first when it is absent."""
+    return json.loads(cached_text(path, lambda: json.dumps(fetch())))
 
 
 def load_season(url: str, rows: load.SeasonRows, facts: load.SeasonFacts) -> dict[str, int]:
@@ -45,19 +51,14 @@ def load_season(url: str, rows: load.SeasonRows, facts: load.SeasonFacts) -> dic
         return load.table_counts(conn)
 
 
-def run(
-    build: Callable[[], load.SeasonRows],
-    facts: load.SeasonFacts,
-    env: Mapping[str, str] = os.environ,
-) -> int:
-    """Run one season command and return its exit code.
+def execute(task: Callable[[str], list[str]], env: Mapping[str, str] = os.environ) -> int:
+    """Run one load task and return its exit code.
 
-    build fetches and transforms the season. It ends before the database connection
-    opens, so a download or a bad record never leaves a transaction open.
+    task gets the ingest URL and returns the lines to print. Each failure that a
+    loader can expect becomes one line on stderr, with no traceback.
     """
     try:
-        url = load.ingest_url(env)
-        counts = load_season(url, build(), facts)
+        lines = task(load.ingest_url(env))
     except SettingsError as error:
         print(f"Settings error: {error}", file=sys.stderr)
         return 1
@@ -85,12 +86,29 @@ def run(
         print(f"Load failed, nothing was loaded: {message}", file=sys.stderr)
         return 1
 
-    for table, count in counts.items():
-        print(f"{table}: {count}")
-    print(
+    for line in lines:
+        print(line)
+    return 0
+
+
+def season_lines(counts: dict[str, int], facts: load.SeasonFacts) -> list[str]:
+    return [
+        *(f"{table}: {count}" for table, count in counts.items()),
         f"{facts.season} {facts.team}: {facts.matches} matches,"
         f" {facts.wins} W {facts.draws} D {facts.losses} L, {facts.points} points,"
         f" {facts.goals_for} goals for,"
-        f" {facts.top_scorer} {facts.top_scorer_goals} goals"
-    )
-    return 0
+        f" {facts.top_scorer} {facts.top_scorer_goals} goals",
+    ]
+
+
+def run(
+    build: Callable[[], load.SeasonRows],
+    facts: load.SeasonFacts,
+    env: Mapping[str, str] = os.environ,
+) -> int:
+    """Run one season command and return its exit code.
+
+    build fetches and transforms the season. It ends before the database connection
+    opens, so a download or a bad record never leaves a transaction open.
+    """
+    return execute(lambda url: season_lines(load_season(url, build(), facts), facts), env)

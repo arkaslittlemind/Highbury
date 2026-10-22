@@ -8,6 +8,8 @@ VIEWS = [
     "v_player_season",
     "v_passes",
     "v_substitutions",
+    "v_league_matches",
+    "v_league_table",
 ]
 
 
@@ -72,7 +74,7 @@ def test_every_view_column_has_a_comment(conn):
     assert missing == []
 
 
-def test_all_six_views_exist(conn):
+def test_all_eight_views_exist(conn):
     rows = conn.execute("SELECT viewname FROM pg_views WHERE schemaname = 'public'")
 
     assert sorted(row[0] for row in rows) == sorted(VIEWS)
@@ -277,3 +279,121 @@ def test_player_match_view_names_team_and_opponent(conn, team, expected):
     ).fetchone()
 
     assert row == ("Thierry Henry", *expected, 90, 1)
+
+
+def insert_team(conn, name: str) -> int:
+    return conn.execute("INSERT INTO teams (name) VALUES (%s) RETURNING id", (name,)).fetchone()[0]
+
+
+def insert_league_match(conn, home: int, away: int, home_goals: int, away_goals: int, key: str):
+    return conn.execute(
+        "INSERT INTO matches (season_id, match_date, home_team_id, away_team_id, home_goals,"
+        " away_goals, source, source_match_id)"
+        " VALUES (2003, '2004-05-01', %s, %s, %s, %s, 'football-data', %s) RETURNING id",
+        (home, away, home_goals, away_goals, key),
+    ).fetchone()[0]
+
+
+def test_matches_view_leaves_out_a_match_without_arsenal(conn):
+    ids = insert_match(conn)
+    chelsea = insert_team(conn, "Chelsea")
+    insert_league_match(conn, chelsea, ids["away"], 2, 1, "x1")
+
+    rows = conn.execute("SELECT home_team, away_team FROM v_matches").fetchall()
+    league = conn.execute("SELECT home_team, away_team FROM v_league_matches ORDER BY 1")
+
+    assert rows == [("Arsenal", "Leeds")]
+    assert league.fetchall() == [("Arsenal", "Leeds"), ("Chelsea", "Leeds")]
+
+
+def test_league_table_scores_results_and_breaks_a_tie_on_goal_difference(conn):
+    ids = insert_match(conn)  # Arsenal 5, Leeds 0
+    arsenal, leeds = ids["home"], ids["away"]
+    chelsea = insert_team(conn, "Chelsea")
+    insert_league_match(conn, chelsea, leeds, 1, 0, "x1")
+    insert_league_match(conn, arsenal, chelsea, 2, 2, "x2")
+
+    rows = conn.execute(
+        "SELECT team, position, played, won, drawn, lost, goals_for, goals_against,"
+        " goal_difference, points FROM v_league_table WHERE season = '2003-04'"
+        " ORDER BY position, team"
+    ).fetchall()
+
+    # Arsenal and Chelsea both have 4 points; Arsenal's goal difference is higher.
+    assert rows == [
+        ("Arsenal", 1, 2, 1, 1, 0, 7, 2, 5, 4),
+        ("Chelsea", 2, 2, 1, 1, 0, 3, 2, 1, 4),
+        ("Leeds", 3, 2, 0, 0, 2, 0, 6, -6, 0),
+    ]
+
+
+def test_league_table_gives_teams_equal_on_every_tie_break_one_position(conn):
+    insert_match(conn)  # Arsenal 5, Leeds 0
+    chelsea = insert_team(conn, "Chelsea")
+    everton = insert_team(conn, "Everton")
+    insert_league_match(conn, chelsea, everton, 5, 0, "x1")
+
+    rows = conn.execute(
+        "SELECT team, position FROM v_league_table ORDER BY position, team"
+    ).fetchall()
+
+    assert rows == [("Arsenal", 1), ("Chelsea", 1), ("Everton", 3), ("Leeds", 3)]
+
+
+def insert_stats(conn, match: int, team: int, *, shots=10, on_target=4, source="football-data"):
+    conn.execute(
+        "INSERT INTO team_match_stats (match_id, team_id, shots, shots_on_target, corners,"
+        " fouls, yellow_cards, red_cards, source) VALUES (%s, %s, %s, %s, 6, 11, 2, 0, %s)",
+        (match, team, shots, on_target, source),
+    )
+
+
+def test_league_matches_view_puts_the_stats_of_each_side_in_its_columns(conn):
+    ids = insert_match(conn)
+    conn.execute(
+        "UPDATE matches SET home_ht_goals = 2, away_ht_goals = 0, referee = 'M Dean' WHERE id = %s",
+        (ids["match"],),
+    )
+    insert_stats(conn, ids["match"], ids["home"], shots=17, on_target=9)
+    insert_stats(conn, ids["match"], ids["away"], shots=5, on_target=1)
+
+    row = conn.execute(
+        "SELECT home_ht_goals, away_ht_goals, referee, home_shots, away_shots,"
+        " home_shots_on_target, away_shots_on_target, home_corners, away_red_cards"
+        " FROM v_league_matches"
+    ).fetchone()
+
+    assert row == (2, 0, "M Dean", 17, 5, 9, 1, 6, 0)
+
+
+def test_league_matches_view_shows_a_match_with_no_stats(conn):
+    insert_match(conn)
+
+    row = conn.execute("SELECT home_goals, home_shots, referee FROM v_league_matches").fetchone()
+
+    assert row == (5, None, None)
+
+
+@pytest.mark.parametrize(
+    ("shots", "on_target"), [(-1, 0), (3, 4)], ids=["negative", "more on target than shots"]
+)
+def test_team_match_stats_rejects_impossible_counts(conn, shots, on_target):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        insert_stats(conn, ids["match"], ids["home"], shots=shots, on_target=on_target)
+
+
+def test_team_match_stats_has_one_row_per_team_per_match(conn):
+    ids = insert_match(conn)
+    insert_stats(conn, ids["match"], ids["home"])
+
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        insert_stats(conn, ids["match"], ids["home"])
+
+
+def test_half_time_goals_cannot_be_negative(conn):
+    ids = insert_match(conn)
+
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute("UPDATE matches SET home_ht_goals = -1 WHERE id = %s", (ids["match"],))

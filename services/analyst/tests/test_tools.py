@@ -5,6 +5,7 @@ import pytest
 from analyst import db as read_path
 from analyst import tools
 from analyst.sql_guard import AGENT_VIEWS, MAX_ROWS
+from ingest.curated import CATALOG
 
 
 def test_run_sql_returns_the_rows_and_the_statement_that_ran(seeded):
@@ -153,7 +154,7 @@ def test_the_catalog_has_every_row_of_both_seasons(seeded):
     result = tools.get_data_catalog()
 
     assert result.error is None
-    assert len(result.rows) == 16
+    assert len(result.rows) == len(CATALOG)
     assert [(row.season, row.metric) for row in result.rows] == sorted(
         (row.season, row.metric) for row in result.rows
     )
@@ -163,7 +164,7 @@ def test_the_catalog_has_every_row_of_both_seasons(seeded):
 def test_the_catalog_of_one_season_says_what_is_not_there(seeded, label):
     result = tools.get_data_catalog(label)
 
-    assert len(result.rows) == 8
+    assert len(result.rows) == sum(row[0] == "2025-26" for row in CATALOG)
     assert {row.season for row in result.rows} == {"2025-26"}
     passes = next(row for row in result.rows if row.metric == "passes")
     assert not passes.available

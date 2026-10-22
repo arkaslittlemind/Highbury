@@ -19,13 +19,16 @@ def ingest(db):
         conn.rollback()
 
 
-@pytest.mark.parametrize("view", ["v_shots", "v_passes", "v_substitutions"])
+@pytest.mark.parametrize(
+    "view", ["v_shots", "v_passes", "v_substitutions", "v_league_matches", "v_league_table"]
+)
 def test_analyst_can_select_from_a_view(analyst, view):
     assert analyst.execute(f"SELECT count(*) FROM {view}").fetchone() == (0,)
 
 
-def test_analyst_can_select_from_a_base_table(analyst):
-    assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (0,)
+@pytest.mark.parametrize("table", ["data_catalog", "team_match_stats"])
+def test_analyst_can_select_from_a_base_table(analyst, table):
+    assert analyst.execute(f"SELECT count(*) FROM {table}").fetchone() == (0,)
 
 
 def test_analyst_cannot_insert(analyst):
@@ -70,6 +73,12 @@ def test_ingest_can_insert(ingest):
     ingest.execute("INSERT INTO teams (name) VALUES ('Arsenal')")
 
     assert ingest.execute("SELECT name FROM teams").fetchall() == [("Arsenal",)]
+
+
+def test_ingest_can_write_team_match_stats(ingest):
+    ingest.execute("DELETE FROM team_match_stats")
+
+    assert ingest.execute("SELECT count(*) FROM team_match_stats").fetchone() == (0,)
 
 
 def test_ingest_cannot_create_a_table(ingest):

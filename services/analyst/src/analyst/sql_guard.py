@@ -19,6 +19,8 @@ AGENT_VIEWS = (
     "v_player_season",
     "v_passes",
     "v_substitutions",
+    "v_league_matches",
+    "v_league_table",
 )
 
 # Each row goes into the model's context. 500 holds one player's shots of a season.

@@ -66,7 +66,12 @@ def ingest(db) -> Iterator[psycopg.Connection]:
         # shared by the whole session, so every test that loads data empties it.
         conn.execute(
             sql.SQL("TRUNCATE {}").format(
-                sql.SQL(", ").join(map(sql.Identifier, (*load.SEASON_TABLES, "data_catalog")))
+                sql.SQL(", ").join(
+                    map(
+                        sql.Identifier,
+                        (*load.SEASON_TABLES, "team_match_stats", "data_catalog"),
+                    )
+                )
             )
         )
 
