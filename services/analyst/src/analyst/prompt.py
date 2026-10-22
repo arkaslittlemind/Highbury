@@ -35,6 +35,9 @@ RULES = (
     " first substitution, with the minute of that substitution as until_minute, as the"
     " example does. Draw the whole match, with no until_minute, only when the question"
     " asks for it.",
+    "An xg_timeline shows every shot of both teams in one match, with no filter on the"
+    " team, as the example does. The claims take the xG total of each team from a run_sql"
+    " of the same match, grouped by team.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",
@@ -45,6 +48,8 @@ PASS_NETWORK_EXAMPLE = (
     "The completed passes of Arsenal's starting XI in one match, for a pass_network chart"
 )
 PASS_TOTALS_EXAMPLE = "The completed passes of the same starting XI, for the claims"
+XG_TIMELINE_EXAMPLE = "The shots of both teams in one match, for an xg_timeline chart"
+XG_TOTALS_EXAMPLE = "The xG totals of both teams in the same match, for the claims"
 
 LIVERPOOL_HOME = (
     "(SELECT match_id FROM v_matches WHERE season = '2003-04'"
@@ -114,6 +119,17 @@ SQL_EXAMPLES = (
         PASS_TOTALS_EXAMPLE,
         "SELECT count(*) AS completed_passes, count(DISTINCT player) AS passers,"
         f" {UNTIL_MINUTE} {LIVERPOOL_HOME_PASSES}",
+    ),
+    (
+        XG_TIMELINE_EXAMPLE,
+        "SELECT match_id, team, opponent, minute, xg, is_goal, player FROM v_shots"
+        f" WHERE match_id = {LIVERPOOL_HOME} ORDER BY minute",
+    ),
+    (
+        XG_TOTALS_EXAMPLE,
+        "SELECT team, count(*) AS shots, count(*) FILTER (WHERE is_goal) AS goals,"
+        f" round(sum(xg)::numeric, 2) AS xg FROM v_shots WHERE match_id = {LIVERPOOL_HOME}"
+        " GROUP BY team ORDER BY team",
     ),
 )
 

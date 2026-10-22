@@ -10,9 +10,9 @@ from analyst.settings import get_settings
 from ingest import curated, load
 
 
-def shot(source_id, player, outcome, xg):
+def shot(source_id, player, outcome, xg, team="Arsenal", minute=12):
     return load.ShotRow(
-        source_id, "m1", player, "Arsenal", 12, 104.0, 36.0, xg, outcome, "right foot", "open play"
+        source_id, "m1", player, team, minute, 104.0, 36.0, xg, outcome, "right foot", "open play"
     )
 
 
@@ -64,12 +64,18 @@ LIVERPOOL_PLAYERS = [
 ]
 
 
-def load_liverpool_home(ingest, events):
-    """Load the 2003-04 home match against Liverpool with these events."""
+def load_liverpool_home(ingest, events, shots=()):
+    """Load the 2003-04 home match against Liverpool with these events and shots."""
     load.load(
         ingest,
         season(
-            2003, "2003-04", "statsbomb", LIVERPOOL_PLAYERS, events=events, opponent="Liverpool"
+            2003,
+            "2003-04",
+            "statsbomb",
+            LIVERPOOL_PLAYERS,
+            shots=shots,
+            events=events,
+            opponent="Liverpool",
         ),
     )
     ingest.commit()
@@ -191,7 +197,7 @@ def seeded(analyst_env, ingest):
 
 @pytest.fixture
 def liverpool_home(analyst_env, ingest):
-    """The 2003-04 home match against Liverpool, with the passes of a small network."""
+    """The 2003-04 home match against Liverpool: a small pass network, shots of both teams."""
     load_liverpool_home(
         ingest,
         [
@@ -205,6 +211,11 @@ def liverpool_home(analyst_env, ingest):
             substitution("sub1", "11", "12", 2, 71, 42),
             # One second after the substitution: completed, but not of the starting XI.
             replace(pass_event("e6", "12", "10", 70.0, 40.0), period=2, minute=71, second=43),
+        ],
+        [
+            shot("s1", "10", "goal", 0.42, minute=31),
+            shot("s2", "11", "saved", 0.13, minute=9),
+            shot("s3", "14", "off target", 0.07, team="Liverpool", minute=55),
         ],
     )
 

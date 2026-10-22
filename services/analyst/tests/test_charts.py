@@ -18,6 +18,10 @@ def pass_network(columns, rows):
     return charts.build("pass_network", columns, rows, "Arsenal passes", "c_00000003")
 
 
+def xg_timeline(columns, rows):
+    return charts.build("xg_timeline", columns, rows, "Arsenal v Liverpool", "c_00000004")
+
+
 def test_a_shot_map_has_one_shot_for_each_row_in_row_order():
     chart = shot_map(
         SHOT_COLUMNS,
@@ -320,12 +324,125 @@ def test_a_pass_network_rejects_rows_that_are_not_pairs(columns, row, reason):
     assert str(rejected.value).startswith(reason)
 
 
+TIMELINE_COLUMNS = ["match_id", "team", "opponent", "minute", "xg", "is_goal", "player"]
+
+
+def test_an_xg_timeline_adds_up_the_xg_of_each_team_in_minute_order():
+    chart = xg_timeline(
+        TIMELINE_COLUMNS,
+        [
+            [7, "Liverpool", "Arsenal", 20, 0.1, False, "Steven Gerrard"],
+            [7, "Arsenal", "Liverpool", 31, 0.456, True, "Thierry Henry"],
+            [7, "Arsenal", "Liverpool", 12, 0.2, False, "Robert Pirès"],
+            [7, "Arsenal", "Liverpool", 31, 0.01, False, None],
+        ],
+    )
+
+    assert (chart.type, chart.id, chart.title) == (
+        "xg_timeline",
+        "c_00000004",
+        "Arsenal v Liverpool",
+    )
+    # Arsenal comes first, also when row 1 is a shot of the opponent.
+    arsenal, liverpool = chart.teams
+    assert (arsenal.team, arsenal.xg) == ("Arsenal", 0.67)
+    # Two shots in one minute keep the order of the rows.
+    assert [shot.model_dump() for shot in arsenal.shots] == [
+        {"minute": 12, "xg": 0.2, "total": 0.2, "is_goal": False, "player": "Robert Pirès"},
+        {"minute": 31, "xg": 0.456, "total": 0.66, "is_goal": True, "player": "Thierry Henry"},
+        {"minute": 31, "xg": 0.01, "total": 0.67, "is_goal": False, "player": None},
+    ]
+    assert (liverpool.team, liverpool.xg, len(liverpool.shots)) == ("Liverpool", 0.1, 1)
+
+
+def test_an_xg_timeline_adds_up_before_it_rounds():
+    chart = xg_timeline(
+        TIMELINE_COLUMNS,
+        [[7, "Arsenal", "Leeds", minute, 0.004, False, None] for minute in (1, 2, 3)],
+    )
+
+    # Rounded at each shot, three shots of 0.004 would give 0.
+    assert [shot.total for shot in chart.teams[0].shots] == [0.0, 0.01, 0.01]
+    assert chart.teams[0].xg == 0.01
+
+
+def test_an_xg_timeline_draws_a_team_with_no_shot_at_zero():
+    chart = xg_timeline(TIMELINE_COLUMNS[:6], [[7, "Arsenal", "Leeds United", 40, 0.3, True]])
+
+    assert chart.teams[1].model_dump() == {"team": "Leeds United", "xg": 0.0, "shots": []}
+    assert chart.teams[0].shots[0].player is None
+
+
+@pytest.mark.parametrize(
+    ("columns", "row", "reason"),
+    [
+        (
+            TIMELINE_COLUMNS[:5],
+            [7, "Arsenal", "Liverpool", 50, 0.2],
+            "A xg_timeline chart needs the columns match_id, team, opponent, minute, xg,"
+            " is_goal. Missing: is_goal.",
+        ),
+        (
+            TIMELINE_COLUMNS,
+            [8, "Arsenal", "Liverpool", 50, 0.2, False, None],
+            "Row 2: match_id is 8 here and 7 in row 1. The shots of one timeline come from"
+            " one match.",
+        ),
+        (
+            TIMELINE_COLUMNS,
+            [7, "Arsenal", "Everton", 50, 0.2, False, None],
+            "Row 2: the teams are Arsenal and Everton here and Arsenal and Liverpool in"
+            " row 1. The shots of one timeline come from one match.",
+        ),
+        (
+            TIMELINE_COLUMNS,
+            [7, "Arsenal", "Liverpool", 50, 0.2, "true", None],
+            "Row 2, column is_goal:",
+        ),
+        (
+            TIMELINE_COLUMNS,
+            [7, "Arsenal", "Liverpool", 131, 0.2, False, None],
+            "Row 2, column minute:",
+        ),
+        (TIMELINE_COLUMNS, [7, "Arsenal", "Liverpool", 50, 1.2, False, None], "Row 2, column xg:"),
+    ],
+)
+def test_an_xg_timeline_rejects_rows_that_are_not_shots_of_one_match(columns, row, reason):
+    good = [7, "Arsenal", "Liverpool", 10, 0.1, False, None][: len(columns)]
+
+    with pytest.raises(charts.ChartRejected) as rejected:
+        xg_timeline(columns, [good, row])
+
+    assert str(rejected.value).startswith(reason)
+
+
+@pytest.mark.parametrize(
+    ("rows", "reason"),
+    [
+        ([], "An xg_timeline chart needs one shot or more."),
+        (
+            [[7, "Chelsea", "Liverpool", 10, 0.1, False, None]],
+            "The teams are Chelsea and Liverpool. An xg_timeline shows an Arsenal match.",
+        ),
+        (
+            [[7, "Arsenal", "Arsenal", 10, 0.1, False, None]],
+            "The team and the opponent are both Arsenal in row 1.",
+        ),
+    ],
+)
+def test_an_xg_timeline_rejects_rows_with_no_arsenal_match(rows, reason):
+    with pytest.raises(charts.ChartRejected) as rejected:
+        xg_timeline(TIMELINE_COLUMNS, rows)
+
+    assert str(rejected.value) == reason
+
+
 def test_an_unknown_chart_type_names_the_known_types():
     with pytest.raises(charts.ChartRejected) as rejected:
         charts.build("pie", SHOT_COLUMNS, [], "Henry shots", "c_00000001")
 
     assert str(rejected.value) == (
-        "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network."
+        "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network, xg_timeline."
     )
 
 
@@ -357,6 +474,7 @@ def test_a_chart_survives_the_trip_through_json():
             ],
         ),
         pass_network(WINDOW_COLUMNS, [["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, 71]]),
+        xg_timeline(TIMELINE_COLUMNS, [[7, "Arsenal", "Liverpool", 31, 0.45, True, "Henry"]]),
     ]
 
     for chart in built:

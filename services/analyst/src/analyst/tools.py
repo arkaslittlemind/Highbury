@@ -323,6 +323,8 @@ def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResu
     recipient, passes (the count), x and y (the mean start position). Group
     v_passes by player and recipient. An optional until_minute column, the same on
     every row, is the minute the passes stop; leave it out for the whole match.
+    xg_timeline: one row for each shot of one match from v_shots, the shots of both
+    teams, with match_id, team, opponent, minute, xg, is_goal. It also takes player.
     """
     try:
         title = charts.check_request(chart_type, title)

@@ -44,6 +44,28 @@ export const PASS_NETWORK = {
   edges: [{ source: "Patrick Vieira", target: "Robert Pires", passes: 9 }],
 };
 
+export const XG_TIMELINE = {
+  type: "xg_timeline",
+  id: "chart_4",
+  title: "Arsenal v Liverpool, xG by minute",
+  teams: [
+    {
+      team: "Arsenal",
+      xg: 1.33,
+      shots: [
+        { minute: 9, xg: 0.13, total: 0.13, is_goal: false, player: "Robert Pires" },
+        { minute: 31, xg: 0.42, total: 0.55, is_goal: true, player: "Thierry Henry" },
+        { minute: 49, xg: 0.78, total: 1.33, is_goal: true, player: null },
+      ],
+    },
+    {
+      team: "Liverpool",
+      xg: 0.07,
+      shots: [{ minute: 31, xg: 0.07, total: 0.07, is_goal: false, player: "Steven Gerrard" }],
+    },
+  ],
+};
+
 export const STEP = { number: 1, tool: "run_sql", label: "Querying the match data" };
 
 const CLAIM = { text: "Goals", value: 30, unit: "goals", tool_call_id: "q_1a2b3c4d" };

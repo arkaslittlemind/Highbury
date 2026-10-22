@@ -9,7 +9,7 @@ from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-ChartType = Literal["shot_map", "compare_bars", "pass_network"]
+ChartType = Literal["shot_map", "compare_bars", "pass_network", "xg_timeline"]
 
 MAX_TITLE = 120
 
@@ -18,6 +18,9 @@ PitchY = Annotated[float, Field(ge=0, le=80)]
 Text = Annotated[str, Field(min_length=1)]
 # The minute columns of the views hold a match minute, stoppage time included.
 Minute = Annotated[int, Field(ge=0, le=130)]
+ShotXg = Annotated[float, Field(ge=0, le=1)]
+# Every match in the database is an Arsenal match, so a timeline puts Arsenal first.
+ARSENAL = "Arsenal"
 
 
 class ChartRejected(Exception):
@@ -32,7 +35,7 @@ class Spec(BaseModel):
 class Shot(Spec):
     x: PitchX
     y: PitchY
-    xg: Annotated[float, Field(ge=0, le=1)]
+    xg: ShotXg
     outcome: Text
     minute: Annotated[int, Field(ge=0)]
     opponent: Text
@@ -101,7 +104,44 @@ class PassPair(Spec):
     until_minute: Minute | None = None
 
 
-ChartSpec = Annotated[ShotMap | CompareBars | PassNetwork, Field(discriminator="type")]
+class TimelineRow(Spec):
+    """One row of the query: one shot of the match."""
+
+    match_id: int
+    team: Text
+    opponent: Text
+    minute: Minute
+    xg: ShotXg
+    is_goal: bool
+    player: str | None = None
+
+
+class TimelineShot(Spec):
+    minute: Minute
+    xg: ShotXg
+    # The xG of the team after this shot, rounded as the team's xg is.
+    total: Annotated[float, Field(ge=0)]
+    is_goal: bool
+    player: str | None = None
+
+
+class TimelineTeam(Spec):
+    team: Text
+    xg: Annotated[float, Field(ge=0)]
+    # In minute order.
+    shots: list[TimelineShot]
+
+
+class XgTimeline(Spec):
+    type: Literal["xg_timeline"] = "xg_timeline"
+    id: str
+    title: str
+    # Arsenal, then the opponent.
+    teams: Annotated[list[TimelineTeam], Field(min_length=2, max_length=2)]
+
+
+Chart = ShotMap | CompareBars | PassNetwork | XgTimeline
+ChartSpec = Annotated[Chart, Field(discriminator="type")]
 
 Columns = Sequence[str]
 Rows = Sequence[Sequence[JsonValue]]
@@ -234,7 +274,66 @@ def pass_network(columns: Columns, rows: Rows, title: str, chart_id: str) -> Pas
     )
 
 
-BUILDERS = {"shot_map": shot_map, "compare_bars": compare_bars, "pass_network": pass_network}
+def xg_timeline(columns: Columns, rows: Rows, title: str, chart_id: str) -> XgTimeline:
+    records = to_records(
+        "xg_timeline", columns, rows, ("match_id", "team", "opponent", "minute", "xg", "is_goal")
+    )
+    shots = parse_rows(TimelineRow, records)
+    if not shots:
+        raise ChartRejected("An xg_timeline chart needs one shot or more.")
+    first = shots[0]
+    if first.team == first.opponent:
+        raise ChartRejected(f"The team and the opponent are both {first.team} in row 1.")
+    # Each row names both teams, so a team with no shot still has its line.
+    teams = {first.team, first.opponent}
+    for number, shot in enumerate(shots, start=1):
+        if shot.match_id != first.match_id:
+            raise ChartRejected(
+                f"Row {number}: match_id is {shot.match_id} here and {first.match_id} in row 1."
+                " The shots of one timeline come from one match."
+            )
+        if {shot.team, shot.opponent} != teams:
+            raise ChartRejected(
+                f"Row {number}: the teams are {shot.team} and {shot.opponent} here and"
+                f" {first.team} and {first.opponent} in row 1."
+                " The shots of one timeline come from one match."
+            )
+    if ARSENAL not in teams:
+        raise ChartRejected(
+            f"The teams are {first.team} and {first.opponent}."
+            " An xg_timeline shows an Arsenal match."
+        )
+
+    # sorted() is stable, so the shots of one minute keep the order of the rows.
+    ordered = sorted(shots, key=lambda shot: shot.minute)
+    lines = []
+    for team in (ARSENAL, *(teams - {ARSENAL})):
+        running = 0.0
+        made = []
+        for shot in ordered:
+            if shot.team != team:
+                continue
+            # Rounded only for the spec: rounding the running sum would lose small shots.
+            running += shot.xg
+            made.append(
+                TimelineShot(
+                    minute=shot.minute,
+                    xg=shot.xg,
+                    total=round(running, 2),
+                    is_goal=shot.is_goal,
+                    player=shot.player,
+                )
+            )
+        lines.append(TimelineTeam(team=team, xg=round(running, 2), shots=made))
+    return XgTimeline(id=chart_id, title=title, teams=lines)
+
+
+BUILDERS = {
+    "shot_map": shot_map,
+    "compare_bars": compare_bars,
+    "pass_network": pass_network,
+    "xg_timeline": xg_timeline,
+}
 
 
 def check_request(chart_type: str, title: str) -> str:
@@ -255,7 +354,7 @@ def build(
     rows: Rows,
     title: str,
     chart_id: str,
-) -> ShotMap | CompareBars | PassNetwork:
+) -> Chart:
     """Return the chart that the rows make. Raise ChartRejected if they make none."""
     title = check_request(chart_type, title)
     return BUILDERS[chart_type](columns, rows, title, chart_id)

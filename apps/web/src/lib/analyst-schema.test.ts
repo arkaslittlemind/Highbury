@@ -14,6 +14,7 @@ import {
   SHOT,
   SHOT_MAP,
   STEP,
+  XG_TIMELINE,
 } from "@/lib/test-fixtures";
 
 describe("the payload of each event", () => {
@@ -26,7 +27,7 @@ describe("the payload of each event", () => {
     );
   });
 
-  it.each([SHOT_MAP, COMPARE_BARS, PASS_NETWORK])("accepts a valid $type chart", (chart) => {
+  it.each([SHOT_MAP, COMPARE_BARS, PASS_NETWORK, XG_TIMELINE])("accepts a valid $type chart", (chart) => {
     expect(chartSpecSchema.safeParse(chart).success).toBe(true);
   });
 
@@ -84,6 +85,23 @@ describe("a payload that the service cannot send", () => {
 
   it("rejects a pass_network node with no passes", () => {
     const chart = { ...PASS_NETWORK, nodes: [{ ...PASS_NETWORK.nodes[0], passes: 0 }] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it("rejects an xg_timeline with one team", () => {
+    const chart = { ...XG_TIMELINE, teams: [XG_TIMELINE.teams[0]] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it.each([
+    ["a minute after 130", { minute: 131 }],
+    ["xG above 1", { xg: 1.2 }],
+    ["a negative total", { total: -0.1 }],
+    ["a goal as text", { is_goal: "true" }],
+  ])("rejects an xg_timeline shot with %s", (_name, change) => {
+    const [arsenal, opponent] = XG_TIMELINE.teams;
+    const shots = [{ ...arsenal.shots[0], ...change }];
+    const chart = { ...XG_TIMELINE, teams: [{ ...arsenal, shots }, opponent] };
     expect(chartSpecSchema.safeParse(chart).success).toBe(false);
   });
 

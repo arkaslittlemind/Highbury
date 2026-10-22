@@ -31,6 +31,7 @@ def test_the_server_lists_the_five_tools_with_what_a_client_needs():
         "shot_map",
         "compare_bars",
         "pass_network",
+        "xg_timeline",
     ]
 
 

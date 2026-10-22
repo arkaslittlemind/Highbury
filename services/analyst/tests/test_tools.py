@@ -391,6 +391,42 @@ def test_build_chart_gives_a_pass_network_from_the_grouped_passes(seeded):
     ]
 
 
+def test_build_chart_gives_an_xg_timeline_of_the_shots_of_one_match(seeded):
+    result = tools.build_chart(
+        "xg_timeline",
+        # Both shots are in minute 12, so xg fixes their order.
+        "SELECT match_id, team, opponent, minute, xg, is_goal, player FROM v_shots"
+        " ORDER BY minute, xg",
+        "Arsenal v Everton",
+    )
+
+    assert result.error is None
+    assert result.chart.model_dump()["teams"] == [
+        {
+            "team": "Arsenal",
+            "xg": 0.75,
+            "shots": [
+                {
+                    "minute": 12,
+                    "xg": 0.25,
+                    "total": 0.25,
+                    "is_goal": True,
+                    "player": "Thierry Henry",
+                },
+                {
+                    "minute": 12,
+                    "xg": 0.5,
+                    "total": 0.75,
+                    "is_goal": False,
+                    "player": "Thierry Henry",
+                },
+            ],
+        },
+        # Everton has no shot in the seeded match.
+        {"team": "Everton", "xg": 0.0, "shots": []},
+    ]
+
+
 @pytest.mark.parametrize(
     ("chart_type", "title", "reason"),
     [

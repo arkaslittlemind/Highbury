@@ -51,6 +51,8 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
         "Use build_chart to show rows and run_sql for the numbers of the claims",
         "only chart ids that build_chart returned in this conversation",
         "x >= 102 AND y BETWEEN 18 AND 62",
+        "An xg_timeline shows every shot of both teams in one match",
+        "from a run_sql of the same match, grouped by team",
     ],
 )
 def test_the_prompt_holds_each_rule(text, rule):
@@ -58,7 +60,7 @@ def test_the_prompt_holds_each_rule(text, rule):
 
 
 def test_the_prompt_holds_the_sql_examples(text):
-    assert 4 <= len(prompt.SQL_EXAMPLES) <= 8
+    assert 4 <= len(prompt.SQL_EXAMPLES) <= 10
     for purpose, sql in prompt.SQL_EXAMPLES:
         assert purpose in text
         assert sql in text
@@ -142,3 +144,21 @@ def test_the_pass_examples_keep_every_pass_of_a_match_with_no_substitution(
     assert chart.ok, chart.error
     assert [node.passes for node in chart.chart.nodes] == [1, 1]
     assert chart.chart.until_minute is None
+
+
+def test_the_xg_timeline_example_makes_a_chart_whose_totals_are_the_claims(liverpool_home):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart(
+        "xg_timeline", by_purpose[prompt.XG_TIMELINE_EXAMPLE], "Arsenal v Liverpool"
+    )
+    totals = tools.run_sql(by_purpose[prompt.XG_TOTALS_EXAMPLE])
+
+    assert chart.ok, chart.error
+    assert totals.ok, totals.error
+    claimed = {row[0]: float(row[3]) for row in totals.rows}
+    drawn = {team.team: team.xg for team in chart.chart.teams}
+    assert drawn.keys() == claimed.keys() == {"Arsenal", "Liverpool"}
+    for team, xg in drawn.items():
+        assert xg == pytest.approx(claimed[team], abs=0.01)
+    assert [shot.minute for shot in chart.chart.teams[0].shots] == [9, 31]

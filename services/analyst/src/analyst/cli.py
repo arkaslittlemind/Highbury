@@ -32,6 +32,8 @@ def row_count_text(count: int) -> str:
 def chart_size(chart: Chart) -> str:
     if chart["type"] == "compare_bars":
         return f"{len(chart['metrics']) * len(chart['series'])} bars"
+    if chart["type"] == "xg_timeline":
+        return f"{sum(len(team['shots']) for team in chart['teams'])} shots"
     marks = CHART_MARKS[chart["type"]]
     return f"{len(chart[marks])} {marks}"
 

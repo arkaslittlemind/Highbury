@@ -8,11 +8,14 @@ const pitchX = z.number().min(0).max(120);
 const pitchY = z.number().min(0).max(80);
 const text = z.string().min(1);
 const passCount = z.number().int().min(1);
+// A match minute, stoppage time included.
+const matchMinute = z.number().int().min(0).max(130);
+const shotXg = z.number().min(0).max(1);
 
 const shotSchema = z.object({
   x: pitchX,
   y: pitchY,
-  xg: z.number().min(0).max(1),
+  xg: shotXg,
   outcome: text,
   minute: z.number().int().min(0),
   opponent: text,
@@ -46,13 +49,33 @@ const passNetworkSchema = z.object({
   nodes: z.array(z.object({ player: text, x: pitchX, y: pitchY, passes: passCount })),
   edges: z.array(z.object({ source: text, target: text, passes: passCount })),
   // The minute the drawn passes stop. Null or missing: the whole match.
-  until_minute: z.number().int().min(0).max(130).nullable().optional(),
+  until_minute: matchMinute.nullable().optional(),
+});
+
+const timelineShotSchema = z.object({
+  minute: matchMinute,
+  xg: shotXg,
+  // The xG of the team after this shot.
+  total: z.number().min(0),
+  is_goal: z.boolean(),
+  player: z.string().nullable().optional(),
+});
+
+const xgTimelineSchema = z.object({
+  type: z.literal("xg_timeline"),
+  id: z.string(),
+  title: z.string(),
+  // Arsenal, then the opponent. The shots of each team are in minute order.
+  teams: z
+    .array(z.object({ team: text, xg: z.number().min(0), shots: z.array(timelineShotSchema) }))
+    .length(2),
 });
 
 export const chartSpecSchema = z.discriminatedUnion("type", [
   shotMapSchema,
   compareBarsSchema,
   passNetworkSchema,
+  xgTimelineSchema,
 ]);
 
 export const stepSchema = z.object({
