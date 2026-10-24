@@ -3,11 +3,15 @@ from datetime import date
 import pytest
 
 from ingest import curated, load
+from ingest.overrides import AliasEntry
 
 ONE_PLAYER = """
-- season: "2003-04"
-  player: Thierry Henry
-  aliases: [Henry, Titi]
+teams: []
+players: []
+nicknames:
+  - season: "2003-04"
+    player: Thierry Henry
+    aliases: [Henry, Titi]
 """
 
 
@@ -43,7 +47,7 @@ def current() -> load.SeasonRows:
 
 
 def entry(player="Thierry Henry", aliases=("Henry", "Titi"), season="2003-04"):
-    return curated.AliasEntry(season, player, tuple(aliases))
+    return AliasEntry(season, player, tuple(aliases))
 
 
 def manual_aliases(conn):
@@ -58,60 +62,6 @@ def loader_aliases(conn):
         "SELECT id, player_id, source, source_player_id, source_name FROM player_aliases"
         " WHERE source <> 'manual' ORDER BY id"
     ).fetchall()
-
-
-def test_an_alias_file_becomes_entries():
-    assert curated.parse_aliases(ONE_PLAYER) == [entry()]
-
-
-@pytest.mark.parametrize(
-    ("text", "problem"),
-    [
-        ("- player: Thierry Henry\n  aliases: [Henry]", "entry 1: season is missing"),
-        ('- season: "2003-04"\n  aliases: [Henry]', "entry 1: player is missing"),
-        ('- season: "2003-04"\n  player: Thierry Henry', "Thierry Henry: has no alias"),
-        ('- season: "2003-04"\n  player: Thierry Henry\n  aliases: []', "has no alias"),
-        ('- season: "2003-04"\n  player: Thierry Henry\n  aliases: ["  "]', "an empty alias"),
-        ('- season: "2003-04"\n  player: Thierry Henry\n  aliases: [14]', "alias 14 is not text"),
-        (ONE_PLAYER + ONE_PLAYER, r"Thierry Henry \(2003-04\) is listed twice"),
-        (
-            ONE_PLAYER + '- season: "2003-04"\n  player: Karl Henry\n  aliases: [henry]',
-            "alias 'henry' is under Thierry Henry and Karl Henry",
-        ),
-        (
-            '- season: "2003-04"\n  player: Thierry Henry\n  aliases: [Titi, titi]',
-            "Thierry Henry: alias 'titi' is listed twice",
-        ),
-        ("season: 2003-04", "must be a list of entries"),
-        ("- just text", "entry 1: must have season, player, and aliases"),
-        ("- [unclosed", "not valid YAML: .* at line"),
-        ("[]", "must be a list of entries"),
-        (
-            ONE_PLAYER + '- season: "2025-26"\n  player: Thierry Henry\n  aliases: [TITI]',
-            "alias 'TITI' is under Thierry Henry and Thierry Henry",
-        ),
-    ],
-)
-def test_a_bad_alias_file_is_rejected_with_the_problem(text, problem):
-    with pytest.raises(curated.CuratedError, match=problem):
-        curated.parse_aliases(text)
-
-
-def test_every_problem_in_the_file_is_named_at_once():
-    text = '- season: "2003-04"\n  aliases: [Henry]\n- player: Robert Pirès\n  aliases: [Pires]'
-
-    with pytest.raises(curated.CuratedError) as error:
-        curated.parse_aliases(text)
-
-    assert "entry 1: player is missing" in str(error.value)
-    assert "entry 2: season is missing" in str(error.value)
-
-
-def test_the_shipped_alias_file_is_valid():
-    entries = curated.parse_aliases(curated.ALIASES_FILE.read_text(encoding="utf-8"))
-
-    assert {e.season for e in entries} == {"2003-04", "2025-26"}
-    assert entry("Thierry Henry", ("Henry", "Titi", "T. Henry")) in entries
 
 
 def test_aliases_are_written_as_manual_rows(ingest):
@@ -300,7 +250,7 @@ def env(db):
 
 
 def alias_file(tmp_path, text=ONE_PLAYER):
-    path = tmp_path / "aliases.yaml"
+    path = tmp_path / "overrides.yaml"
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -347,27 +297,34 @@ def test_the_command_names_a_missing_variable(tmp_path, capsys):
     assert capsys.readouterr().err == "Settings error: INGEST_DATABASE_URL is not set\n"
 
 
-def test_the_command_names_a_missing_alias_file(tmp_path, db, capsys):
+def test_the_command_names_a_missing_overrides_file(tmp_path, db, capsys):
     assert curated.run(tmp_path / "absent.yaml", env(db)) == 1
-    assert capsys.readouterr().err.startswith("Cannot read the alias file")
+    assert capsys.readouterr().err.startswith(
+        "Overrides file is not valid, nothing was loaded: cannot read absent.yaml"
+    )
 
 
-def test_the_command_names_the_problem_of_a_bad_alias_file(tmp_path, db, ingest, capsys):
+def test_the_command_names_the_problem_of_a_bad_overrides_file(tmp_path, db, ingest, capsys):
     both_seasons(ingest)
 
-    assert curated.run(alias_file(tmp_path, "- just text"), env(db)) == 1
+    bad = ONE_PLAYER.replace("player: Thierry Henry", "name: Thierry Henry")
+    assert curated.run(alias_file(tmp_path, bad), env(db)) == 1
 
     error = capsys.readouterr().err
-    assert error.startswith("Curated data is not valid, nothing was loaded: entry 1")
+    assert error.startswith(
+        "Overrides file is not valid, nothing was loaded: nicknames entry 1: player is missing"
+    )
     assert error.count("\n") == 1
 
 
-def test_the_command_reports_an_alias_file_that_is_not_text(tmp_path, db, capsys):
-    path = tmp_path / "aliases.yaml"
+def test_the_command_reports_an_overrides_file_that_is_not_text(tmp_path, db, capsys):
+    path = tmp_path / "overrides.yaml"
     path.write_bytes(b"\xff\xfe not utf-8")
 
     assert curated.run(path, env(db)) == 1
-    assert capsys.readouterr().err.startswith("Cannot read the alias file")
+    assert capsys.readouterr().err.startswith(
+        "Overrides file is not valid, nothing was loaded: cannot read overrides.yaml"
+    )
 
 
 def test_the_command_never_prints_the_database_password(tmp_path, capsys):

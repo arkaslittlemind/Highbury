@@ -6,9 +6,13 @@ from datetime import date
 
 import psycopg
 
+from ingest import resolve
 from ingest.migrate import SettingsError
+from ingest.overrides import PlayerOverride
 
 INGEST_URL_VAR = "INGEST_DATABASE_URL"
+# The source of the fan nicknames, which ingest.curated loads.
+MANUAL_SOURCE = "manual"
 
 # The tables a season load writes, in dependency order.
 SEASON_TABLES = (
@@ -120,39 +124,213 @@ def ingest_url(env: Mapping[str, str]) -> str:
     return url
 
 
-def load_players(conn: psycopg.Connection, rows: SeasonRows) -> dict[str, int]:
-    """Insert the players that are new and return the database id of every player.
+def season_player_ids(conn: psycopg.Connection, season: str, name: str) -> list[int]:
+    """Return the ids of the players of this exact name who played in the season.
 
-    players has no natural key, so the alias row of the source is the identity: a
-    second run finds the player by the source's own player id. A player who exists
-    is left as it is, so a canonical name corrected by hand survives a second run.
+    players.name is not unique, so the season picks the player.
     """
-    player_ids = dict(
+    return [
+        player_id
+        for (player_id,) in conn.execute(
+            "SELECT DISTINCT p.id FROM players p"
+            " JOIN player_match_stats pms ON pms.player_id = p.id"
+            " JOIN matches m ON m.id = pms.match_id"
+            " JOIN seasons s ON s.id = m.season_id"
+            " WHERE p.name = %s AND s.label = %s ORDER BY p.id",
+            (name, season),
+        )
+    ]
+
+
+def name_candidates(
+    conn: psycopg.Connection, rows: SeasonRows
+) -> dict[int, dict[int, resolve.Candidate]]:
+    """Return, for each team id, the players that a new source player can be by name.
+
+    A candidate played for the team in the same season and has no alias row of the
+    loading source: two records of one source are two players, whatever their names.
+    """
+    found: dict[int, dict[int, tuple[str, set[str]]]] = {}
+    for player_id, name, team_id, source_name in conn.execute(
+        "SELECT p.id, p.name, t.team_id, a.source_name FROM players p"
+        " JOIN (SELECT DISTINCT pms.player_id, pms.team_id FROM player_match_stats pms"
+        "  JOIN matches m ON m.id = pms.match_id WHERE m.season_id = %s) t"
+        " ON t.player_id = p.id"
+        # Fan nicknames are for questions; a source record is matched on source names.
+        " LEFT JOIN player_aliases a ON a.player_id = p.id AND a.source <> %s"
+        " WHERE NOT EXISTS (SELECT 1 FROM player_aliases own"
+        "  WHERE own.player_id = p.id AND own.source = %s)",
+        (rows.season_id, MANUAL_SOURCE, rows.source),
+    ):
+        _, names = found.setdefault(team_id, {}).setdefault(player_id, (name, {name}))
+        if source_name is not None:
+            names.add(source_name)
+    return {
+        team_id: {
+            player_id: resolve.Candidate(player_id, name, tuple(sorted(names)))
+            for player_id, (name, names) in players.items()
+        }
+        for team_id, players in found.items()
+    }
+
+
+def check_overrides(
+    conn: psycopg.Connection,
+    rows: SeasonRows,
+    mine: Mapping[str, PlayerOverride],
+    linked: Mapping[str, int],
+) -> dict[str, int]:
+    """Return the player id of each link override. Raise ValueError naming every problem.
+
+    An override that disagrees with a link in the database stops the load: moving
+    the rows of one player to another is a merge that a reload does better.
+    """
+    problems = []
+    targets = {}
+    for source_id, override in mine.items():
+        if override.separate:
+            continue
+        found = season_player_ids(conn, override.season, override.player)
+        where = f"override {rows.source} {source_id}: {override.player} ({override.season})"
+        if not found:
+            problems.append(f"{where}: no such player")
+        elif len(found) > 1:
+            problems.append(f"{where}: {len(found)} players have this name")
+        else:
+            targets[source_id] = found[0]
+
+    # One player takes one record of a source: two records would share stats rows.
+    claims: dict[int, set[str]] = {}
+    for source_id, player_id in [*linked.items(), *targets.items()]:
+        claims.setdefault(player_id, set()).add(source_id)
+    for holders in claims.values():
+        if len(holders) > 1 and (overridden := sorted(holders & targets.keys())):
+            problems.append(
+                f"records {rows.source} {', '.join(sorted(holders))} all link to"
+                f" {mine[overridden[0]].player}: one player takes one record of a source"
+            )
+
+    linked_ids = [linked[source_id] for source_id in mine if source_id in linked]
+    names = dict(conn.execute("SELECT id, name FROM players WHERE id = ANY(%s)", (linked_ids,)))
+    # A player with an alias row of a second source was linked to it by name or override.
+    joined = {
+        player_id
+        for (player_id,) in conn.execute(
+            "SELECT DISTINCT player_id FROM player_aliases"
+            " WHERE player_id = ANY(%s) AND source <> ALL(%s)",
+            (linked_ids, [rows.source, MANUAL_SOURCE]),
+        )
+    }
+    reload = "reload into a fresh database to apply it"
+    for source_id, override in mine.items():
+        current = linked.get(source_id)
+        if current is None:
+            continue
+        if override.separate and current in joined:
+            problems.append(
+                f"override {rows.source} {source_id} is separate, but the database links it"
+                f" to {names[current]}, a player of another source; {reload}"
+            )
+        elif source_id in targets and targets[source_id] != current:
+            problems.append(
+                f"override {rows.source} {source_id} links it to {override.player}, but the"
+                f" database links it to {names[current]}; {reload}"
+            )
+    if problems:
+        raise ValueError("; ".join(problems))
+    return targets
+
+
+def load_players(
+    conn: psycopg.Connection,
+    rows: SeasonRows,
+    team_ids: Mapping[str, int],
+    player_overrides: Mapping[tuple[str, str], PlayerOverride],
+) -> tuple[dict[str, int], list[resolve.ReviewRow]]:
+    """Give every source player a database id, and return the name links to review.
+
+    A source player resolves in this order: an override in overrides.yaml always
+    wins, then the alias row of the source's own player id (so a second run finds
+    the same player), then the name within the same team and season. A player that
+    none of these finds is new. A player who exists is left as it is, so a canonical
+    name corrected by hand survives a second run.
+    """
+    linked = dict(
         conn.execute(
             "SELECT source_player_id, player_id FROM player_aliases WHERE source = %s",
             (rows.source,),
         ).fetchall()
     )
-    for player in rows.players:
-        if player.source_id in player_ids:
+    mine = {
+        source_id: override
+        for (source, source_id), override in player_overrides.items()
+        if source == rows.source
+    }
+    targets = check_overrides(conn, rows, mine, linked)
+    # Read before any insert, so that a player of this load is never a candidate.
+    candidates = name_candidates(conn, rows)
+    teams: dict[str, list[str]] = {}
+    for stat in rows.stats:
+        if stat.team not in teams.setdefault(stat.player, []):
+            teams[stat.player].append(stat.team)
+
+    new = [player for player in rows.players if player.source_id not in linked]
+    matches = {}
+    for player in new:
+        if player.source_id in mine:
             continue
-        (new_id,) = conn.execute(
-            "INSERT INTO players (name, position) VALUES (%s, %s) RETURNING id",
-            (player.name, player.position),
-        ).fetchone()
+        options = {
+            candidate.player_id: candidate
+            for team in teams.get(player.source_id, [])
+            for candidate in candidates.get(team_ids[team], {}).values()
+        }
+        # The source's own name: it is the full name where the source has one.
+        matches[player.source_id] = resolve.match_name(player.source_name, list(options.values()))
+    taken = {player_id: source_id for source_id, player_id in [*linked.items(), *targets.items()]}
+    matches = resolve.settle_claims(matches, taken)
+
+    player_ids = dict(linked)
+    review = []
+    for player in new:
+        match = matches.get(player.source_id)
+        # An exact link is certain. A match with no candidate is a season's first source.
+        if match is not None and match.outcome != "exact" and match.player is not None:
+            review.append(
+                resolve.ReviewRow(
+                    player.source_id,
+                    player.source_name,
+                    tuple(teams.get(player.source_id, [])),
+                    match,
+                )
+            )
+
+        if player.source_id in targets:
+            player_id = targets[player.source_id]
+        elif match is not None and match.player_id is not None:
+            player_id = match.player_id
+        else:
+            (player_id,) = conn.execute(
+                "INSERT INTO players (name, position) VALUES (%s, %s) RETURNING id",
+                (player.name, player.position),
+            ).fetchone()
         conn.execute(
             "INSERT INTO player_aliases (player_id, source, source_player_id, source_name)"
             " VALUES (%s, %s, %s, %s)",
-            (new_id, rows.source, player.source_id, player.source_name),
+            (player_id, rows.source, player.source_id, player.source_name),
         )
-        player_ids[player.source_id] = new_id
-    return player_ids
+        player_ids[player.source_id] = player_id
+    return player_ids, review
 
 
-def load(conn: psycopg.Connection, rows: SeasonRows) -> None:
+def load(
+    conn: psycopg.Connection,
+    rows: SeasonRows,
+    player_overrides: Mapping[tuple[str, str], PlayerOverride] | None = None,
+) -> list[resolve.ReviewRow]:
     """Write one season with upserts, so that a second run changes nothing.
 
-    The caller owns the transaction: nothing is committed here.
+    Return the player name links to review. The caller owns the transaction:
+    nothing is committed here.
     """
     conn.execute(
         "INSERT INTO seasons (id, label, data_level) VALUES (%s, %s, %s)"
@@ -168,7 +346,7 @@ def load(conn: psycopg.Connection, rows: SeasonRows) -> None:
     team_ids = dict(
         conn.execute("SELECT name, id FROM teams WHERE name = ANY(%s)", (rows.teams,)).fetchall()
     )
-    player_ids = load_players(conn, rows)
+    player_ids, review = load_players(conn, rows, team_ids, player_overrides or {})
 
     match_ids = {}
     for match in rows.matches:
@@ -282,6 +460,7 @@ def load(conn: psycopg.Connection, rows: SeasonRows) -> None:
                 for stat in rows.stats
             ],
         )
+    return review
 
 
 def table_counts(conn: psycopg.Connection) -> dict[str, int]:

@@ -473,6 +473,7 @@ dependencies = [
     { name = "pandas" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyyaml" },
+    { name = "rapidfuzz" },
     { name = "statsbombpy" },
 ]
 
@@ -482,6 +483,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pyyaml", specifier = ">=6" },
+    { name = "rapidfuzz", specifier = ">=3.9" },
     { name = "statsbombpy", specifier = ">=1.13" },
 ]
 

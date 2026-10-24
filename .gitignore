@@ -7,6 +7,8 @@ __pycache__/
 
 # Raw scraped/downloaded data is never committed (source terms)
 ingest/raw/
+# Review reports of the entity resolver, written by each season load
+ingest/review/
 
 # Env and secrets
 .env

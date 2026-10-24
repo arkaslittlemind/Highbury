@@ -3,7 +3,10 @@
 import pytest
 from test_load import two_matches
 
-from ingest import command, load, understat
+from ingest import command, load, overrides, understat
+
+# The two Understat titles of 2025-26 that the shipped overrides file maps.
+TEAMS = {"Leeds": "Leeds United", "Tottenham": "Tottenham Hotspur"}
 
 
 def side(team_id, title):
@@ -141,7 +144,7 @@ def test_a_situation_maps_to_a_stored_value(raw, stored):
     ],
 )
 def test_a_club_from_2003_04_keeps_the_name_it_already_has(title, name):
-    assert understat.team_name(title) == name
+    assert overrides.team_name(title, overrides.read().teams) == name
 
 
 def roster_entry(player_id, player, position="FW", time="90", **stats):
@@ -219,7 +222,7 @@ def small_season():
 
 
 def test_the_season_and_its_match_are_built_from_the_match_record():
-    rows = understat.build_rows(small_season())
+    rows = understat.build_rows(small_season(), TEAMS)
 
     assert (rows.season_id, rows.season_label, rows.data_level) == (2025, "2025-26", "SHOT")
     assert rows.source == "understat"
@@ -234,7 +237,7 @@ def test_the_season_and_its_match_are_built_from_the_match_record():
 
 
 def test_shots_are_scaled_and_mapped_for_both_teams():
-    rows = understat.build_rows(small_season())
+    rows = understat.build_rows(small_season(), TEAMS)
 
     shots = {shot.source_id: shot for shot in rows.shots}
     goal = shots["s1"]
@@ -248,13 +251,13 @@ def test_shots_are_scaled_and_mapped_for_both_teams():
 
 
 def test_an_own_goal_is_not_a_shot():
-    rows = understat.build_rows(small_season())
+    rows = understat.build_rows(small_season(), TEAMS)
 
     assert sorted(shot.source_id for shot in rows.shots) == ["s1", "s2", "s3"]
 
 
 def test_player_match_stats_are_the_roster_values():
-    rows = understat.build_rows(small_season())
+    rows = understat.build_rows(small_season(), TEAMS)
 
     stats = {stat.player: stat for stat in rows.stats}
     assert sorted(stats) == ["1", "2", "3", "8", "9"]
@@ -270,7 +273,7 @@ def test_player_match_stats_are_the_roster_values():
 
 
 def test_a_player_gets_the_understat_name_and_a_position_that_is_not_sub():
-    rows = understat.build_rows(small_season())
+    rows = understat.build_rows(small_season(), TEAMS)
 
     players = {player.source_id: player for player in rows.players}
     assert sorted(players) == ["1", "2", "3", "8", "9"]
@@ -294,7 +297,7 @@ def test_a_player_gets_the_position_of_the_most_starts():
         },
     )
 
-    players = {player.source_id: player for player in understat.build_rows(season).players}
+    players = {player.source_id: player for player in understat.build_rows(season, TEAMS).players}
 
     assert players["1"].position == "FWR"
 
@@ -304,7 +307,7 @@ def test_a_shot_by_a_player_outside_the_roster_stops_the_build():
     season.match_data["500"]["shots"]["h"].append(raw_shot("s9", "77", "Nobody", "MissedShots"))
 
     with pytest.raises(ValueError, match="s9"):
-        understat.build_rows(season)
+        understat.build_rows(season, TEAMS)
 
 
 @pytest.mark.parametrize(
@@ -317,7 +320,7 @@ def test_an_unknown_shot_value_stops_the_build(field):
     )
 
     with pytest.raises(ValueError, match=next(iter(field.values()))):
-        understat.build_rows(season)
+        understat.build_rows(season, TEAMS)
 
 
 def test_a_tie_between_positions_takes_the_first_by_name():
@@ -328,7 +331,7 @@ def test_a_tie_between_positions_takes_the_first_by_name():
         {"500": first.match_data["500"], "501": second.match_data["500"]},
     )
 
-    players = {player.source_id: player for player in understat.build_rows(season).players}
+    players = {player.source_id: player for player in understat.build_rows(season, TEAMS).players}
 
     assert players["1"].position == "AMC"
 
@@ -350,7 +353,8 @@ NAMES_FROM_2003_04 = {
 
 
 def test_no_club_of_2025_26_gets_a_second_name():
-    names = {understat.team_name(title) for title in UNDERSTAT_TITLES}
+    teams = overrides.read().teams
+    names = {overrides.team_name(title, teams) for title in UNDERSTAT_TITLES}
 
     # Twelve clubs played in both seasons, and each keeps its stored name.
     assert len(names & NAMES_FROM_2003_04) == 12
@@ -365,7 +369,7 @@ def test_goals_that_do_not_add_up_to_the_score_stop_the_build():
     season.matches[0]["goals"]["h"] = "3"
 
     with pytest.raises(ValueError, match="500"):
-        understat.build_rows(season)
+        understat.build_rows(season, TEAMS)
 
 
 def source_rows(conn, source):
@@ -386,8 +390,8 @@ def test_an_understat_season_loads_beside_a_statsbomb_season(ingest):
     before = load.table_counts(ingest)
     statsbomb_rows = source_rows(ingest, "statsbomb")
 
-    load.load(ingest, understat.build_rows(small_season()))
-    load.load(ingest, understat.build_rows(small_season()))
+    load.load(ingest, understat.build_rows(small_season(), TEAMS))
+    load.load(ingest, understat.build_rows(small_season(), TEAMS))
     load.load(ingest, two_matches())
 
     assert load.table_counts(ingest) == {
@@ -470,7 +474,9 @@ def test_the_command_reports_a_record_of_the_wrong_shape_without_a_traceback(
 def test_a_season_that_fails_the_sanity_check_is_not_committed(db, ingest):
     # One match can never be the 38-match season the command expects.
     with pytest.raises(load.SanityError):
-        command.load_season(db.ingest_url, understat.build_rows(small_season()), understat.FACTS)
+        command.load_season(
+            db.ingest_url, understat.build_rows(small_season(), TEAMS), understat.FACTS
+        )
 
     assert set(load.table_counts(ingest).values()) == {0}
 

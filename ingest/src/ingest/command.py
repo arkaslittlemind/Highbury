@@ -9,7 +9,7 @@ from typing import Any
 
 import psycopg
 
-from ingest import load
+from ingest import load, overrides, resolve
 from ingest.migrate import SettingsError
 
 # Without a limit, an unreachable database makes a command wait with no end.
@@ -41,14 +41,37 @@ def cached_json(path: Path, fetch: Callable[[], Any]) -> Any:
     return json.loads(cached_text(path, lambda: json.dumps(fetch())))
 
 
-def load_season(url: str, rows: load.SeasonRows, facts: load.SeasonFacts) -> dict[str, int]:
-    """Load and check one season in one transaction. Return the table row counts."""
+def load_season(
+    url: str,
+    rows: load.SeasonRows,
+    facts: load.SeasonFacts,
+    player_overrides: Mapping[tuple[str, str], overrides.PlayerOverride] | None = None,
+) -> tuple[dict[str, int], list[resolve.ReviewRow]]:
+    """Load and check one season in one transaction.
+
+    Return the table row counts and the player name links to review.
+    """
     # The connection block commits on a clean exit and rolls back on an error, so a
     # season that fails the check never reaches the database.
     with psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS) as conn:
-        load.load(conn, rows)
+        review = load.load(conn, rows, player_overrides)
         load.check_season(conn, facts)
-        return load.table_counts(conn)
+        counts = load.table_counts(conn)
+    return counts, review
+
+
+def review_line(path: Path, rows: load.SeasonRows, review: list[resolve.ReviewRow]) -> str:
+    """Write the review report of a committed load and return the line that names it."""
+    try:
+        shown = path.relative_to(Path.cwd())
+    except ValueError:
+        shown = path
+    try:
+        resolve.write_report(path, resolve.render_report(rows.source, rows.season_label, review))
+    except OSError as error:
+        # The season is committed already, so the load still succeeded.
+        return f"review: {len(review)} records to check, but {shown} was not written: {error}"
+    return f"review: {len(review)} records to check in {shown.as_posix()}"
 
 
 def execute(task: Callable[[str], list[str]], env: Mapping[str, str] = os.environ) -> int:
@@ -64,6 +87,9 @@ def execute(task: Callable[[str], list[str]], env: Mapping[str, str] = os.enviro
         return 1
     except FetchError as error:
         print(f"Download failed: {error}", file=sys.stderr)
+        return 1
+    except overrides.OverridesError as error:
+        print(f"Overrides file is not valid, nothing was loaded: {error}", file=sys.stderr)
         return 1
     except load.SanityError as error:
         print(f"Sanity check failed, nothing was loaded: {error}", file=sys.stderr)
@@ -105,10 +131,20 @@ def run(
     build: Callable[[], load.SeasonRows],
     facts: load.SeasonFacts,
     env: Mapping[str, str] = os.environ,
+    review_dir: Path = resolve.REVIEW_DIR,
 ) -> int:
     """Run one season command and return its exit code.
 
     build fetches and transforms the season. It ends before the database connection
     opens, so a download or a bad record never leaves a transaction open.
     """
-    return execute(lambda url: season_lines(load_season(url, build(), facts), facts), env)
+
+    def task(url: str) -> list[str]:
+        rows = build()
+        counts, review = load_season(url, rows, facts, overrides.read().players)
+        return [
+            *season_lines(counts, facts),
+            review_line(review_dir / f"{rows.source}.md", rows, review),
+        ]
+
+    return execute(task, env)

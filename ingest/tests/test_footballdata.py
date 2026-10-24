@@ -7,7 +7,7 @@ import httpx
 import psycopg
 import pytest
 
-from ingest import command, footballdata, load
+from ingest import command, footballdata, load, overrides
 from ingest.footballdata import LeagueMatch, SeasonFile, TeamStats
 
 # Three spellings that the map changes, one that it keeps, and sixteen made up.
@@ -18,7 +18,8 @@ SPELLINGS = [
     "Chelsea",
     *(f"Club {n:02}" for n in range(16)),
 ]
-NAMES = [footballdata.team_name(spelling) for spelling in SPELLINGS]
+TEAMS = {"Man United": "Manchester United", "Nott'm Forest": "Nottingham Forest"}
+NAMES = [overrides.team_name(spelling, TEAMS) for spelling in SPELLINGS]
 HEADER = ["Div", "Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "FTR", "HTHG", "HTAG", "HTR"]
 HEADER += ["Referee", "HS", "AS", "HST", "AST", "HF", "AF", "HC", "AC", "HY", "AY", "HR", "AR"]
 HEADER += ["B365H"]
@@ -46,7 +47,7 @@ def league_csv(dates: str = "16/08/03", rows=None, extra=None) -> str:
 
 
 def test_a_season_file_becomes_380_matches_with_canonical_names():
-    matches = footballdata.parse_season(league_csv(), "2003-04")
+    matches = footballdata.parse_season(league_csv(), "2003-04", TEAMS)
 
     assert len(matches) == 380
     first = matches[0]
@@ -74,7 +75,7 @@ def test_both_date_formats_are_read(text, expected):
 
 
 def test_cells_past_the_header_are_ignored():
-    matches = footballdata.parse_season(league_csv(extra=["", "9.5", "x"]), "2003-04")
+    matches = footballdata.parse_season(league_csv(extra=["", "9.5", "x"]), "2003-04", TEAMS)
 
     assert len(matches) == 380
 
@@ -85,7 +86,7 @@ def test_the_byte_order_mark_is_not_part_of_the_first_column(tmp_path):
 
     text = footballdata.fetch_season(tmp_path, SeasonFile("2025-26", "2526"), pytest.fail)
 
-    assert footballdata.parse_season(text, "2025-26")[0].match_date == date(2025, 8, 15)
+    assert footballdata.parse_season(text, "2025-26", TEAMS)[0].match_date == date(2025, 8, 15)
 
 
 def replace_cell(text: str, line: int, column: str, value: str) -> str:
@@ -107,7 +108,7 @@ def replace_cell(text: str, line: int, column: str, value: str) -> str:
 )
 def test_a_cell_that_is_not_a_count_names_its_line_and_column(column, value, reason):
     with pytest.raises(ValueError) as error:
-        footballdata.parse_season(replace_cell(league_csv(), 3, column, value), "2003-04")
+        footballdata.parse_season(replace_cell(league_csv(), 3, column, value), "2003-04", TEAMS)
 
     assert str(error.value) == reason
 
@@ -116,7 +117,7 @@ def test_a_missing_column_is_named():
     text = league_csv().replace(",Referee,", ",Ref,", 1)
 
     with pytest.raises(ValueError, match="the file has no column Referee"):
-        footballdata.parse_season(text, "2003-04")
+        footballdata.parse_season(text, "2003-04", TEAMS)
 
 
 @pytest.mark.parametrize(
@@ -136,7 +137,7 @@ def test_a_missing_column_is_named():
 )
 def test_a_season_that_is_not_a_full_double_round_robin_is_rejected(text, reason):
     with pytest.raises(ValueError, match=reason):
-        footballdata.parse_season(text, "2003-04")
+        footballdata.parse_season(text, "2003-04", TEAMS)
 
 
 def test_a_cached_file_is_read_without_a_download(tmp_path):
@@ -198,7 +199,7 @@ def seed(conn: psycopg.Connection, *, arsenal_matches: int = 38, wrong_score: bo
 
 
 def parsed() -> list[LeagueMatch]:
-    return footballdata.parse_season(league_csv(), "2003-04")
+    return footballdata.parse_season(league_csv(), "2003-04", TEAMS)
 
 
 def snapshot(conn) -> tuple:
@@ -295,8 +296,32 @@ def test_a_club_that_is_not_in_teams_is_named(ingest):
         for match in parsed()
     ]
 
-    with pytest.raises(ValueError, match="no team named Club 99 in teams"):
+    with pytest.raises(ValueError, match="no team named Club 99 in teams") as error:
         footballdata.load_matches(ingest, matches)
+
+    assert "add the spelling to overrides.yaml" in str(error.value)
+
+
+def test_an_unknown_spelling_names_the_closest_team_as_a_hint(ingest):
+    seed(ingest)
+
+    def renamed(team: str) -> str:
+        return "Man Utd" if team == "Manchester United" else team
+
+    # A new spelling replaces the club in every row, so the file never names the
+    # canonical club: the hint must come from teams, not from the file.
+    matches = [
+        replace(match, home_team=renamed(match.home_team), away_team=renamed(match.away_team))
+        for match in parsed()
+    ]
+
+    with pytest.raises(
+        ValueError, match=r"no team named Man Utd .*\(closest team: Manchester United\)"
+    ):
+        footballdata.load_matches(ingest, matches)
+
+    # The hint is never applied: no row was written.
+    assert ingest.execute("SELECT count(*) FROM team_match_stats").fetchone() == (0,)
 
 
 def test_a_match_without_arsenal_cannot_take_the_row_of_another_source(ingest):

@@ -1,4 +1,4 @@
-"""Load the hand-written reference data: player aliases and the data catalog.
+"""Load the hand-written reference data: the fan nicknames and the data catalog.
 
 Both seasons must be loaded first. Run from the repository root:
     uv run --env-file .env python -m ingest.curated
@@ -7,19 +7,16 @@ Both seasons must be loaded first. Run from the repository root:
 import os
 import sys
 from collections.abc import Mapping
-from dataclasses import dataclass
 from pathlib import Path
 
 import psycopg
-import yaml
 
-from ingest import command, load
+from ingest import command, load, overrides
 from ingest.migrate import SettingsError
-
-ALIASES_FILE = Path(__file__).resolve().parents[2] / "aliases.yaml"
+from ingest.overrides import AliasEntry, same
 
 # The season loaders write one alias row per player with their own source name.
-SOURCE = "manual"
+SOURCE = load.MANUAL_SOURCE
 
 STATSBOMB = "StatsBomb Open Data"
 UNDERSTAT = "Understat"
@@ -133,84 +130,7 @@ CATALOG = (
 
 
 class CuratedError(Exception):
-    """The alias file or the database does not fit the curated data."""
-
-
-@dataclass(frozen=True)
-class AliasEntry:
-    season: str
-    player: str
-    aliases: tuple[str, ...]
-
-
-def same(text: str) -> str:
-    """Return the form in which two aliases are one alias."""
-    return text.strip().casefold()
-
-
-def parse_aliases(text: str) -> list[AliasEntry]:
-    """Read the alias file. Raise CuratedError that names every problem in it."""
-    try:
-        records = yaml.safe_load(text)
-    except yaml.YAMLError as error:
-        # The full text of a YAML error has several lines. The command prints one.
-        problem = getattr(error, "problem", None) or type(error).__name__
-        mark = getattr(error, "problem_mark", None)
-        where = f" at line {mark.line + 1}" if mark else ""
-        raise CuratedError(f"the alias file is not valid YAML: {problem}{where}") from error
-    if not isinstance(records, list) or not records:
-        raise CuratedError("the alias file must be a list of entries")
-
-    problems = []
-    entries = []
-    listed: set[tuple[str, str]] = set()
-    owners: dict[str, tuple[str, str]] = {}
-    for number, record in enumerate(records, start=1):
-        if not isinstance(record, dict):
-            problems.append(f"entry {number}: must have season, player, and aliases")
-            continue
-        fields = {}
-        for field in ("season", "player"):
-            value = record.get(field)
-            if isinstance(value, str) and value.strip():
-                fields[field] = value.strip()
-            else:
-                problems.append(f"entry {number}: {field} is missing")
-        if len(fields) < 2:
-            continue
-        season, player = fields["season"], fields["player"]
-
-        if (season, player) in listed:
-            problems.append(f"{player} ({season}) is listed twice")
-            continue
-        listed.add((season, player))
-
-        aliases = record.get("aliases")
-        if not isinstance(aliases, list) or not aliases:
-            problems.append(f"{player}: has no alias")
-            continue
-        kept = []
-        for alias in aliases:
-            if not isinstance(alias, str):
-                problems.append(f"{player}: alias {alias!r} is not text")
-                continue
-            if not alias.strip():
-                problems.append(f"{player}: has an empty alias")
-                continue
-            alias = alias.strip()
-            # The season is part of the owner: two players can have one name.
-            owner = owners.setdefault(same(alias), (season, player))
-            if owner != (season, player):
-                problems.append(f"alias {alias!r} is under {owner[1]} and {player}")
-            elif same(alias) in map(same, kept):
-                problems.append(f"{player}: alias {alias!r} is listed twice")
-            else:
-                kept.append(alias)
-        entries.append(AliasEntry(season, player, tuple(kept)))
-
-    if problems:
-        raise CuratedError("; ".join(problems))
-    return entries
+    """The database does not fit the curated data."""
 
 
 def load_aliases(conn: psycopg.Connection, entries: list[AliasEntry]) -> None:
@@ -232,22 +152,14 @@ def load_aliases(conn: psycopg.Connection, entries: list[AliasEntry]) -> None:
     rows = []
     claimed: dict[str, int] = {}
     for entry in entries:
-        # players.name is not unique, so the season picks the player.
-        found = conn.execute(
-            "SELECT DISTINCT p.id FROM players p"
-            " JOIN player_match_stats pms ON pms.player_id = p.id"
-            " JOIN matches m ON m.id = pms.match_id"
-            " JOIN seasons s ON s.id = m.season_id"
-            " WHERE p.name = %s AND s.label = %s",
-            (entry.player, entry.season),
-        ).fetchall()
+        found = load.season_player_ids(conn, entry.season, entry.player)
         if not found:
             problems.append(f"{entry.player} ({entry.season}): no such player")
             continue
         if len(found) > 1:
             problems.append(f"{entry.player} ({entry.season}): {len(found)} players have this name")
             continue
-        ((player_id,),) = found
+        (player_id,) = found
         for alias in entry.aliases:
             if names.get(same(alias), set()) - {player_id}:
                 problems.append(
@@ -291,11 +203,11 @@ def load_catalog(conn: psycopg.Connection) -> None:
         )
 
 
-def run(path: Path = ALIASES_FILE, env: Mapping[str, str] = os.environ) -> int:
-    """Load the aliases and the catalog in one transaction and return the exit code."""
+def run(path: Path = overrides.OVERRIDES_FILE, env: Mapping[str, str] = os.environ) -> int:
+    """Load the nicknames and the catalog in one transaction and return the exit code."""
     try:
         url = load.ingest_url(env)
-        entries = parse_aliases(path.read_text(encoding="utf-8"))
+        entries = overrides.read(path).nicknames
         # The connection block commits on a clean exit and rolls back on an error,
         # so the aliases and the catalog are both loaded or both left as they were.
         with psycopg.connect(url, connect_timeout=command.CONNECT_TIMEOUT_SECONDS) as conn:
@@ -304,8 +216,8 @@ def run(path: Path = ALIASES_FILE, env: Mapping[str, str] = os.environ) -> int:
     except SettingsError as error:
         print(f"Settings error: {error}", file=sys.stderr)
         return 1
-    except (OSError, UnicodeDecodeError) as error:
-        print(f"Cannot read the alias file: {error}", file=sys.stderr)
+    except overrides.OverridesError as error:
+        print(f"Overrides file is not valid, nothing was loaded: {error}", file=sys.stderr)
         return 1
     except CuratedError as error:
         print(f"Curated data is not valid, nothing was loaded: {error}", file=sys.stderr)

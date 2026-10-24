@@ -9,15 +9,16 @@ import csv
 import io
 import sys
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
 import httpx
 import psycopg
+from rapidfuzz import fuzz, process
 
-from ingest import command, load
+from ingest import command, load, overrides
 
 RAW_DIR = Path(__file__).resolve().parents[2] / "raw" / "football-data"
 BASE_URL = "https://www.football-data.co.uk/mmz4281"
@@ -50,23 +51,6 @@ class SeasonFile:
 
 SEASONS = (SeasonFile("2003-04", "0304"), SeasonFile("2025-26", "2526"))
 
-# Source spelling to the name in teams, which the season loaders wrote first. A
-# spelling that is not here is already the name in teams. Feature 21 moves this map
-# into overrides.yaml.
-TEAM_NAMES = {
-    "Birmingham": "Birmingham City",
-    "Blackburn": "Blackburn Rovers",
-    "Bolton": "Bolton Wanderers",
-    "Charlton": "Charlton Athletic",
-    "Leeds": "Leeds United",
-    "Leicester": "Leicester City",
-    "Man City": "Manchester City",
-    "Man United": "Manchester United",
-    "Newcastle": "Newcastle United",
-    "Nott'm Forest": "Nottingham Forest",
-    "Tottenham": "Tottenham Hotspur",
-    "Wolves": "Wolverhampton Wanderers",
-}
 
 # The points of the published final tables. They do not come from football-data,
 # so that the check is against a second source. 2003-04: the build plan. 2025-26:
@@ -135,18 +119,17 @@ class LeagueMatch:
     away: TeamStats
 
 
-def team_name(spelling: str) -> str:
-    return TEAM_NAMES.get(spelling, spelling)
-
-
 def match_date(text: str) -> date:
     """Read a date of either file: 16/08/03 in 2003-04, 15/08/2025 in 2025-26."""
     year = "%Y" if len(text) == len("dd/mm/yyyy") else "%y"
     return datetime.strptime(text, f"%d/%m/{year}").date()
 
 
-def parse_season(text: str, season: str) -> list[LeagueMatch]:
+def parse_season(text: str, season: str, team_names: Mapping[str, str]) -> list[LeagueMatch]:
     """Turn one season file into matches. No I/O.
+
+    team_names maps a source spelling to the name in teams, which the season loaders
+    wrote first.
 
     Columns past the header (some 2003-04 rows have them) and every column that the
     plan does not name, such as the betting odds, are ignored.
@@ -169,8 +152,8 @@ def parse_season(text: str, season: str) -> list[LeagueMatch]:
             LeagueMatch(
                 season=season,
                 match_date=match_date(row["Date"].strip()),
-                home_team=team_name(row["HomeTeam"].strip()),
-                away_team=team_name(row["AwayTeam"].strip()),
+                home_team=overrides.team_name(row["HomeTeam"].strip(), team_names),
+                away_team=overrides.team_name(row["AwayTeam"].strip(), team_names),
                 home_goals=count["FTHG"],
                 away_goals=count["FTAG"],
                 home_ht_goals=count["HTHG"],
@@ -223,10 +206,11 @@ def build(
     raw_dir: Path = RAW_DIR, fetch: Callable[[SeasonFile], str] = download
 ) -> list[LeagueMatch]:
     """Read and parse both seasons, before any database connection opens."""
+    team_names = overrides.read().teams
     return [
         match
         for season in SEASONS
-        for match in parse_season(fetch_season(raw_dir, season, fetch), season.label)
+        for match in parse_season(fetch_season(raw_dir, season, fetch), season.label, team_names)
     ]
 
 
@@ -257,6 +241,15 @@ def check_prerequisites(conn: psycopg.Connection, seasons: list[str]) -> dict[st
     return season_ids
 
 
+def unknown_team(spelling: str, known: list[str]) -> str:
+    """Name a spelling that is not in teams, with the closest club as a hint."""
+    message = f"no team named {spelling} in teams; add the spelling to overrides.yaml"
+    # Only a hint: an automatic fuzzy link could join Manchester City and United.
+    if closest := process.extractOne(spelling, known, scorer=fuzz.WRatio):
+        message += f" (closest team: {closest[0]})"
+    return message
+
+
 def load_matches(conn: psycopg.Connection, matches: list[LeagueMatch]) -> None:
     """Link Arsenal's matches, add the others, and write the team stats.
 
@@ -268,9 +261,11 @@ def load_matches(conn: psycopg.Connection, matches: list[LeagueMatch]) -> None:
         conn.execute("SELECT name, id FROM teams WHERE name = ANY(%s)", (names,)).fetchall()
     )
     # The season loaders wrote every club, because every club played Arsenal. An
-    # unknown name is a spelling that TEAM_NAMES does not map yet.
+    # unknown name is a spelling that overrides.yaml does not map yet.
     if missing := [name for name in names if name not in team_ids]:
-        raise ValueError(f"no team named {', '.join(missing)} in teams; map it in TEAM_NAMES")
+        # Every club in teams: a new spelling means the file never names the canonical club.
+        known = [name for (name,) in conn.execute("SELECT name FROM teams")]
+        raise ValueError("; ".join(unknown_team(name, known) for name in missing))
 
     existing: dict[tuple[int, int, int], list[tuple]] = {}
     for row in conn.execute(

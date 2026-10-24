@@ -7,7 +7,7 @@ Run from the repository root:
 import sys
 import time
 from collections import Counter, defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -15,7 +15,7 @@ from typing import Any
 
 import httpx
 
-from ingest import command, load
+from ingest import command, load, overrides
 from ingest.load import CoordinateError, MatchRow, PlayerRow, SeasonRows, ShotRow, StatRow
 
 RAW_DIR = Path(__file__).resolve().parents[2] / "raw" / "understat"
@@ -43,10 +43,6 @@ PITCH_WIDTH = 80
 SIDES = ("h", "a")
 OWN_GOAL = "OwnGoal"
 SUBSTITUTE = "Sub"
-
-# A club that is already in the database from 2003-04 keeps that name, so that one
-# club is one row in teams. Every other club keeps the Understat title.
-TEAM_NAMES = {"Leeds": "Leeds United", "Tottenham": "Tottenham Hotspur"}
 
 # The stored values are the ones the 2003-04 load uses, so one legend fits both seasons.
 SHOT_OUTCOMES = {
@@ -151,10 +147,6 @@ def point(x: str, y: str, shot_id: str) -> tuple[float, float]:
     return scaled_x * PITCH_LENGTH, (1 - scaled_y) * PITCH_WIDTH
 
 
-def team_name(title: str) -> str:
-    return TEAM_NAMES.get(title, title)
-
-
 def stored(table: dict[str, str], value: str, kind: str, shot_id: str) -> str:
     try:
         return table[value]
@@ -193,8 +185,13 @@ def stat_row(entry: dict, match_id: str, team: str) -> StatRow:
     )
 
 
-def build_rows(raw: RawSeason) -> SeasonRows:
-    """Turn the raw Understat records into rows for the loader. No I/O."""
+def build_rows(raw: RawSeason, team_names: Mapping[str, str]) -> SeasonRows:
+    """Turn the raw Understat records into rows for the loader. No I/O.
+
+    team_names maps an Understat title to the canonical club name. A club that is
+    already in the database from 2003-04 keeps that name, so that one club is one
+    row in teams. Every other club keeps the Understat title.
+    """
     matches: list[MatchRow] = []
     shots: list[ShotRow] = []
     stats: list[StatRow] = []
@@ -204,7 +201,7 @@ def build_rows(raw: RawSeason) -> SeasonRows:
     for match in raw.matches:
         match_id = match["id"]
         data = raw.match_data[match_id]
-        teams = {side: team_name(match[side]["title"]) for side in SIDES}
+        teams = {side: overrides.team_name(match[side]["title"], team_names) for side in SIDES}
         matches.append(
             MatchRow(
                 source_id=match_id,
@@ -275,7 +272,7 @@ def build_rows(raw: RawSeason) -> SeasonRows:
 
 def main() -> int:
     return command.run(
-        lambda: build_rows(fetch_season(RAW_DIR, *understat_fetchers())),
+        lambda: build_rows(fetch_season(RAW_DIR, *understat_fetchers()), overrides.read().teams),
         FACTS,
     )
 
