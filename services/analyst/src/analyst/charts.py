@@ -5,11 +5,12 @@ This module reads no database. tools.build_chart gets the rows and gives them he
 
 import math
 from collections.abc import Sequence
+from datetime import date
 from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-ChartType = Literal["shot_map", "compare_bars", "pass_network", "xg_timeline"]
+ChartType = Literal["shot_map", "compare_bars", "pass_network", "xg_timeline", "points_pace"]
 
 MAX_TITLE = 120
 
@@ -19,8 +20,11 @@ Text = Annotated[str, Field(min_length=1)]
 # The minute columns of the views hold a match minute, stoppage time included.
 Minute = Annotated[int, Field(ge=0, le=130)]
 ShotXg = Annotated[float, Field(ge=0, le=1)]
-# Every match in the database is an Arsenal match, so a timeline puts Arsenal first.
+# Arsenal comes first in a chart of two or more teams.
 ARSENAL = "Arsenal"
+# A Premier League season has 20 teams, so each team plays 38 league matches.
+SEASON_MATCHES = 38
+MAX_PACE_LINES = 4
 
 
 class ChartRejected(Exception):
@@ -140,7 +144,46 @@ class XgTimeline(Spec):
     teams: Annotated[list[TimelineTeam], Field(min_length=2, max_length=2)]
 
 
-Chart = ShotMap | CompareBars | PassNetwork | XgTimeline
+class PaceRow(Spec):
+    """One row of the query: one league match of one team."""
+
+    team: Text
+    season: Text
+    match_date: Text
+    opponent: Text
+    goals_for: Annotated[int, Field(ge=0)]
+    goals_against: Annotated[int, Field(ge=0)]
+
+
+class PaceMatch(Spec):
+    # The number of the match in the team's season, by date. Not the league's gameweek.
+    matchday: Annotated[int, Field(ge=1, le=SEASON_MATCHES)]
+    match_date: Text
+    opponent: Text
+    goals_for: Annotated[int, Field(ge=0)]
+    goals_against: Annotated[int, Field(ge=0)]
+    points: Literal[0, 1, 3]
+    # The points of the team after this match.
+    total: Annotated[int, Field(ge=0)]
+
+
+class PaceLine(Spec):
+    team: Text
+    season: Text
+    points: Annotated[int, Field(ge=0)]
+    # In matchday order.
+    matches: Annotated[list[PaceMatch], Field(min_length=1, max_length=SEASON_MATCHES)]
+
+
+class PointsPace(Spec):
+    type: Literal["points_pace"] = "points_pace"
+    id: str
+    title: str
+    # The Arsenal lines by season, then the other lines by season and team.
+    lines: Annotated[list[PaceLine], Field(min_length=1, max_length=MAX_PACE_LINES)]
+
+
+Chart = ShotMap | CompareBars | PassNetwork | XgTimeline | PointsPace
 ChartSpec = Annotated[Chart, Field(discriminator="type")]
 
 Columns = Sequence[str]
@@ -328,11 +371,81 @@ def xg_timeline(columns: Columns, rows: Rows, title: str, chart_id: str) -> XgTi
     return XgTimeline(id=chart_id, title=title, teams=lines)
 
 
+def match_points(goals_for: int, goals_against: int) -> Literal[0, 1, 3]:
+    # The rule of v_league_table, so the chart and the league table cannot differ.
+    if goals_for > goals_against:
+        return 3
+    return 1 if goals_for == goals_against else 0
+
+
+def pace_line(team: str, season: str, rows: list[tuple[date, PaceRow]]) -> PaceLine:
+    total = 0
+    matches = []
+    for matchday, (_, row) in enumerate(sorted(rows, key=lambda pair: pair[0]), start=1):
+        points = match_points(row.goals_for, row.goals_against)
+        total += points
+        matches.append(
+            PaceMatch(
+                matchday=matchday,
+                match_date=row.match_date,
+                opponent=row.opponent,
+                goals_for=row.goals_for,
+                goals_against=row.goals_against,
+                points=points,
+                total=total,
+            )
+        )
+    return PaceLine(team=team, season=season, points=total, matches=matches)
+
+
+def points_pace(columns: Columns, rows: Rows, title: str, chart_id: str) -> PointsPace:
+    records = to_records(
+        "points_pace",
+        columns,
+        rows,
+        ("team", "season", "match_date", "opponent", "goals_for", "goals_against"),
+    )
+    by_line: dict[tuple[str, str], list[tuple[date, PaceRow]]] = {}
+    for number, row in enumerate(parse_rows(PaceRow, records), start=1):
+        if row.team == row.opponent:
+            raise ChartRejected(f"Row {number}: the team and the opponent are both {row.team}.")
+        try:
+            played = date.fromisoformat(row.match_date)
+        except ValueError:
+            raise ChartRejected(
+                f"Row {number}: the match_date {row.match_date!r} is not a date."
+            ) from None
+        line = by_line.setdefault((row.team, row.season), [])
+        if any(other == played for other, _ in line):
+            raise ChartRejected(
+                f"Row {number}: {row.team} has two matches on {row.match_date} in {row.season}."
+                " Give one row for each match of the team."
+            )
+        line.append((played, row))
+        if len(line) > SEASON_MATCHES:
+            raise ChartRejected(
+                f"{row.team} has more than {SEASON_MATCHES} matches in {row.season}."
+                " Give one row for each league match of the team."
+            )
+    if len(by_line) > MAX_PACE_LINES:
+        raise ChartRejected(
+            f"The rows make {len(by_line)} lines. A points_pace chart has {MAX_PACE_LINES}"
+            " lines at most, one for each team and season."
+        )
+    if not any(team == ARSENAL for team, _ in by_line):
+        raise ChartRejected("A points_pace chart needs Arsenal in one season or more.")
+
+    order = sorted(by_line, key=lambda key: (key[0] != ARSENAL, key[1], key[0]))
+    lines = [pace_line(team, season, by_line[team, season]) for team, season in order]
+    return PointsPace(id=chart_id, title=title, lines=lines)
+
+
 BUILDERS = {
     "shot_map": shot_map,
     "compare_bars": compare_bars,
     "pass_network": pass_network,
     "xg_timeline": xg_timeline,
+    "points_pace": points_pace,
 }
 
 

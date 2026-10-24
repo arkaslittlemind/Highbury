@@ -48,11 +48,15 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
         "To give a number of an earlier answer again, run its query again",
         "only metrics that both seasons have",
         "StatsBomb for 2003-04, Understat for 2025-26",
+        "A comparison with no xG, such as points or results, has no xG caveat",
         "Use build_chart to show rows and run_sql for the numbers of the claims",
         "only chart ids that build_chart returned in this conversation",
         "x >= 102 AND y BETWEEN 18 AND 62",
         "An xg_timeline shows every shot of both teams in one match",
         "from a run_sql of the same match, grouped by team",
+        "A points_pace draws one line for each team and season",
+        "or the team that finished second when Arsenal finished first",
+        "grouped by team and season",
     ],
 )
 def test_the_prompt_holds_each_rule(text, rule):
@@ -60,7 +64,7 @@ def test_the_prompt_holds_each_rule(text, rule):
 
 
 def test_the_prompt_holds_the_sql_examples(text):
-    assert 4 <= len(prompt.SQL_EXAMPLES) <= 10
+    assert 4 <= len(prompt.SQL_EXAMPLES) <= 12
     for purpose, sql in prompt.SQL_EXAMPLES:
         assert purpose in text
         assert sql in text
@@ -162,3 +166,20 @@ def test_the_xg_timeline_example_makes_a_chart_whose_totals_are_the_claims(liver
     for team, xg in drawn.items():
         assert xg == pytest.approx(claimed[team], abs=0.01)
     assert [shot.minute for shot in chart.chart.teams[0].shots] == [9, 31]
+
+
+def test_the_points_examples_make_a_chart_whose_totals_are_the_claims(seeded):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart(
+        "points_pace", by_purpose[prompt.POINTS_PACE_EXAMPLE], "Arsenal, both seasons"
+    )
+    totals = tools.run_sql(by_purpose[prompt.POINTS_TOTALS_EXAMPLE])
+
+    assert chart.ok, chart.error
+    assert totals.ok, totals.error
+    claimed = {(team, season): (matches, points) for team, season, matches, points in totals.rows}
+    drawn = {
+        (line.team, line.season): (len(line.matches), line.points) for line in chart.chart.lines
+    }
+    assert drawn == claimed == {("Arsenal", "2003-04"): (1, 3), ("Arsenal", "2025-26"): (1, 3)}

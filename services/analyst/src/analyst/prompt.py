@@ -25,8 +25,9 @@ RULES = (
     " a run_sql result of this question whose rows hold the value, and the value of a claim"
     " is the number as that row has it. To give a number of an earlier answer again, run its"
     " query again.",
-    "A comparison across the two seasons uses only metrics that both seasons have. Its"
-    " caveats say that the xG models differ: StatsBomb for 2003-04, Understat for 2025-26.",
+    "A comparison across the two seasons uses only metrics that both seasons have. When it"
+    " uses xG, its caveats say that the xG models differ: StatsBomb for 2003-04, Understat"
+    " for 2025-26. A comparison with no xG, such as points or results, has no xG caveat.",
     "Use build_chart to show rows and run_sql for the numbers of the claims. Do not read"
     " many rows with run_sql only to show them. List in charts only chart ids that"
     " build_chart returned in this conversation.",
@@ -38,6 +39,13 @@ RULES = (
     "An xg_timeline shows every shot of both teams in one match, with no filter on the"
     " team, as the example does. The claims take the xG total of each team from a run_sql"
     " of the same match, grouped by team.",
+    "A points_pace draws one line for each team and season, from one row for each league"
+    " match of the team, as the example does. Draw the Arsenal seasons that the question"
+    " names. When the question names a rival, add that team in the same season. When the"
+    " question is about one season and names no rival, add the team that finished first"
+    " that season in v_league_table, or the team that finished second when Arsenal"
+    " finished first. The claims take the points and the matches of each line from a"
+    " run_sql of the same teams and seasons, grouped by team and season.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",
@@ -50,6 +58,8 @@ PASS_NETWORK_EXAMPLE = (
 PASS_TOTALS_EXAMPLE = "The completed passes of the same starting XI, for the claims"
 XG_TIMELINE_EXAMPLE = "The shots of both teams in one match, for an xg_timeline chart"
 XG_TOTALS_EXAMPLE = "The xG totals of both teams in the same match, for the claims"
+POINTS_PACE_EXAMPLE = "The league matches of Arsenal in both seasons, for a points_pace chart"
+POINTS_TOTALS_EXAMPLE = "The points and matches of the same lines, for the claims"
 
 LIVERPOOL_HOME = (
     "(SELECT match_id FROM v_matches WHERE season = '2003-04'"
@@ -71,6 +81,15 @@ LIVERPOOL_HOME_PASSES = (
     f" AND match_id = {LIVERPOOL_HOME} AND (period, minute, second) < ALL"
     f" (SELECT period, minute, second {ARSENAL_SUBSTITUTIONS})"
 )
+# One row for each league match of each team: the home side of each match, then the away
+# side. Both points examples read it, so the chart and its claims count the same matches.
+TEAM_MATCHES = (
+    "(SELECT season, home_team AS team, away_team AS opponent, match_date,"
+    " home_goals AS goals_for, away_goals AS goals_against FROM v_league_matches"
+    " UNION ALL SELECT season, away_team, home_team, match_date, away_goals, home_goals"
+    " FROM v_league_matches) AS team_matches"
+)
+PACE_LINES = "(team, season) IN (('Arsenal', '2003-04'), ('Arsenal', '2025-26'))"
 
 # (what the query is for, the query). Each one must run on the views as they are:
 # a test runs them all.
@@ -130,6 +149,17 @@ SQL_EXAMPLES = (
         "SELECT team, count(*) AS shots, count(*) FILTER (WHERE is_goal) AS goals,"
         f" round(sum(xg)::numeric, 2) AS xg FROM v_shots WHERE match_id = {LIVERPOOL_HOME}"
         " GROUP BY team ORDER BY team",
+    ),
+    (
+        POINTS_PACE_EXAMPLE,
+        "SELECT team, season, match_date, opponent, goals_for, goals_against"
+        f" FROM {TEAM_MATCHES} WHERE {PACE_LINES} ORDER BY season, match_date",
+    ),
+    (
+        POINTS_TOTALS_EXAMPLE,
+        "SELECT team, season, count(*) AS matches, sum(CASE WHEN goals_for > goals_against"
+        " THEN 3 WHEN goals_for = goals_against THEN 1 ELSE 0 END) AS points"
+        f" FROM {TEAM_MATCHES} WHERE {PACE_LINES} GROUP BY team, season ORDER BY season",
     ),
 )
 

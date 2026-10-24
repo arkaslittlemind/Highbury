@@ -66,6 +66,73 @@ export const XG_TIMELINE = {
   ],
 };
 
+export const POINTS_PACE = {
+  type: "points_pace",
+  id: "chart_5",
+  title: "Arsenal points pace, both seasons",
+  lines: [
+    {
+      team: "Arsenal",
+      season: "2003-04",
+      points: 7,
+      matches: [
+        {
+          matchday: 1,
+          match_date: "2003-08-16",
+          opponent: "Everton",
+          goals_for: 2,
+          goals_against: 1,
+          points: 3,
+          total: 3,
+        },
+        {
+          matchday: 2,
+          match_date: "2003-08-24",
+          opponent: "Portsmouth",
+          goals_for: 1,
+          goals_against: 1,
+          points: 1,
+          total: 4,
+        },
+        {
+          matchday: 3,
+          match_date: "2003-08-27",
+          opponent: "Aston Villa",
+          goals_for: 2,
+          goals_against: 0,
+          points: 3,
+          total: 7,
+        },
+      ],
+    },
+    {
+      team: "Arsenal",
+      season: "2025-26",
+      points: 3,
+      matches: [
+        {
+          matchday: 1,
+          match_date: "2025-08-17",
+          opponent: "Manchester United",
+          goals_for: 1,
+          goals_against: 0,
+          points: 3,
+          total: 3,
+        },
+        {
+          matchday: 2,
+          match_date: "2025-08-31",
+          opponent: "Liverpool",
+          goals_for: 0,
+          goals_against: 1,
+          points: 0,
+          total: 3,
+        },
+      ],
+    },
+  ],
+};
+
 export const STEP = { number: 1, tool: "run_sql", label: "Querying the match data" };
 
 const CLAIM = { text: "Goals", value: 30, unit: "goals", tool_call_id: "q_1a2b3c4d" };

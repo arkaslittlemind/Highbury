@@ -392,6 +392,25 @@ def test_build_chart_gives_a_pass_network_from_the_grouped_passes(seeded):
     ]
 
 
+def test_build_chart_gives_a_points_pace_of_the_league_matches_of_each_team(seeded):
+    result = tools.build_chart(
+        "points_pace",
+        "SELECT home_team AS team, season, match_date, away_team AS opponent,"
+        " home_goals AS goals_for, away_goals AS goals_against FROM v_league_matches"
+        " WHERE season = '2003-04' UNION ALL SELECT away_team, season, match_date,"
+        " home_team, away_goals, home_goals FROM v_league_matches WHERE season = '2003-04'",
+        "Arsenal and Everton",
+    )
+
+    assert result.error is None
+    # The seeded match is Arsenal 2-1 Everton: a win for one line, a loss for the other.
+    assert [
+        (line.team, line.points, [(m.opponent, m.points) for m in line.matches])
+        for line in result.chart.lines
+    ] == [("Arsenal", 3, [("Everton", 3)]), ("Everton", 0, [("Arsenal", 0)])]
+    assert result.chart.lines[0].matches[0].match_date == "2003-08-16"
+
+
 def test_build_chart_gives_an_xg_timeline_of_the_shots_of_one_match(seeded):
     result = tools.build_chart(
         "xg_timeline",

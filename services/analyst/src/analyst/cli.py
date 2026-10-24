@@ -34,6 +34,8 @@ def chart_size(chart: Chart) -> str:
         return f"{len(chart['metrics']) * len(chart['series'])} bars"
     if chart["type"] == "xg_timeline":
         return f"{sum(len(team['shots']) for team in chart['teams'])} shots"
+    if chart["type"] == "points_pace":
+        return f"{sum(len(line['matches']) for line in chart['lines'])} matches"
     marks = CHART_MARKS[chart["type"]]
     return f"{len(chart[marks])} {marks}"
 

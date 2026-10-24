@@ -11,6 +11,9 @@ const passCount = z.number().int().min(1);
 // A match minute, stoppage time included.
 const matchMinute = z.number().int().min(0).max(130);
 const shotXg = z.number().min(0).max(1);
+const count = z.number().int().min(0);
+// A Premier League team plays 38 league matches in a season.
+const SEASON_MATCHES = 38;
 
 const shotSchema = z.object({
   x: pitchX,
@@ -71,11 +74,42 @@ const xgTimelineSchema = z.object({
     .length(2),
 });
 
+const paceMatchSchema = z.object({
+  // The number of the match in the team's season, by date. Not the league's gameweek.
+  matchday: z.number().int().min(1).max(SEASON_MATCHES),
+  match_date: text,
+  opponent: text,
+  goals_for: count,
+  goals_against: count,
+  points: z.union([z.literal(0), z.literal(1), z.literal(3)]),
+  // The points of the team after this match.
+  total: count,
+});
+
+const pointsPaceSchema = z.object({
+  type: z.literal("points_pace"),
+  id: z.string(),
+  title: z.string(),
+  // The Arsenal lines by season, then the others. The matches are in matchday order.
+  lines: z
+    .array(
+      z.object({
+        team: text,
+        season: text,
+        points: count,
+        matches: z.array(paceMatchSchema).min(1).max(SEASON_MATCHES),
+      }),
+    )
+    .min(1)
+    .max(4),
+});
+
 export const chartSpecSchema = z.discriminatedUnion("type", [
   shotMapSchema,
   compareBarsSchema,
   passNetworkSchema,
   xgTimelineSchema,
+  pointsPaceSchema,
 ]);
 
 export const stepSchema = z.object({

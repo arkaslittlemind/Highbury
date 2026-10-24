@@ -11,6 +11,7 @@ import {
   ANSWER_DATA,
   COMPARE_BARS,
   PASS_NETWORK,
+  POINTS_PACE,
   SHOT,
   SHOT_MAP,
   STEP,
@@ -27,7 +28,7 @@ describe("the payload of each event", () => {
     );
   });
 
-  it.each([SHOT_MAP, COMPARE_BARS, PASS_NETWORK, XG_TIMELINE])("accepts a valid $type chart", (chart) => {
+  it.each([SHOT_MAP, COMPARE_BARS, PASS_NETWORK, XG_TIMELINE, POINTS_PACE])("accepts a valid $type chart", (chart) => {
     expect(chartSpecSchema.safeParse(chart).success).toBe(true);
   });
 
@@ -102,6 +103,31 @@ describe("a payload that the service cannot send", () => {
     const [arsenal, opponent] = XG_TIMELINE.teams;
     const shots = [{ ...arsenal.shots[0], ...change }];
     const chart = { ...XG_TIMELINE, teams: [{ ...arsenal, shots }, opponent] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it.each([
+    ["no line", []],
+    ["five lines", Array(5).fill(POINTS_PACE.lines[0])],
+  ])("rejects a points_pace with %s", (_name, lines) => {
+    expect(chartSpecSchema.safeParse({ ...POINTS_PACE, lines }).success).toBe(false);
+  });
+
+  it.each([
+    ["2 points", { points: 2 }],
+    ["matchday 39", { matchday: 39 }],
+    ["matchday 0", { matchday: 0 }],
+    ["a negative total", { total: -1 }],
+    ["goals as text", { goals_for: "2" }],
+  ])("rejects a points_pace match with %s", (_name, change) => {
+    const [first, second] = POINTS_PACE.lines;
+    const matches = [{ ...first.matches[0], ...change }];
+    const chart = { ...POINTS_PACE, lines: [{ ...first, matches }, second] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it("rejects a points_pace line with no match", () => {
+    const chart = { ...POINTS_PACE, lines: [{ ...POINTS_PACE.lines[0], matches: [] }] };
     expect(chartSpecSchema.safeParse(chart).success).toBe(false);
   });
 

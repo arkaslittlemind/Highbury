@@ -132,6 +132,10 @@ def test_each_chart_type_prints_its_size(model, capsys):
         " WHERE recipient IS NOT NULL GROUP BY player, recipient"
     )
     timeline = "SELECT match_id, team, opponent, minute, xg, is_goal FROM v_shots"
+    pace = (
+        "SELECT home_team AS team, season, match_date, away_team AS opponent,"
+        " home_goals AS goals_for, away_goals AS goals_against FROM v_league_matches"
+    )
     ids = []
 
     def keep_id(next_call):
@@ -141,7 +145,7 @@ def test_each_chart_type_prints_its_size(model, capsys):
 
         return keep
 
-    def all_three(read):
+    def all_charts(read):
         ids.append(read["build_chart"]["chart"]["id"])
         return answer(charts=[{"id": chart_id} for chart_id in ids])
 
@@ -158,7 +162,8 @@ def test_each_chart_type_prints_its_size(model, capsys):
         ),
         keep_id({"chart_type": "pass_network", "sql": network, "title": "N"}),
         keep_id({"chart_type": "xg_timeline", "sql": timeline, "title": "T"}),
-        all_three,
+        keep_id({"chart_type": "points_pace", "sql": pace, "title": "P"}),
+        all_charts,
     )
 
     assert cli.main([QUESTION]) == 0
@@ -167,6 +172,8 @@ def test_each_chart_type_prints_its_size(model, capsys):
     assert " | compare_bars | B | 4 bars\n" in out
     assert " | pass_network | N | 2 nodes\n" in out
     assert " | xg_timeline | T | 2 shots\n" in out
+    # The home match of Arsenal in each seeded season.
+    assert " | points_pace | P | 2 matches\n" in out
 
 
 def test_two_questions_are_two_turns_of_one_conversation(model, capsys):

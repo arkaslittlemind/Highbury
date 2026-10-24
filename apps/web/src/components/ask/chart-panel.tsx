@@ -1,5 +1,6 @@
 import { CompareBars } from "@/components/charts/compare-bars";
 import { PassNetwork } from "@/components/charts/pass-network";
+import { PointsPace } from "@/components/charts/points-pace";
 import { ShotMap } from "@/components/charts/shot-map";
 import { XgTimeline } from "@/components/charts/xg-timeline";
 import type { ChartSpec } from "@/lib/analyst-schema";
@@ -27,8 +28,10 @@ export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
         <CompareBars chart={chart} />
       ) : chart.type === "pass_network" ? (
         <PassNetwork chart={chart} />
-      ) : (
+      ) : chart.type === "xg_timeline" ? (
         <XgTimeline chart={chart} />
+      ) : (
+        <PointsPace chart={chart} />
       )}
     </figure>
   );

@@ -325,6 +325,9 @@ def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResu
     every row, is the minute the passes stop; leave it out for the whole match.
     xg_timeline: one row for each shot of one match from v_shots, the shots of both
     teams, with match_id, team, opponent, minute, xg, is_goal. It also takes player.
+    points_pace: one row for each league match of each team and season to draw, with
+    team, season, match_date, opponent, goals_for, goals_against. Each team and
+    season is one line; Arsenal is one of them. The chart adds up the points.
     """
     try:
         title = charts.check_request(chart_type, title)

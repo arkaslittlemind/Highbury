@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
@@ -20,6 +22,10 @@ def pass_network(columns, rows):
 
 def xg_timeline(columns, rows):
     return charts.build("xg_timeline", columns, rows, "Arsenal v Liverpool", "c_00000004")
+
+
+def points_pace(columns, rows):
+    return charts.build("points_pace", columns, rows, "Arsenal points pace", "c_00000005")
 
 
 def test_a_shot_map_has_one_shot_for_each_row_in_row_order():
@@ -437,12 +443,191 @@ def test_an_xg_timeline_rejects_rows_with_no_arsenal_match(rows, reason):
     assert str(rejected.value) == reason
 
 
+PACE_COLUMNS = ["team", "season", "match_date", "opponent", "goals_for", "goals_against"]
+
+
+def test_a_points_pace_adds_up_the_points_of_each_match_in_date_order():
+    chart = points_pace(
+        PACE_COLUMNS,
+        [
+            ["Arsenal", "2003-04", "2003-08-31", "Manchester City", 2, 1],
+            ["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1],
+            ["Arsenal", "2003-04", "2003-09-13", "Portsmouth", 1, 1],
+            ["Arsenal", "2003-04", "2003-08-24", "Middlesbrough", 0, 4],
+        ],
+    )
+
+    assert (chart.type, chart.id, chart.title) == (
+        "points_pace",
+        "c_00000005",
+        "Arsenal points pace",
+    )
+    (line,) = chart.lines
+    assert (line.team, line.season, line.points) == ("Arsenal", "2003-04", 7)
+    assert [match.model_dump() for match in line.matches] == [
+        {
+            "matchday": 1,
+            "match_date": "2003-08-16",
+            "opponent": "Everton",
+            "goals_for": 2,
+            "goals_against": 1,
+            "points": 3,
+            "total": 3,
+        },
+        {
+            "matchday": 2,
+            "match_date": "2003-08-24",
+            "opponent": "Middlesbrough",
+            "goals_for": 0,
+            "goals_against": 4,
+            "points": 0,
+            "total": 3,
+        },
+        {
+            "matchday": 3,
+            "match_date": "2003-08-31",
+            "opponent": "Manchester City",
+            "goals_for": 2,
+            "goals_against": 1,
+            "points": 3,
+            "total": 6,
+        },
+        {
+            "matchday": 4,
+            "match_date": "2003-09-13",
+            "opponent": "Portsmouth",
+            "goals_for": 1,
+            "goals_against": 1,
+            "points": 1,
+            "total": 7,
+        },
+    ]
+
+
+def test_a_points_pace_puts_the_arsenal_lines_first_by_season():
+    chart = points_pace(
+        PACE_COLUMNS,
+        [
+            ["Manchester City", "2025-26", "2025-08-16", "Wolves", 4, 0],
+            ["Arsenal", "2025-26", "2025-08-17", "Manchester United", 1, 0],
+            ["Chelsea", "2003-04", "2003-08-17", "Liverpool", 2, 1],
+            ["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1],
+        ],
+    )
+
+    assert [(line.team, line.season) for line in chart.lines] == [
+        ("Arsenal", "2003-04"),
+        ("Arsenal", "2025-26"),
+        ("Chelsea", "2003-04"),
+        ("Manchester City", "2025-26"),
+    ]
+
+
+def test_a_points_pace_takes_a_whole_season_of_one_team():
+    season = [
+        ["Arsenal", "2003-04", (date(2003, 8, 16) + timedelta(weeks=week)).isoformat(), "X", 1, 0]
+        for week in range(38)
+    ]
+
+    (line,) = points_pace(PACE_COLUMNS, season).lines
+
+    assert (len(line.matches), line.points, line.matches[-1].matchday) == (38, 114, 38)
+
+
+@pytest.mark.parametrize(
+    ("columns", "row", "reason"),
+    [
+        (
+            PACE_COLUMNS[:5],
+            ["Arsenal", "2003-04", "2003-08-24", "Middlesbrough", 4],
+            "A points_pace chart needs the columns team, season, match_date, opponent,"
+            " goals_for, goals_against. Missing: goals_against.",
+        ),
+        (
+            PACE_COLUMNS,
+            ["Arsenal", "2003-04", "2003-08-24", "Arsenal", 4, 0],
+            "Row 2: the team and the opponent are both Arsenal.",
+        ),
+        (
+            PACE_COLUMNS,
+            ["Arsenal", "2003-04", "24/08/03", "Middlesbrough", 4, 0],
+            "Row 2: the match_date '24/08/03' is not a date.",
+        ),
+        (
+            PACE_COLUMNS,
+            ["Arsenal", "2003-04", "2003-08-16", "Middlesbrough", 4, 0],
+            "Row 2: Arsenal has two matches on 2003-08-16 in 2003-04. Give one row for each"
+            " match of the team.",
+        ),
+        (
+            PACE_COLUMNS,
+            ["Arsenal", "2003-04", "2003-08-24", "Middlesbrough", -1, 0],
+            "Row 2, column goals_for:",
+        ),
+        (
+            PACE_COLUMNS,
+            ["Arsenal", "2003-04", "2003-08-24", "Middlesbrough", "4", 0],
+            "Row 2, column goals_for:",
+        ),
+    ],
+)
+def test_a_points_pace_rejects_rows_that_are_not_matches_of_a_team(columns, row, reason):
+    good = ["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1][: len(columns)]
+
+    with pytest.raises(charts.ChartRejected) as rejected:
+        points_pace(columns, [good, row])
+
+    assert str(rejected.value).startswith(reason)
+
+
+def test_a_points_pace_rejects_more_than_a_season_of_matches():
+    rows = [
+        ["Arsenal", "2003-04", (date(2003, 8, 16) + timedelta(days=day)).isoformat(), "X", 1, 0]
+        for day in range(39)
+    ]
+
+    with pytest.raises(charts.ChartRejected) as rejected:
+        points_pace(PACE_COLUMNS, rows)
+
+    assert str(rejected.value) == (
+        "Arsenal has more than 38 matches in 2003-04. Give one row for each league match"
+        " of the team."
+    )
+
+
+@pytest.mark.parametrize(
+    ("rows", "reason"),
+    [
+        ([], "A points_pace chart needs Arsenal in one season or more."),
+        (
+            [["Chelsea", "2003-04", "2003-08-17", "Liverpool", 2, 1]],
+            "A points_pace chart needs Arsenal in one season or more.",
+        ),
+        (
+            [
+                [team, season, "2003-08-16", "X", 1, 0]
+                for team in ("Arsenal", "Chelsea", "Liverpool")
+                for season in ("2003-04", "2025-26")
+            ],
+            "The rows make 6 lines. A points_pace chart has 4 lines at most, one for each"
+            " team and season.",
+        ),
+    ],
+)
+def test_a_points_pace_rejects_lines_that_are_not_an_arsenal_comparison(rows, reason):
+    with pytest.raises(charts.ChartRejected) as rejected:
+        points_pace(PACE_COLUMNS, rows)
+
+    assert str(rejected.value) == reason
+
+
 def test_an_unknown_chart_type_names_the_known_types():
     with pytest.raises(charts.ChartRejected) as rejected:
         charts.build("pie", SHOT_COLUMNS, [], "Henry shots", "c_00000001")
 
     assert str(rejected.value) == (
-        "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network, xg_timeline."
+        "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network,"
+        " xg_timeline, points_pace."
     )
 
 
@@ -475,6 +660,7 @@ def test_a_chart_survives_the_trip_through_json():
         ),
         pass_network(WINDOW_COLUMNS, [["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, 71]]),
         xg_timeline(TIMELINE_COLUMNS, [[7, "Arsenal", "Liverpool", 31, 0.45, True, "Henry"]]),
+        points_pace(PACE_COLUMNS, [["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1]]),
     ]
 
     for chart in built:
