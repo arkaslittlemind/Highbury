@@ -64,10 +64,10 @@ def score(item, outcome, expected=(), seconds=2.0, usage=None, readings=None):
     return evals.score(item, outcome, usage, seconds, readings, MODEL)
 
 
-def test_the_golden_set_has_15_items_with_sql_on_each_answered_item():
+def test_the_golden_set_has_24_items_with_sql_on_each_answered_item():
     items = evals.load_golden(EVALS_DIR / "golden.yaml")
 
-    assert [item.id for item in items] == [f"q{n:02d}" for n in range(1, 16)]
+    assert [item.id for item in items] == [f"q{n:02d}" for n in range(1, 25)]
     assert {item.status for item in items} == {"answered", "unavailable", "out_of_scope"}
     for item in items:
         assert (item.sql is not None) == (item.status == "answered"), item.id

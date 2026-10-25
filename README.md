@@ -39,20 +39,21 @@ Every answer shows:
 | Stays in scope | "Who will win the Champions League?" is declined with no database call. |
 | Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. |
 | Cannot change the data | Two independent locks: a SQL parser that allows one `SELECT`, and a read-only database role with a 5-second timeout and a 500-row cap. |
-| Measured, not guessed | 15 golden questions with hand-written SQL answers, run on two models. Both scored 15 of 15. |
+| Measured, not guessed | 24 golden questions with hand-written SQL answers, run on two models. Flash scored 24 of 24, Flash-Lite 23 of 24. |
 
 ## Results
 
-From [`evals/results.md`](evals/results.md): 15 questions, 2 runs per model.
+From [`evals/results.md`](evals/results.md): 24 questions, 2 runs per model.
 
 | Model | Correct | Verified claims | Median time | Cost per question |
 | --- | --- | --- | --- | --- |
-| Gemini 3.8 Flash (in production) | 15 / 15 | 100% | 22.3 s | $0.023 |
-| Gemini 3.5 Flash-Lite | 15 / 15 | 100% | 3.8 s | $0.004 |
+| Gemini 3.8 Flash (in production) | 24 / 24 | 100% | 28.5 s | $0.037 |
+| Gemini 3.5 Flash-Lite | 23 / 24 | 100% | 4.7 s | $0.008 |
 
-Flash-Lite is faster and cheaper, but it failed the conversation follow-up 2 times
-in 9 tries. Flash has not failed it, so production stays on Flash. The full
-reasoning is in the results file.
+Flash-Lite is faster and cheaper, but it missed the xG timeline question (q16) in
+both runs, and it failed the conversation follow-up 2 times in 9 earlier tries.
+Flash has failed neither, so production stays on Flash. The full reasoning is in
+the results file.
 
 The suite has **713 Python tests** and **209 web unit tests**.
 

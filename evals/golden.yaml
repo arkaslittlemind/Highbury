@@ -166,3 +166,100 @@
   status: out_of_scope
   chart: null
   note: Not about Arsenal. No tool call.
+
+- id: q16
+  question: Show the xG timeline of Arsenal's away match at Tottenham in 2003-04.
+  status: answered
+  chart: xg_timeline
+  sql: >-
+    SELECT
+    (SELECT round(sum(xg)::numeric, 2) FROM v_shots WHERE team = 'Arsenal'
+    AND match_id = (SELECT match_id FROM v_matches WHERE season = '2003-04'
+    AND home_team = 'Tottenham Hotspur' AND away_team = 'Arsenal')) AS arsenal_xg,
+    (SELECT round(sum(xg)::numeric, 2) FROM v_shots WHERE team = 'Tottenham Hotspur'
+    AND match_id = (SELECT match_id FROM v_matches WHERE season = '2003-04'
+    AND home_team = 'Tottenham Hotspur' AND away_team = 'Arsenal')) AS tottenham_xg
+  note: The 2-2 draw that won the title. StatsBomb xG.
+
+- id: q17
+  question: Show the xG timeline of Arsenal's home match against Manchester City in 2025-26.
+  status: answered
+  chart: xg_timeline
+  sql: >-
+    SELECT
+    (SELECT round(sum(xg)::numeric, 2) FROM v_shots WHERE team = 'Arsenal'
+    AND match_id = (SELECT match_id FROM v_matches WHERE season = '2025-26'
+    AND home_team = 'Arsenal' AND away_team = 'Manchester City')) AS arsenal_xg,
+    (SELECT round(sum(xg)::numeric, 2) FROM v_shots WHERE team = 'Manchester City'
+    AND match_id = (SELECT match_id FROM v_matches WHERE season = '2025-26'
+    AND home_team = 'Arsenal' AND away_team = 'Manchester City')) AS city_xg
+  note: Understat xG.
+
+- id: q18
+  question: Compare Arsenal's 2025-26 points pace with the Invincibles.
+  status: answered
+  chart: points_pace
+  sql: >-
+    SELECT
+    (SELECT points FROM v_league_table
+    WHERE season = '2003-04' AND team = 'Arsenal') AS points_2003_04,
+    (SELECT points FROM v_league_table
+    WHERE season = '2025-26' AND team = 'Arsenal') AS points_2025_26
+  note: The done-when question of the points pace. The Invincibles are Arsenal in 2003-04.
+
+- id: q19
+  question: Show Arsenal's points pace in 2003-04.
+  status: answered
+  chart: points_pace
+  sql: >-
+    SELECT
+    (SELECT points FROM v_league_table
+    WHERE season = '2003-04' AND team = 'Arsenal') AS arsenal_points,
+    (SELECT points FROM v_league_table
+    WHERE season = '2003-04' AND position = 2) AS second_points
+  note: >-
+    One season and no rival named, so the prompt adds the team that finished second,
+    because Arsenal finished first. That is Chelsea, on 79 points.
+
+- id: q20
+  question: Where did Arsenal finish in the 2025-26 league table, and with how many points?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT position, points FROM v_league_table
+    WHERE season = '2025-26' AND team = 'Arsenal'
+
+- id: q21
+  question: How many corners did Arsenal win in the 2003-04 league season?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT sum(CASE WHEN home_team = 'Arsenal' THEN home_corners ELSE away_corners END)
+    AS corners FROM v_league_matches
+    WHERE season = '2003-04' AND 'Arsenal' IN (home_team, away_team)
+  note: A team match stat of football-data.co.uk.
+
+- id: q22
+  question: >-
+    How many FPL points did Bukayo Saka score in 2025-26, and how many of them were
+    bonus points?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT sum(points) AS fpl_points, sum(bonus) AS bonus FROM v_fpl_player_match
+    WHERE player = 'Bukayo Saka' AND season = '2025-26'
+
+- id: q23
+  question: How many saves did David Raya make in the 2025-26 league season?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT sum(saves) AS saves FROM v_fpl_player_match
+    WHERE player = 'David Raya' AND season = '2025-26'
+  note: Only FPL has saves.
+
+- id: q24
+  question: How many FPL points did Thierry Henry score in 2003-04?
+  status: unavailable
+  chart: null
+  note: FPL data is loaded for 2025-26 only.
