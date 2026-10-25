@@ -277,13 +277,18 @@ def resolve_player(name: str) -> ResolveResult:
         method, ranked = rank_players(query, names)
         if not ranked:
             return ResolveResult(query=query, status="not_found")
+        # FPL has players that no other source has, so their seasons and teams
+        # come from fpl_player_match. UNION drops the rows that both tables give.
         appearances = db.read(
-            "SELECT DISTINCT pms.player_id, s.label, t.name"
-            " FROM player_match_stats pms"
-            " JOIN matches m ON m.id = pms.match_id"
+            "SELECT a.player_id, s.label, t.name FROM ("
+            " SELECT player_id, match_id, team_id FROM player_match_stats"
+            " UNION SELECT player_id, match_id, team_id FROM fpl_player_match"
+            ") a"
+            " JOIN matches m ON m.id = a.match_id"
             " JOIN seasons s ON s.id = m.season_id"
-            " JOIN teams t ON t.id = pms.team_id"
-            " WHERE pms.player_id = ANY(%s)",
+            " JOIN teams t ON t.id = a.team_id"
+            " WHERE a.player_id = ANY(%s)"
+            " GROUP BY a.player_id, s.label, t.name",
             STATEMENT_TIMEOUT_MS,
             [[candidate.player_id for candidate in ranked]],
         ).rows

@@ -1,8 +1,8 @@
 # Hand-written identity data for the loaders. It always wins over what the
 # resolver finds. Load the nicknames with: python -m ingest.curated
 #
-# teams: source spellings of a club. The Understat and football-data loaders read
-# them; the StatsBomb names are the canonical names. A spelling that is not here
+# teams: source spellings of a club. The Understat, football-data, and FPL loaders
+# read them; the StatsBomb names are the canonical names. A spelling that is not here
 # is already the name in teams.
 #
 # players: one entry for each source record that the resolver must not decide.
@@ -36,17 +36,92 @@ teams:
   - team: Manchester City
     spellings: [Man City]
   - team: Manchester United
-    spellings: [Man United]
+    spellings: [Man United, Man Utd]
   - team: Newcastle United
     spellings: [Newcastle]
   - team: Nottingham Forest
     spellings: ["Nott'm Forest"]
   - team: Tottenham Hotspur
-    spellings: [Tottenham]
+    spellings: [Tottenham, Spurs]
   - team: Wolverhampton Wanderers
     spellings: [Wolves]
 
-players: []
+players:
+  # FPL Daniel Ballard; scores 88, under the cutoff.
+  - source: fpl
+    source_id: "531"
+    season: "2025-26"
+    player: Dan Ballard
+  # FPL Gabriel Fernando de Jesus; as close to Gabriel.
+  - source: fpl
+    source_id: "31"
+    season: "2025-26"
+    player: Gabriel Jesus
+  # FPL Gabriel Martinelli Silva; as close to Gabriel.
+  - source: fpl
+    source_id: "19"
+    season: "2025-26"
+    player: Gabriel Martinelli
+  # FPL Rayan Cherki; Understat uses his first given name.
+  - source: fpl
+    source_id: "417"
+    season: "2025-26"
+    player: Mathis Cherki
+  # FPL Matty Cash; a short form of the name.
+  - source: fpl
+    source_id: "36"
+    season: "2025-26"
+    player: Matthew Cash
+  # Players with minutes in Arsenal's matches whose FPL name is too far from the
+  # Understat name to link: a full name, a short form, or a nickname.
+  - source: fpl
+    source_id: "11"
+    season: "2025-26"
+    player: Ben White
+  - source: fpl
+    source_id: "713"
+    season: "2025-26"
+    player: Alejandro Jiménez
+  - source: fpl
+    source_id: "676"
+    season: "2025-26"
+    player: Chimuanya Ugochukwu
+  - source: fpl
+    source_id: "712"
+    season: "2025-26"
+    player: Yeremi Pino
+  - source: fpl
+    source_id: "311"
+    season: "2025-26"
+    player: Beto
+  - source: fpl
+    source_id: "376"
+    season: "2025-26"
+    player: Joseph Gomez
+  - source: fpl
+    source_id: "457"
+    season: "2025-26"
+    player: Casemiro
+  - source: fpl
+    source_id: "477"
+    season: "2025-26"
+    player: Valentino Livramento
+  - source: fpl
+    source_id: "511"
+    season: "2025-26"
+    player: Morato
+  - source: fpl
+    source_id: "612"
+    season: "2025-26"
+    player: Lucas Paquetá
+  - source: fpl
+    source_id: "605"
+    season: "2025-26"
+    player: Max Kilman
+  - source: fpl
+    source_id: "645"
+    season: "2025-26"
+    player: Fernando López
 
 nicknames:
   - season: "2003-04"

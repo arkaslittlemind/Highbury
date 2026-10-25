@@ -195,4 +195,9 @@ def test_the_shipped_overrides_file_is_valid():
     # The spellings of the two maps that the code held before.
     assert parsed.teams["Man United"] == "Manchester United"
     assert parsed.teams["Tottenham"] == "Tottenham Hotspur"
-    assert parsed.players == {}
+    assert parsed.teams["Man Utd"] == "Manchester United"
+    assert parsed.teams["Spurs"] == "Tottenham Hotspur"
+    # The FPL links that the 2025-26 review report showed the resolver could not make.
+    assert {(o.source, o.season) for o in parsed.players.values()} == {("fpl", "2025-26")}
+    assert parsed.players[("fpl", "19")].player == "Gabriel Martinelli"
+    assert not any(o.separate for o in parsed.players.values())

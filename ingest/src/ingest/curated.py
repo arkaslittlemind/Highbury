@@ -22,6 +22,9 @@ STATSBOMB = "StatsBomb Open Data"
 UNDERSTAT = "Understat"
 NO_EVENTS = "Understat has shots but no pass, carry, or pressure events."
 FOOTBALL_DATA = "football-data.co.uk"
+# The archive asks a site that uses its data to link back to it.
+FPL = "Fantasy Premier League, via github.com/vaastav/Fantasy-Premier-League"
+FPL_METRIC = "fpl_player_stats"
 # The source holds every league match of both seasons, so each season gets the same rows.
 LEAGUE_ROWS = (
     (
@@ -79,6 +82,15 @@ CATALOG = (
         "Every substitution, with the minute, the player off, and the player on.",
     ),
     *(("2003-04", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
+    (
+        "2003-04",
+        FPL_METRIC,
+        False,
+        None,
+        "FPL data (clean sheets, saves, bonus, BPS, cards, defensive contributions, FPL"
+        " points, price) is loaded for 2025-26 only. Offer the minutes, goals, and"
+        " assists of 2003-04 instead.",
+    ),
     ("2025-26", "results", True, UNDERSTAT, "All 38 Arsenal league matches: date, teams, score."),
     ("2025-26", "shots", True, UNDERSTAT, "Every shot of both teams, with pitch coordinates."),
     (
@@ -126,6 +138,16 @@ CATALOG = (
         "Substitutions are not loaded for 2025-26. Offer the minutes of each player instead.",
     ),
     *(("2025-26", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
+    (
+        "2025-26",
+        FPL_METRIC,
+        True,
+        FPL,
+        "Every Premier League player in each match he played, not only Arsenal's, in"
+        " v_fpl_player_match: clean sheets, saves, bonus, BPS, yellow and red cards,"
+        " defensive contributions, FPL points, and FPL price by gameweek. No FPL xG: use"
+        " the Understat xG of v_player_match.",
+    ),
 )
 
 

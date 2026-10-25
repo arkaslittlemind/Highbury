@@ -252,6 +252,36 @@ def test_a_name_that_is_close_to_two_players_is_ambiguous(seeded):
     assert [match.teams for match in result.matches] == [["Arsenal"], ["Everton"]]
 
 
+def test_a_player_only_fpl_has_shows_his_fpl_season_and_team(seeded, ingest):
+    # A 2025-26 player with the name of a 2003-04 one, as FPL's James Milner was.
+    (player_id,) = ingest.execute(
+        "INSERT INTO players (name) VALUES ('Joe Cole') RETURNING id"
+    ).fetchone()
+    ingest.execute(
+        "INSERT INTO player_aliases (player_id, source, source_player_id, source_name)"
+        " VALUES (%s, 'fpl', '900', 'Joe Cole')",
+        (player_id,),
+    )
+    ingest.execute(
+        "INSERT INTO fpl_player_match (player_id, match_id, team_id, gameweek, minutes, goals,"
+        " assists, clean_sheet, saves, bonus, bps, yellow_cards, red_cards,"
+        " defensive_contribution, points, price)"
+        " SELECT %s, m.id, m.away_team_id, 1, 90, 0, 0, false, 0, 0, 10, 0, 0, 3, 2, 4.5"
+        " FROM matches m WHERE m.season_id = 2025",
+        (player_id,),
+    )
+    ingest.commit()
+
+    result = tools.resolve_player("Joe Cole")
+
+    # Still two players of one name, but now the season and the team tell them apart.
+    assert result.status == "ambiguous"
+    assert [(m.seasons, m.teams) for m in result.matches] == [
+        (["2003-04"], ["Everton"]),
+        (["2025-26"], ["Everton"]),
+    ]
+
+
 def test_a_shared_short_word_is_not_a_match(seeded):
     assert tools.resolve_player("Van Persie").status == "not_found"
 

@@ -172,6 +172,7 @@ MATRIX = {
     ("2003-04", "league_results"): True,
     ("2003-04", "team_match_stats"): True,
     ("2003-04", "league_table"): True,
+    ("2003-04", "fpl_player_stats"): False,
     ("2025-26", "results"): True,
     ("2025-26", "shots"): True,
     ("2025-26", "xg"): True,
@@ -183,6 +184,7 @@ MATRIX = {
     ("2025-26", "league_results"): True,
     ("2025-26", "team_match_stats"): True,
     ("2025-26", "league_table"): True,
+    ("2025-26", "fpl_player_stats"): True,
 }
 
 
@@ -215,6 +217,8 @@ def test_an_available_row_has_a_source_and_an_unavailable_row_says_why(ingest):
         league = metric in {name for name, _ in curated.LEAGUE_ROWS}
         if available and league:
             assert source == "football-data.co.uk", (label, metric)
+        elif available and metric == curated.FPL_METRIC:
+            assert "vaastav/Fantasy-Premier-League" in source
         elif available:
             assert source == {"2003-04": "StatsBomb Open Data", "2025-26": "Understat"}[label]
         else:
@@ -272,7 +276,7 @@ def test_the_command_loads_both_and_the_analyst_can_read_them(
     assert curated.run(alias_file(tmp_path), env(db)) == 0
 
     assert capsys.readouterr().out == first
-    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 22"]
+    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 24"]
     assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (
         len(curated.CATALOG),
     )

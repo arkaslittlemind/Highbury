@@ -20,13 +20,21 @@ def ingest(db):
 
 
 @pytest.mark.parametrize(
-    "view", ["v_shots", "v_passes", "v_substitutions", "v_league_matches", "v_league_table"]
+    "view",
+    [
+        "v_shots",
+        "v_passes",
+        "v_substitutions",
+        "v_league_matches",
+        "v_league_table",
+        "v_fpl_player_match",
+    ],
 )
 def test_analyst_can_select_from_a_view(analyst, view):
     assert analyst.execute(f"SELECT count(*) FROM {view}").fetchone() == (0,)
 
 
-@pytest.mark.parametrize("table", ["data_catalog", "team_match_stats"])
+@pytest.mark.parametrize("table", ["data_catalog", "team_match_stats", "fpl_player_match"])
 def test_analyst_can_select_from_a_base_table(analyst, table):
     assert analyst.execute(f"SELECT count(*) FROM {table}").fetchone() == (0,)
 

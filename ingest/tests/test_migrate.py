@@ -13,6 +13,7 @@ TABLES = {
     "events",
     "player_match_stats",
     "team_match_stats",
+    "fpl_player_match",
     "data_catalog",
 }
 

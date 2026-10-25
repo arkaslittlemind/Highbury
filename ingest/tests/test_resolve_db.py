@@ -1,5 +1,6 @@
 """Entity resolution in the loader: a second source's players link to the first's."""
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -254,7 +255,12 @@ def env(db):
     return {"INGEST_DATABASE_URL": db.ingest_url}
 
 
-def test_the_command_writes_the_review_report_and_names_it(db, first, tmp_path, capsys):
+def test_the_command_writes_the_review_report_and_names_it(
+    db, first, tmp_path, capsys, monkeypatch
+):
+    # The shipped FPL overrides name players that this database does not have.
+    shipped = command.overrides.read()
+    monkeypatch.setattr(command.overrides, "read", lambda: replace(shipped, players={}))
     first.commit()
     rows = fpl(("10", "Gabriel Magalhães", "Arsenal", 1))
 

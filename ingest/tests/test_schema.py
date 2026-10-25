@@ -10,6 +10,7 @@ VIEWS = [
     "v_substitutions",
     "v_league_matches",
     "v_league_table",
+    "v_fpl_player_match",
 ]
 
 
@@ -74,7 +75,7 @@ def test_every_view_column_has_a_comment(conn):
     assert missing == []
 
 
-def test_all_eight_views_exist(conn):
+def test_all_nine_views_exist(conn):
     rows = conn.execute("SELECT viewname FROM pg_views WHERE schemaname = 'public'")
 
     assert sorted(row[0] for row in rows) == sorted(VIEWS)

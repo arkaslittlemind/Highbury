@@ -69,7 +69,12 @@ def ingest(db) -> Iterator[psycopg.Connection]:
                 sql.SQL(", ").join(
                     map(
                         sql.Identifier,
-                        (*load.SEASON_TABLES, "team_match_stats", "data_catalog"),
+                        (
+                            *load.SEASON_TABLES,
+                            "team_match_stats",
+                            "fpl_player_match",
+                            "data_catalog",
+                        ),
                     )
                 )
             )
