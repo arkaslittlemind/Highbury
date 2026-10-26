@@ -261,9 +261,25 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   }
   html {
     @apply font-sans;
+    /* Each control has its own press, so the grey box of a phone browser goes. */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* A tap acts at once: the browser does not wait to see if it is a double-tap zoom. */
+  button,
+  a,
+  summary,
+  input[type="range"] {
+    touch-action: manipulation;
+  }
+  /* A long press on a control does not select its label. Text and links stay selectable. */
+  button,
+  summary {
+    -webkit-user-select: none;
+    user-select: none;
   }
   h1,
   h2,

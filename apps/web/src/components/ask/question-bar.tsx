@@ -11,7 +11,7 @@ export function QuestionBar({ label, placeholder, onAsk }: QuestionBarProps) {
   return (
     <div
       // On a phone the bar stays at the bottom of the screen.
-      className="flex flex-col gap-3.5 rounded-panel border border-line-mid bg-card p-5 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:bg-background max-sm:px-4 max-sm:py-3"
+      className="flex flex-col gap-3.5 rounded-panel border border-line-mid bg-card p-5 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:bg-background max-sm:px-4 max-sm:pt-3 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
     >
       {/* The input has the same text as its label, so this copy is only for the eye. */}
       <span
