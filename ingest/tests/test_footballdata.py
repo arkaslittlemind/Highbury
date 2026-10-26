@@ -169,6 +169,32 @@ def test_a_failed_download_says_where_to_save_the_file(monkeypatch):
     assert str(error.value).endswith("E0-0304.csv")
 
 
+def answer_with(monkeypatch, content: bytes) -> None:
+    """Make the site answer each request with status 200 and this body."""
+
+    def get(url, timeout):
+        return httpx.Response(200, content=content, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(footballdata.httpx, "get", get)
+
+
+def test_a_page_that_is_not_a_csv_file_is_not_cached(monkeypatch, tmp_path):
+    answer_with(monkeypatch, b"<html><body>Checking your browser...</body></html>")
+
+    with pytest.raises(command.FetchError) as error:
+        footballdata.fetch_season(tmp_path, footballdata.SEASONS[0], footballdata.download)
+
+    assert "mmz4281/0304/E0.csv did not give a CSV file of matches" in str(error.value)
+    assert "Save it by hand as" in str(error.value)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_downloaded_csv_file_is_returned(monkeypatch):
+    answer_with(monkeypatch, league_csv().encode())
+
+    assert footballdata.download(footballdata.SEASONS[0]) == league_csv()
+
+
 # The database half: the season loaders' rows first, then this loader.
 
 
@@ -363,6 +389,46 @@ def test_the_league_check_names_each_difference(ingest):
 
     assert f"Arsenal has {arsenal} points, expected {arsenal + 1}" in str(error.value)
     assert "expected 999" in str(error.value)
+
+
+def league_load(monkeypatch, ingest, points) -> None:
+    """Seed 2003-04 for the own connection of load_league, and check only that season."""
+    seed(ingest)
+    # load_league opens a connection of its own, which reads only committed rows.
+    ingest.commit()
+    monkeypatch.setattr(footballdata, "SEASONS", footballdata.SEASONS[:1])
+    monkeypatch.setattr(footballdata, "EXPECTED_POINTS", {"2003-04": points})
+
+
+def match_count(url: str) -> int:
+    with psycopg.connect(url) as conn:
+        return conn.execute("SELECT count(*) FROM matches").fetchone()[0]
+
+
+def test_a_league_load_that_fails_its_check_commits_nothing(monkeypatch, db, ingest):
+    league_load(monkeypatch, ingest, {"Arsenal": 999})
+
+    with pytest.raises(load.SanityError) as error:
+        footballdata.load_league(db.ingest_url, parsed())
+
+    assert "expected 999" in str(error.value)
+    assert match_count(db.ingest_url) == 38
+
+
+def test_a_league_load_that_passes_its_check_commits_and_says_what_it_loaded(
+    monkeypatch, db, ingest
+):
+    seed(ingest)
+    footballdata.load_matches(ingest, parsed())
+    arsenal = footballdata.league_points(ingest, "2003-04")["Arsenal"][1]
+    ingest.rollback()
+    league_load(monkeypatch, ingest, {"Arsenal": arsenal})
+
+    lines = footballdata.load_league(db.ingest_url, parsed())
+
+    assert lines[:2] == ["matches: 380", "team_match_stats: 760"]
+    assert lines[2].startswith("2003-04: 380 matches, 38 Arsenal matches linked")
+    assert match_count(db.ingest_url) == 380
 
 
 def test_the_published_tables_list_every_2025_26_club_once():

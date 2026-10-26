@@ -199,7 +199,16 @@ def download(season: SeasonFile) -> str:
             f"cannot download {season.url}: {type(error).__name__}."
             f" Save it by hand as {RAW_DIR / season.file_name}"
         ) from error
-    return response.content.decode(ENCODING)
+    text = response.content.decode(ENCODING)
+    # A bot check or a portal page can come with status 200. In the cache it would
+    # fail each later run with an error that does not name the cached file.
+    header = next(csv.reader(io.StringIO(text)), [])
+    if not {"Date", "HomeTeam"} <= set(header):
+        raise command.FetchError(
+            f"{season.url} did not give a CSV file of matches."
+            f" Save it by hand as {RAW_DIR / season.file_name}"
+        )
+    return text
 
 
 def build(
