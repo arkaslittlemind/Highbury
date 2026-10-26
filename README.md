@@ -2,7 +2,7 @@
 
 **An AI football analyst that shows its receipts.** Ask a question in plain
 English about Arsenal's 2003-04 Invincibles or the 2025-26 side. An agent
-queries a curated Postgres database, draws an interactive pitch chart, and checks
+queries a curated Postgres database, draws an interactive chart, and checks
 every number against the data before you see it. When the data cannot answer,
 it says so.
 
@@ -24,8 +24,8 @@ Every answer shows:
 - **A verification badge**, such as "6 of 6 claims verified". Each claim links
   to the exact query that produced it.
 - **The working**: the tools the agent called and the SQL it ran.
-- **A chart**: a shot map, comparison bars, or a pass network, with a text
-  summary under it.
+- **A chart**: a shot map, comparison bars, a pass network, an xG timeline of
+  one match, or a points-pace line, with a text summary under it.
 - **Caveats** where they matter. For example, the two seasons use different xG
   models, so the comparison says so.
 
@@ -33,11 +33,11 @@ Every answer shows:
 
 | Capability | How it works |
 | --- | --- |
-| Answers from real data | An agent plans the question and calls five tools: the data catalog, the schema, a player resolver, a SQL runner, and a chart builder. |
+| Answers from real data | An agent plans the question and calls five tools: the data catalog, the schema, a player resolver, a SQL runner, and a chart builder. The data covers shots, passes, and lineups, all 380 league matches of both seasons with team stats and the table, and FPL player data for 2025-26. |
 | Does not invent numbers | A verifier written in plain code, not another LLM, checks each claimed number against the rows of the query it cites. Unsupported claims are removed. |
 | Knows what it does not know | The agent reads a data catalog first. Ask for Saka's 2025-26 pass map and it says there is no pass data for that season, then offers his shot map. |
 | Stays in scope | "Who will win the Champions League?" is declined with no database call. |
-| Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. |
+| Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. A conversation ends after 20 turns. |
 | Cannot change the data | Two independent locks: a SQL parser that allows one `SELECT`, and a read-only database role with a 5-second timeout and a 500-row cap. |
 | Measured, not guessed | 24 golden questions with hand-written SQL answers, run on two models. Flash scored 24 of 24, Flash-Lite 23 of 24. |
 
@@ -55,7 +55,7 @@ both runs, and it failed the conversation follow-up 2 times in 9 earlier tries.
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
-The suite has **713 Python tests** and **209 web unit tests**.
+The suite has **942 Python tests** and **263 web unit tests**.
 
 ## Architecture
 
@@ -67,11 +67,12 @@ flowchart LR
     T -- "SELECT only" --> DB[("Postgres<br/>read-only role")]
     A -- answer and claims --> V["Claim verifier<br/>plain code"]
     V -- "checked answer, streamed (SSE)" --> B
-    S["StatsBomb 2003-04<br/>Understat 2025-26"] -. offline ingest .-> DB
+    S["StatsBomb, Understat,<br/>football-data.co.uk, FPL"] -. offline ingest .-> DB
 ```
 
 1. The browser sends the question and receives a stream of events: each tool
-   step as it runs, then the final answer.
+   step as it runs, then the final answer. A ping event keeps the stream open
+   through the load balancer while the agent is quiet.
 2. The agent calls the tools in-process. The same functions are also served as
    an **MCP server** over stdio, so any MCP client can use them.
 3. Before the answer is sent, the verifier matches each claimed value to a cell
@@ -93,8 +94,13 @@ flowchart LR
   wrong joins, less flexibility.
 - **Model as configuration.** One environment variable names the model, so the
   evals compare models on the same questions.
-- **Fewer sources, honest catalog.** Two open sources, one per season, and a
-  catalog that says what each season lacks.
+- **Few sources, honest catalog.** Four open sources, and a catalog that says
+  what each season lacks. Each source is cross-checked against another where it
+  can be: the football-data scores against the published tables, and the FPL
+  goals against Understat's. A load stops on any difference.
+- **One identity for every player and team.** A resolver links each source
+  record to one canonical ID. A hand-written `overrides.yaml` always wins, and a
+  link is made only when it is certain.
 
 Each feature has a study document in [`design-docs/`](design-docs/README.md)
 covering its design, run-time flow, and trade-offs.
@@ -134,7 +140,9 @@ uv sync --all-packages               # Python workspace
 uv run --env-file .env python -m ingest.migrate      # tables, views, roles
 uv run --env-file .env python -m ingest.statsbomb    # load 2003-04
 uv run --env-file .env python -m ingest.understat    # load 2025-26
-uv run --env-file .env python -m ingest.curated      # aliases and data catalog
+uv run --env-file .env python -m ingest.footballdata # all 380 league matches of both seasons
+uv run --env-file .env python -m ingest.fpl          # FPL player data, 2025-26
+uv run --env-file .env python -m ingest.curated      # nicknames and data catalog
 ```
 
 Ask from the terminal (each question calls the model and costs a little):
@@ -166,7 +174,7 @@ server, and the deploy.
 | --- | --- |
 | `apps/web` | The Next.js web app |
 | `services/analyst` | The agent, the five tools, the verifier, the API, and the MCP server |
-| `ingest` | Offline loaders for StatsBomb and Understat |
+| `ingest` | Offline loaders for StatsBomb, Understat, football-data.co.uk, and FPL, and the entity resolver |
 | `db/migrations` | SQL schema, views, and roles |
 | `evals` | Golden questions, model list, and results |
 | `deploy/ecs` | API service config for AWS ECS (names only, no secrets) |
@@ -178,6 +186,15 @@ server, and the deploy.
 **Unofficial fan project.** Not affiliated with or endorsed by Arsenal FC or the
 Premier League. No club crests, logos, or player photos are used.
 
-Data: [StatsBomb Open Data](https://github.com/statsbomb/open-data) for 2003-04
-and [Understat](https://understat.com) for 2025-26. Raw data is not
-redistributed in this repository; the loaders download and cache it locally.
+Data:
+
+- [StatsBomb Open Data](https://github.com/statsbomb/open-data) for the 2003-04
+  events and shots.
+- [Understat](https://understat.com) for the 2025-26 shots.
+- [football-data.co.uk](https://www.football-data.co.uk) for every league match
+  and team match stats of both seasons.
+- The [Fantasy Premier League archive](https://github.com/vaastav/Fantasy-Premier-League)
+  of vaastav for the 2025-26 per-match player data.
+
+Raw data is not redistributed in this repository; the loaders download and cache
+it locally.
