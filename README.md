@@ -215,11 +215,9 @@ server, and the deploy.
 
 ## Contributing
 
-Issues and pull requests are welcome. For a bug, say the question that you asked
-and what the answer showed. For a code change, run `uv run ruff check .`,
-`uv run --env-file .env pytest`, `pnpm lint`, and `pnpm test` first.
-[`AGENTS.md`](AGENTS.md) has the conventions: conventional commit messages, and a
-test with every change to logic.
+This is a personal project, and I am not taking issues or pull requests at the
+moment. You are welcome to read the code, fork it, and build on it under the
+[MIT License](LICENSE). If that changes, this section will say so.
 
 ## Repository layout
 
