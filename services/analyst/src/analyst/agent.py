@@ -14,12 +14,10 @@ from typing import Any
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
-    AgentState,
     ModelCallLimitMiddleware,
     ModelRequest,
     ModelResponse,
     ToolCallRequest,
-    before_agent,
     wrap_model_call,
     wrap_tool_call,
 )
@@ -179,12 +177,6 @@ def record_tool_call(request: ToolCallRequest, handler: Callable[[ToolCallReques
     return message
 
 
-@before_agent
-def forget_last_answer(state: AgentState, runtime: Any) -> dict[str, Any]:
-    """Drop the answer of the turn before, so that it cannot pass as the new answer."""
-    return {"structured_response": None}
-
-
 @wrap_model_call
 def name_model_failure(request: ModelRequest, handler: Callable[[ModelRequest], Any]) -> Any:
     """Turn a failure of the provider into an error with a text that is safe to show."""
@@ -241,7 +233,6 @@ def build_agent(model: BaseChatModel | None = None) -> CompiledStateGraph:
         AGENT_TOOLS,
         system_prompt=build_system_prompt(catalog, schema),
         middleware=[
-            forget_last_answer,
             ModelCallLimitMiddleware(run_limit=MODEL_CALL_LIMIT, exit_behavior="error"),
             name_model_failure,
             count_usage,

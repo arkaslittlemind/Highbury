@@ -1,6 +1,8 @@
+import json
 import re
 
 import pytest
+from langchain.agents.structured_output import StructuredOutputError
 from langchain_core.messages import AIMessage, ToolMessage
 from scripted import (
     ANSWER,
@@ -318,15 +320,21 @@ def test_each_turn_has_its_own_records_and_its_own_limit(seeded):
             answer(),
             *(query(number) for number in range(7, 13)),
             answer(),
+            *(query(number) for number in range(13, 19)),
+            answer(),
         ]
     )
     analyst = agent.build_agent(model)
 
     first = agent.ask(analyst, "Show me Henry's shots.", "t1")
     second = agent.ask(analyst, "Only the ones inside the box.", "t1")
+    # 21 model calls on one thread: the limit of 15 must count one question only.
+    third = agent.ask(analyst, "And the ones outside it?", "t1")
 
     assert [record.result["rows"] for record in first.records] == [[[n]] for n in range(1, 7)]
     assert [record.result["rows"] for record in second.records] == [[[n]] for n in range(7, 13)]
+    assert [record.result["rows"] for record in third.records] == [[[n]] for n in range(13, 19)]
+    assert third.usage.model_calls == 7
 
 
 def test_a_model_that_fails_gives_an_error_with_no_question_text(seeded):
@@ -349,6 +357,31 @@ def test_a_turn_that_ends_with_no_structured_answer_fails(seeded):
         agent.ask(analyst, "And was he good?", "t1")
 
     assert str(error.value) == "The model gave no structured answer."
+
+
+# A model whose profile says it has structured output gets the answer from the
+# provider, not as a tool call. A wrong answer then ends the turn at once.
+def test_a_provider_answer_returns_the_answer(seeded):
+    model = ScriptedModel(
+        replies=[AIMessage(content=json.dumps(ANSWER))], profile={"structured_output": True}
+    )
+
+    turn = agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert turn.answer == Answer(**ANSWER)
+
+
+def test_a_provider_answer_of_a_wrong_shape_fails(seeded):
+    model = ScriptedModel(
+        replies=[AIMessage(content=json.dumps({**ANSWER, "status": "maybe"}))],
+        profile={"structured_output": True},
+    )
+
+    with pytest.raises(agent.AgentError) as error:
+        agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert str(error.value) == agent.NO_ANSWER
+    assert isinstance(error.value.__cause__, StructuredOutputError)
 
 
 def test_no_agent_is_built_when_the_database_cannot_be_read(no_database):
