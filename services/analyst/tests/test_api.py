@@ -5,6 +5,7 @@ import logging
 import queue
 import re
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -273,6 +274,33 @@ def test_a_tool_that_does_not_exist_has_the_other_label(serve):
     (_, step), _ = events(ask(client))
 
     assert step == {"number": 1, "tool": "guess_the_score", "label": "Working"}
+
+
+def test_a_quiet_turn_sends_a_ping_until_its_next_event(monkeypatch):
+    monkeypatch.setattr(api, "HEARTBEAT_SECONDS", 0.01)
+    events: queue.Queue = queue.Queue()
+    sent = api.stream(events)
+
+    assert [next(sent), next(sent)] == [api.PING, api.PING]
+    events.put("event: answer\ndata: {}\n\n")
+    events.put(None)
+    assert list(sent) == ["event: answer\ndata: {}\n\n"]
+    assert api.PING == "event: ping\ndata: {}\n\n"
+
+
+def test_the_stream_of_a_slow_turn_has_pings_before_its_answer(serve, monkeypatch):
+    monkeypatch.setattr(api, "HEARTBEAT_SECONDS", 0.05)
+
+    def slow(read):
+        time.sleep(0.3)
+        return answer()
+
+    client, _ = serve(slow)
+
+    names = [name for name, _ in events(ask(client))]
+
+    assert names[-1] == "answer"
+    assert set(names[:-1]) == {"ping"}
 
 
 def test_a_turn_with_no_tool_call_streams_only_its_answer(serve):

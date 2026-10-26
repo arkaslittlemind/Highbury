@@ -8,7 +8,7 @@ import threading
 import time
 import uuid
 from collections import OrderedDict, deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Annotated, Any
 
@@ -129,6 +129,25 @@ def sse(name: str, data: Any) -> str:
     """Return one server-sent event with its data as JSON on one line."""
     # NaN is not JSON, and a browser cannot parse it. It goes out as null.
     return f"event: {name}\ndata: {to_json(data, inf_nan_mode='null').decode()}\n\n"
+
+
+# The load balancer closes a connection that is quiet for 60 seconds, and one
+# model call can take longer. The web page skips an event that it does not know.
+HEARTBEAT_SECONDS = 15
+PING = sse("ping", {})
+
+
+def stream(events: queue.Queue[str | None]) -> Iterator[str]:
+    """Yield the events of a turn until None, and a ping when the turn is quiet."""
+    while True:
+        try:
+            event = events.get(timeout=HEARTBEAT_SECONDS)
+        except queue.Empty:
+            yield PING
+            continue
+        if event is None:
+            return
+        yield event
 
 
 def working_step(record: ToolRecord) -> WorkingStep:
@@ -548,7 +567,7 @@ def create_app(
             daemon=True,
         ).start()
         return StreamingResponse(
-            iter(events.get, None),
+            stream(events),
             media_type="text/event-stream",
             # A proxy that buffers a response holds each step until the answer
             # is complete. This header tells it to send each event at once.
