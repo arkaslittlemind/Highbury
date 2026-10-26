@@ -595,6 +595,24 @@ def test_the_conversation_of_the_oldest_use_goes_when_the_limit_is_reached(serve
     assert graph.get_state({"configurable": {"thread_id": second}}).values == {}
 
 
+def test_a_conversation_ends_after_its_last_turn(serve):
+    assert api.MAX_TURNS == 20
+    client, model = serve(*(answer() for _ in range(api.MAX_TURNS)))
+    conversation_id = conversation(ask(client))
+    for _ in range(api.MAX_TURNS - 1):
+        assert conversation(ask(client, conversation_id=conversation_id)) == conversation_id
+
+    response = ask(client, conversation_id=conversation_id)
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": api.ENDED}
+    assert len(model.seen) == api.MAX_TURNS
+    # The memory of the conversation is free after its last answer.
+    service = client.app.state.service
+    assert service.conversations.known == {}
+    assert service.graph.get_state(api.thread(conversation_id)).values == {}
+
+
 def test_a_conversation_with_a_turn_in_flight_is_not_forgotten():
     deleted = []
     conversations = api.Conversations(1, deleted.append)

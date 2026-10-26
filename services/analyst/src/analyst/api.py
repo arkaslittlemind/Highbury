@@ -58,6 +58,9 @@ MAX_BODY_BYTES = 16 * 1024
 
 # Each conversation holds the rows of its queries, and the service is public.
 MAX_CONVERSATIONS = 200
+# Each turn adds its rows to the memory of its conversation, so the number of
+# conversations alone does not bound the memory.
+MAX_TURNS = 20
 
 # The rate limit counts the requests of an address in any window of this length.
 WINDOW_SECONDS = 60
@@ -230,6 +233,8 @@ class Conversations:
         self.delete_thread = delete_thread
         # The id, and whether a turn is in flight. The order is the order of last use.
         self.known: OrderedDict[str, bool] = OrderedDict()
+        # The turns that each known conversation started.
+        self.turns: dict[str, int] = {}
         self.lock = threading.Lock()
 
     def begin(self, conversation_id: str | None) -> str:
@@ -246,6 +251,7 @@ class Conversations:
                 raise BusyConversation
             self.known[conversation_id] = True
             self.known.move_to_end(conversation_id)
+            self.turns[conversation_id] = self.turns.get(conversation_id, 0) + 1
         for old in dropped:
             self.delete_thread(old)
         return conversation_id
@@ -257,15 +263,23 @@ class Conversations:
         dropped = idle[: max(0, len(self.known) + 1 - self.limit)]
         for old in dropped:
             del self.known[old]
+            del self.turns[old]
         return dropped
 
     def end(self, conversation_id: str, keep: bool) -> None:
-        """Mark the turn as ended. A conversation that is not kept is forgotten."""
+        """Mark the turn as ended. A conversation that is not kept is forgotten.
+
+        The last turn that a conversation can have also forgets it, so that its
+        memory is free at once. The next question on its id gets the 404 of a
+        conversation that ended.
+        """
         with self.lock:
+            keep = keep and self.turns[conversation_id] < MAX_TURNS
             if keep:
                 self.known[conversation_id] = False
             else:
                 del self.known[conversation_id]
+                del self.turns[conversation_id]
         if not keep:
             self.delete_thread(conversation_id)
 
