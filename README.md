@@ -6,9 +6,26 @@ queries a curated Postgres database, draws an interactive chart, and checks
 every number against the data before you see it. When the data cannot answer,
 it says so.
 
-**Live app:** [highbury-sigma.vercel.app](https://highbury-sigma.vercel.app)
+**Try it first, with nothing to install:** [highbury-sigma.vercel.app](https://highbury-sigma.vercel.app).
+Click an example question to see a verified answer.
+
+Built by Arkadipta Mojumder ([GitHub](https://github.com/arkaslittlemind),
+[LinkedIn](https://www.linkedin.com/in/arkadipta-mojumder/)). MIT licensed.
 
 ![The Highbury landing page: "Two Arsenal eras. Every number checked."](docs/landing.jpg)
+
+## New to football data?
+
+Two terms appear on every page:
+
+- **xG (expected goals)** is the chance that a shot becomes a goal, from 0 to 1,
+  based on where and how it was taken. A shot with an xG of 0.31 goes in about
+  3 times in 10. A player's xG total shows how many goals the chances were worth.
+- **Per 90** means a rate for each 90 minutes played (one full match), so a
+  player who played 900 minutes and one who played 2,700 can be compared.
+
+Different data providers use different xG models, so Highbury says so whenever it
+compares the two seasons.
 
 ## Why it exists
 
@@ -130,8 +147,21 @@ study document for every finished feature and fix is in
 
 ## Run it locally
 
-Needs Docker, [uv](https://docs.astral.sh/uv/), Node with pnpm, and a Gemini API
-key.
+You do not need this to try Highbury: the [live app](https://highbury-sigma.vercel.app)
+runs the same code. Run it locally to read, change, or extend it.
+
+**You need:**
+
+- [Docker](https://www.docker.com/), for the local Postgres.
+- [uv](https://docs.astral.sh/uv/), which installs Python 3.12 and the Python
+  packages.
+- Node 20.9 or newer and [pnpm](https://pnpm.io/), for the web app.
+- A [Gemini API key](https://aistudio.google.com/apikey). Each question that the
+  agent answers is a paid model call, about $0.04 with the default model. The
+  data loads and the tests need no key.
+
+The first setup is mostly downloads. The loaders
+cache the raw files in `ingest/raw/` (not in Git), so a re-run is fast and safe.
 
 ```bash
 cp .env.example .env                 # then set GOOGLE_API_KEY
@@ -144,6 +174,9 @@ uv run --env-file .env python -m ingest.footballdata # all 380 league matches of
 uv run --env-file .env python -m ingest.fpl          # FPL player data, 2025-26
 uv run --env-file .env python -m ingest.curated      # nicknames and data catalog
 ```
+
+If football-data.co.uk or the FPL archive does not answer, the loader says which
+file to save by hand and where. [`AGENTS.md`](AGENTS.md) has the file names.
 
 Ask from the terminal (each question calls the model and costs a little):
 
@@ -168,6 +201,26 @@ cd apps/web && pnpm test             # web unit tests
 [`AGENTS.md`](AGENTS.md) lists every command, including the evals, the MCP
 server, and the deploy.
 
+## Limitations and what is next
+
+- **Two seasons only.** Highbury knows Arsenal in 2003-04 and 2025-26, nothing
+  else. More seasons are a planned extension.
+- **Different depth for each season.** 2025-26 has shots and league data but no
+  pass or pressure events. The agent says so and offers what it has.
+- **The verifier checks numbers, not opinions.** It cannot judge a claim like
+  "Henry was better" and it rejects some loose but correct phrasing.
+- **An answer takes 30 seconds or so.** The default model favours reliability
+  over speed. The evals show a faster model that is less reliable.
+- **No automatic checks on pull requests yet.** The tests run locally.
+
+## Contributing
+
+Issues and pull requests are welcome. For a bug, say the question that you asked
+and what the answer showed. For a code change, run `uv run ruff check .`,
+`uv run --env-file .env pytest`, `pnpm lint`, and `pnpm test` first.
+[`AGENTS.md`](AGENTS.md) has the conventions: conventional commit messages, and a
+test with every change to logic.
+
 ## Repository layout
 
 | Path | What |
@@ -180,6 +233,11 @@ server, and the deploy.
 | `deploy/ecs` | API service config for AWS ECS (names only, no secrets) |
 | `design-docs` | One study document per finished feature or fix |
 | `project-requirement-docs` | Product and build plans |
+
+## License
+
+The code is released under the [MIT License](LICENSE). The data keeps the
+licenses and terms of its sources, listed below.
 
 ## Data and disclaimer
 
