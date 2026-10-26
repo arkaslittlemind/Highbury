@@ -28,12 +28,15 @@ export default function Home() {
           </main>
         </>
       )}
-      <footer className="flex flex-wrap justify-between gap-x-6 gap-y-2 border-t px-4 py-6 text-sm text-muted-foreground sm:px-10">
-        <span>
-          Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier
-          League.
-        </span>
-        <span>Data: StatsBomb Open Data · Understat</span>
+      <footer className="border-t text-sm text-muted-foreground">
+        {/* The text lines up with the content of main, which has this width. */}
+        <div className="mx-auto flex w-full max-w-[1360px] flex-wrap justify-between gap-x-6 gap-y-2 px-4 py-6 sm:px-10">
+          <span>
+            Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier
+            League.
+          </span>
+          <span>Data: StatsBomb Open Data · Understat</span>
+        </div>
       </footer>
     </>
   );

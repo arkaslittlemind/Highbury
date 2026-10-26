@@ -3,8 +3,10 @@
 import { useId, useRef, useState, type FormEvent, type RefObject } from "react";
 
 import { PillDisc, pill } from "@/components/ask/pill";
-import { MAX_QUESTION_LENGTH } from "@/components/ask/question-bar";
 import { cn } from "@/lib/utils";
+
+// The limit of the service (MAX_QUESTION_LENGTH in api.py).
+export const MAX_QUESTION_LENGTH = 500;
 
 type AskPillProps = {
   label: string;
@@ -17,7 +19,7 @@ type AskPillProps = {
   className?: string;
 };
 
-/** The question bar of the landing screen: one row of glass on the grass. */
+/** The question bar: one row of glass on the grass, or on a card below an answer. */
 export function AskPill({
   label,
   placeholder,

@@ -1,5 +1,7 @@
 import type { Ref } from "react";
 
+import { SummaryChevron } from "@/components/ask/summary-chevron";
+
 import type { WorkingStep } from "@/lib/analyst-schema";
 
 function rowCountText(count: number | null): string {
@@ -17,12 +19,15 @@ type WorkingListProps = {
 /** The tool calls behind an answer: the SQL that ran, or the arguments of the call. */
 export function WorkingList({ working, totals, detailsRef }: WorkingListProps) {
   return (
-    <details ref={detailsRef} className="rounded-panel border bg-surface-sunken">
-      <summary className="flex min-h-target cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-6 py-4.5">
-        <span className="font-display text-[22px] font-bold tracking-[0.08em] uppercase">
-          Show the working
+    <details ref={detailsRef} className="group rounded-panel border bg-surface-sunken">
+      <summary className="flex min-h-target cursor-pointer list-none items-center gap-3 px-6 py-4.5">
+        <span className="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className="font-display text-[22px] font-bold tracking-[0.08em] uppercase">
+            Show the working
+          </span>
+          <span className="font-mono text-[13px] text-muted-foreground">{totals}</span>
         </span>
-        <span className="font-mono text-[13px] text-muted-foreground">{totals}</span>
+        <SummaryChevron />
       </summary>
       <ol className="flex flex-col px-6 pb-6 font-mono text-[13px]">
         {working.map((step, index) => (

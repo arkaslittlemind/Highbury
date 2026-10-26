@@ -22,7 +22,7 @@ export function AnswerBody({
   onAskSuggestion,
 }: AnswerBodyProps) {
   if (answer.status === "answered") {
-    return <p className="text-[21px] leading-normal">{answer.summary}</p>;
+    return <p className="text-[21px] leading-normal text-pretty">{answer.summary}</p>;
   }
 
   if (answer.status === "unavailable") {

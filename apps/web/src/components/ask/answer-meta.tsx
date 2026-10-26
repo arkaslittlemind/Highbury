@@ -31,10 +31,10 @@ export function AnswerMeta({
           type="button"
           onClick={onOpenVerification}
           className={cn(
-            "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 font-semibold",
+            "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 font-semibold transition-[scale,border-color] duration-150 ease-out active:scale-[0.97]",
             partial
-              ? "border-caveat-line bg-caveat-bg text-caveat-strong"
-              : "border-verified-line bg-verified-bg text-verified",
+              ? "border-caveat-line bg-caveat-bg text-caveat-strong hover:border-caveat"
+              : "border-verified-line bg-verified-bg text-verified hover:border-verified",
           )}
         >
           <Shield aria-hidden="true" className="size-4" strokeWidth={2.4} />
@@ -48,7 +48,7 @@ export function AnswerMeta({
         <button
           type="button"
           onClick={onOpenWorking}
-          className="cursor-pointer text-foreground-2 underline"
+          className="cursor-pointer text-foreground-2 underline transition-colors duration-150 hover:text-foreground"
         >
           Show the working
         </button>

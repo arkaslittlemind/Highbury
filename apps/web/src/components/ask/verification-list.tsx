@@ -2,6 +2,7 @@ import { Check, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import type { Ref } from "react";
 
 import { CallRef } from "@/components/ask/call-ref";
+import { SummaryChevron } from "@/components/ask/summary-chevron";
 import type { Claim, Verification, WorkingStep } from "@/lib/analyst-schema";
 import { workingRowOf } from "@/lib/ask-state";
 import { cn } from "@/lib/utils";
@@ -53,21 +54,24 @@ export function VerificationList({
       ref={detailsRef}
       open
       className={cn(
-        "rounded-panel border bg-card",
+        "group rounded-panel border bg-card",
         partial ? "border-caveat-line" : "border-verified-line",
       )}
     >
-      <summary className="flex min-h-target cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <span className="flex items-center gap-2.5 font-bold">
-          <Shield
-            aria-hidden="true"
-            className={cn("size-5", partial ? "text-caveat" : "text-verified")}
-          />
-          Verification
+      <summary className="flex min-h-target cursor-pointer list-none items-center gap-3 px-5 py-4">
+        <span className="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className="flex items-center gap-2.5 font-bold">
+            <Shield
+              aria-hidden="true"
+              className={cn("size-5", partial ? "text-caveat" : "text-verified")}
+            />
+            Verification
+          </span>
+          <span className="font-mono text-[13px] text-muted-foreground">
+            checked {checked} · passed {passed} · removed {removed.length}
+          </span>
         </span>
-        <span className="font-mono text-[13px] text-muted-foreground">
-          checked {checked} · passed {passed} · removed {removed.length}
-        </span>
+        <SummaryChevron />
       </summary>
       <ul className="flex flex-col px-5 pb-3">
         {claims.map((claim, index) => (

@@ -1,6 +1,7 @@
 import { Check, CircleAlert, Minus } from "lucide-react";
 
 import { Reveal } from "@/components/ask/reveal";
+import { SectionTag } from "@/components/ask/section-tag";
 import { cn } from "@/lib/utils";
 
 type Season = {
@@ -96,7 +97,8 @@ export function Seasons() {
       aria-labelledby="seasons-title"
       className="flex scroll-mt-6 flex-col gap-6 pt-6 pb-12 sm:gap-8 sm:pb-18"
     >
-      <Reveal>
+      <Reveal className="flex flex-col gap-3">
+        <SectionTag>Seasons</SectionTag>
         <h2
           id="seasons-title"
           className="font-display text-[40px] leading-none font-semibold text-balance sm:text-[64px]"

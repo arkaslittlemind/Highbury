@@ -12,11 +12,20 @@ export const pill =
 const ICON = "size-4 transition-[translate,rotate] duration-200 ease-out-strong";
 
 /** The dark disc at the end of a pill. Its icon moves when the pointer is on the pill. */
-export function PillDisc({ icon = "arrow" }: { icon?: "arrow" | "plus" }) {
+export function PillDisc({
+  icon = "arrow",
+  className,
+}: {
+  icon?: "arrow" | "plus";
+  className?: string;
+}) {
   return (
     <span
       aria-hidden="true"
-      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-paper"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-paper",
+        className,
+      )}
     >
       {icon === "arrow" ? (
         <ArrowUpRight

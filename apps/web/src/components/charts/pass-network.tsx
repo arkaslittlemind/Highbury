@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 
+import { SummaryChevron } from "@/components/ask/summary-chevron";
 import { ChartTitle } from "@/components/charts/chart-title";
 import { Pitch } from "@/components/charts/pitch";
 import { PitchTooltip } from "@/components/charts/pitch-tooltip";
@@ -139,12 +140,15 @@ const CELL = "border-t border-line-subtle px-2 py-2 first:pl-0 last:pr-0";
 /** The drawn links as a table: the same rows, in the same order, as the lines. */
 function LinkTable({ drawn, minPasses }: { drawn: Link[]; minPasses: number }) {
   return (
-    <details className="rounded-panel border bg-surface-sunken">
-      <summary className="flex min-h-target cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-3">
-        <span className="font-semibold text-foreground">Show the data</span>
-        <span className="text-sm text-muted-foreground">
-          {drawn.length} {drawn.length === 1 ? "link" : "links"}
+    <details className="group rounded-panel border bg-surface-sunken">
+      <summary className="flex min-h-target cursor-pointer list-none items-center gap-3 px-5 py-3">
+        <span className="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className="font-semibold text-foreground">Show the data</span>
+          <span className="text-sm text-muted-foreground">
+            {drawn.length} {drawn.length === 1 ? "link" : "links"}
+          </span>
         </span>
+        <SummaryChevron />
       </summary>
       {/* Five columns do not fit a phone, so the table scrolls inside its box. */}
       <div className="overflow-x-auto px-5 pb-4">

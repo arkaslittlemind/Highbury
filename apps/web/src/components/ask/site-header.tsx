@@ -66,10 +66,14 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
           </button>
         )}
         {onNewQuestion && (
-          <button type="button" onClick={onNewQuestion} className={cn(pill, "max-sm:gap-0 max-sm:pl-1")}>
-            {/* A phone shows the icon only. The text stays as the name of the button. */}
+          <button
+            type="button"
+            onClick={onNewQuestion}
+            className={cn(pill, "max-sm:size-12 max-sm:justify-center max-sm:gap-0 max-sm:p-0")}
+          >
+            {/* A phone shows the icon only, on one paper disc. The text stays as the name of the button. */}
             <span className="max-sm:sr-only">New question</span>
-            <PillDisc icon="plus" />
+            <PillDisc icon="plus" className="max-sm:bg-transparent max-sm:text-background" />
           </button>
         )}
       </div>
