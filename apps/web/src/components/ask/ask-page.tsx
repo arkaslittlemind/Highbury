@@ -48,7 +48,9 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
       <SiteHeader onNewQuestion={reset} />
       <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-10 sm:pt-12">
         {state.phase === "asking" && (
-          <>
+          // The screen rises in, so the change from the landing screen is not a cut. The
+          // answered and failed phases do not move: the focus goes to their heading.
+          <div className="flex animate-in flex-col gap-8 duration-200 ease-out-strong fade-in slide-in-from-bottom-2">
             <QuestionHeading turn={state.turn} titleRef={titleRef} />
             <div className="flex flex-wrap items-start gap-8">
               <StepList
@@ -58,7 +60,7 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
               />
               <AnswerSkeleton />
             </div>
-          </>
+          </div>
         )}
 
         {state.phase === "answered" && (

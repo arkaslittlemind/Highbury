@@ -66,7 +66,7 @@ export function AnswerPanel({ turn, data, endedAt, titleRef, suggestions, onAsk 
       </QuestionHeading>
 
       {/* The heading does not move, because the focus goes to it. */}
-      <div className="flex animate-in flex-col gap-8 duration-300 fade-in slide-in-from-bottom-2">
+      <div className="flex animate-in flex-col gap-8 duration-250 ease-out-strong fade-in slide-in-from-bottom-2">
         <div className="flex flex-wrap items-start gap-8">
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-6">
             <AnswerBody

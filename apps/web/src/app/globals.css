@@ -274,16 +274,36 @@
     outline: 2px solid var(--ring);
     outline-offset: 3px;
   }
+  /* The content of a details fades in on open and goes at once on close. The
+     height does not animate: the page opens a details and scrolls to a row in
+     it in the same task, and a height that grows would send the scroll to the
+     wrong place. A browser with no ::details-content drops these rules. */
+  details::details-content {
+    opacity: 0;
+  }
+  details[open]::details-content {
+    opacity: 1;
+    transition: opacity 200ms var(--ease-out-strong);
+  }
   /* A link of the header moves the page to its section. */
   @media (prefers-reduced-motion: no-preference) {
     html {
       scroll-behavior: smooth;
     }
   }
+  /* Reduced motion takes out movement, not feedback. The enter keyframes of
+     tw-animate-css build their transform from these variables, so each
+     animate-in becomes a fade. A press, a turn, or a move snaps, and a colour
+     or opacity change still fades. */
   @media (prefers-reduced-motion: reduce) {
-    * {
-      animation: none !important;
-      transition: none !important;
+    *,
+    ::before,
+    ::after {
+      --tw-enter-translate-x: 0 !important;
+      --tw-enter-translate-y: 0 !important;
+      --tw-enter-scale: 1 !important;
+      --tw-enter-rotate: 0 !important;
+      transition-property: color, background-color, border-color, opacity !important;
     }
   }
 }

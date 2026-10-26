@@ -28,7 +28,7 @@ export function SuggestionChips({ questions, onPick, lead, stagger = false }: Su
           className={cn(
             "min-h-target cursor-pointer rounded-full border border-line-strong px-4 py-2 text-left text-[15px] transition-[scale,border-color,background-color] duration-150 ease-out hover:border-foreground-2 hover:bg-white/5 active:scale-[0.97]",
             stagger &&
-              "animate-in fill-mode-both duration-500 ease-out-strong fade-in slide-in-from-bottom-2",
+              "animate-in fill-mode-both duration-300 ease-out-strong fade-in slide-in-from-bottom-2",
           )}
         >
           {question}

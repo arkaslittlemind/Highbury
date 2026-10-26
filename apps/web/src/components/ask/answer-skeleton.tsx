@@ -6,7 +6,7 @@ export function AnswerSkeleton() {
     >
       <div className="h-4.5 w-[86%] animate-pulse rounded-sm bg-skeleton" />
       <div className="h-4.5 w-[64%] animate-pulse rounded-sm bg-skeleton" />
-      <div className="h-[420px] rounded-panel border bg-surface-chart" />
+      <div className="h-[420px] animate-pulse rounded-panel border bg-surface-chart" />
     </section>
   );
 }

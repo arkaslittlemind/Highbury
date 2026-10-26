@@ -55,12 +55,13 @@ export function StepList({ steps, startedAt, onStop }: StepListProps) {
             {index === running ? (
               <span
                 aria-hidden="true"
-                className="size-6 shrink-0 animate-spin rounded-full border-[2.5px] border-line-mid border-t-brand"
+                className="size-6 shrink-0 animate-spin rounded-full border-[2.5px] border-line-mid border-t-brand motion-reduce:animate-none"
               />
             ) : (
               <span
                 aria-hidden="true"
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-verified-bg-2"
+                // The check replaces the spinner, so it plays this only when its step ends.
+                className="flex size-6 shrink-0 animate-in items-center justify-center rounded-full bg-verified-bg-2 duration-150 ease-out-strong fade-in zoom-in-90"
               >
                 <Check className="size-3.5 text-verified-strong" strokeWidth={3} />
               </span>
