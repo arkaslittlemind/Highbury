@@ -107,6 +107,11 @@ def test_a_rate_limit_that_is_not_a_whole_number_above_zero_is_refused(analyst_u
         "http://localhost:3000/ask",
         "http://localhost:3000,",
         "http://localhost:3000?x=1",
+        "http://[::1",
+        "http://a b",
+        "https://x.example#",
+        "HTTP://LOCALHOST:3000",
+        "http://LOCALHOST:3000",
     ],
 )
 def test_a_cors_origin_that_is_not_an_origin_is_refused(analyst_url, api_env, value):

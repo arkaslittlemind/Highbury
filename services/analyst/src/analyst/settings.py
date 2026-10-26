@@ -62,11 +62,16 @@ def origins(text: str) -> tuple[str, ...] | None:
     """Return the origins of a comma-separated text, or None when one is not an origin."""
     found = tuple(part.strip() for part in text.split(","))
     for origin in found:
-        parts = urlsplit(origin)
-        # A browser sends an origin with no path, and CORS compares the full text.
+        try:
+            parts = urlsplit(origin)
+        except ValueError:
+            # A broken IPv6 address, for example "http://[::1".
+            return None
         if parts.scheme not in ("http", "https") or not parts.netloc:
             return None
-        if parts.path or parts.query or parts.fragment:
+        # A browser sends an origin in lower case with no path, and CORS compares
+        # the full text. Any other form never matches, and the start shows no sign.
+        if " " in origin or origin != f"{parts.scheme}://{parts.netloc}".lower():
             return None
     return found
 
