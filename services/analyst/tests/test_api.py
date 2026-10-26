@@ -791,6 +791,19 @@ def test_a_suggestion_turn_that_fails_is_not_kept(serve):
     assert len(model.seen) == 2
 
 
+def test_a_suggestion_turn_that_cannot_be_written_is_not_kept(serve):
+    # UTF-8 cannot hold a lone surrogate, so the answer event cannot be written.
+    client, model = serve(answer(summary="Henry took 2 shots \ud800."), answer())
+    ((name, _),) = events(ask(client, SUGGESTION))
+    assert name == "error"
+    assert client.app.state.service.kept == {}
+
+    ((_, second),) = events(ask(client, SUGGESTION))
+
+    assert second["cached"] is False
+    assert len(model.seen) == 2
+
+
 def test_a_question_that_is_not_a_suggestion_is_not_kept(serve):
     client, model = serve(answer(), answer())
     ask(client)

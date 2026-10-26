@@ -440,11 +440,14 @@ class Service:
         # that each later visitor gets.
         failed = any(record.result.get("error") for record in turn.records)
         messages = self.compact(conversation_id)
+        # The event comes before the kept turn: an answer that cannot be written
+        # must not stay as the answer of each later visitor.
+        answer_event = sse("answer", data)
         if new and question in SUGGESTIONS and not failed:
             with self.kept_lock:
                 self.kept[question] = KeptTurn([event for _, event in sent], data, messages)
         return TurnEnd(
-            sse("answer", data),
+            answer_event,
             turn.answer.status,
             tool_calls=len(turn.records),
             usage=turn.usage,
