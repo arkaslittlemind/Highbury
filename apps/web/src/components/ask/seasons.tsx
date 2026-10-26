@@ -21,6 +21,7 @@ const THEN: Season = {
     "Shots with StatsBomb xG and coordinates",
     "Passes and pressures, with coordinates",
     "Player stats for each match and for the season",
+    "Every league match and the table, from football-data.co.uk",
   ],
 };
 
@@ -31,6 +32,8 @@ const NOW: Season = {
   has: [
     "Shots with Understat xG and coordinates",
     "Player stats for each match and for the season",
+    "Every league match and the table, from football-data.co.uk",
+    "FPL points, saves, clean sheets, and bonus for each match",
   ],
   lacks: "No pass data. Highbury says so and offers a shot map.",
 };

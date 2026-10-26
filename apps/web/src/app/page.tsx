@@ -35,7 +35,7 @@ export default function Home() {
             Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier
             League.
           </span>
-          <span>Data: StatsBomb Open Data · Understat</span>
+          <span>Data: StatsBomb Open Data · Understat · football-data.co.uk · FPL</span>
         </div>
       </footer>
     </>
