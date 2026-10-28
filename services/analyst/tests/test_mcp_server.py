@@ -36,6 +36,37 @@ def test_the_server_lists_the_five_tools_with_what_a_client_needs():
     ]
 
 
+def empty_schemas(node, path: str) -> list[str]:
+    """The paths of the schemas with no keyword, which some MCP clients refuse."""
+    found = [path] if node == {} and not path.endswith(".properties") else []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            found += empty_schemas(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            found += empty_schemas(value, f"{path}[{index}]")
+    return found
+
+
+def test_no_tool_publishes_a_schema_that_constrains_nothing():
+    listed = asyncio.run(mcp_server.server.list_tools())
+
+    found = [
+        path
+        for tool in listed
+        for path in empty_schemas(tool.input_schema, f"{tool.name}.input")
+        + empty_schemas(tool.output_schema, f"{tool.name}.output")
+    ]
+    assert found == []
+
+
+def test_a_sql_cell_can_still_be_any_json_value():
+    run_sql = next(t for t in asyncio.run(mcp_server.server.list_tools()) if t.name == "run_sql")
+
+    cell = run_sql.output_schema["properties"]["rows"]["items"]["items"]
+    assert set(cell["type"]) == {"string", "number", "boolean", "null", "array", "object"}
+
+
 def without_ids(result: dict) -> dict:
     """Drop the ids, which are new for each call."""
     chart = result.get("chart")

@@ -9,9 +9,9 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, JsonValue, WithJsonSchema
 from rapidfuzz import fuzz, utils
 
 from analyst import charts, db
@@ -36,6 +36,14 @@ READ_ERRORS = (db.DatabaseUnavailable, db.QueryTimeout, db.QueryFailed, Settings
 
 Method = Literal["exact", "fuzzy"]
 
+# A cell is any JSON value: ARRAY_AGG and JSON_BUILD_OBJECT give lists and objects.
+# Pydantic publishes JsonValue as {}, which some MCP clients refuse, so the MCP
+# output schema names the same six types explicitly.
+Cell = Annotated[
+    JsonValue,
+    WithJsonSchema({"type": ["string", "number", "boolean", "null", "array", "object"]}),
+]
+
 
 class SqlResult(BaseModel):
     call_id: str
@@ -43,7 +51,7 @@ class SqlResult(BaseModel):
     # The statement that ran. None when the guard rejected the input.
     sql: str | None = None
     columns: list[str] = []
-    rows: list[list[JsonValue]] = []
+    rows: list[list[Cell]] = []
     row_count: int = 0
     # True when the row limit of the guard cut the result, so more rows can exist.
     limit_reached: bool = False
