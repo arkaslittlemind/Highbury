@@ -1,22 +1,17 @@
-import { Lock, ShieldCheck, TextAlignStart, type LucideIcon } from "lucide-react";
-
 import { Reveal } from "@/components/ask/reveal";
 import { SectionTag } from "@/components/ask/section-tag";
 import { cn } from "@/lib/utils";
 
-const CARDS: { icon: LucideIcon; title: string; text: string }[] = [
+const CARDS: { title: string; text: string }[] = [
   {
-    icon: TextAlignStart,
     title: "Reads the catalog first",
     text: "The agent reads what each season holds before it writes a query, so it knows that 2025-26 has shots but no passes.",
   },
   {
-    icon: Lock,
     title: "Queries read-only",
     text: "One SELECT in each call, checked by a parser and run as a read-only role with a 5-second timeout and a row limit.",
   },
   {
-    icon: ShieldCheck,
     title: "Checks every number",
     text: "Plain code checks every number against the tool output that it cites. A claim with no support is removed before you see it.",
   },
@@ -47,7 +42,7 @@ export function HowItWorks() {
         </p>
       </Reveal>
       <ol className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-4 sm:gap-5">
-        {CARDS.map(({ icon: Icon, title, text }, index) => {
+        {CARDS.map(({ title, text }, index) => {
           // The last card is the promise of the page, so it is the light one.
           const light = index === CARDS.length - 1;
           return (
@@ -61,13 +56,15 @@ export function HowItWorks() {
                     : "border bg-linear-160 from-grass-card to-surface-chart to-70%",
                 )}
               >
+                {/* The step number of the list. The ol gives the order to a screen reader. */}
                 <span
+                  aria-hidden="true"
                   className={cn(
-                    "flex size-13 items-center justify-center rounded-full",
+                    "flex size-13 items-center justify-center rounded-full font-display text-2xl font-bold",
                     light ? "bg-background text-paper" : "bg-paper text-background",
                   )}
                 >
-                  <Icon aria-hidden="true" className="size-5.5" strokeWidth={2} />
+                  {index + 1}
                 </span>
                 <h3 className="font-display text-[28px] leading-[1.05] font-semibold sm:text-[32px]">
                   {title}

@@ -1,6 +1,5 @@
 "use client";
 
-import { Timer } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { StateCard } from "@/components/ask/state-card";
@@ -37,7 +36,6 @@ export function RateLimitCard({ detail, retryAfterSeconds, failedAt, onRetry }: 
   return (
     <StateCard
       tone="info"
-      icon={Timer}
       tag="Slow down a little"
       title="You have reached the question limit for now."
       alert

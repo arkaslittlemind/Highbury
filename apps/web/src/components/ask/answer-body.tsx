@@ -1,5 +1,3 @@
-import { Ban, CircleMinus } from "lucide-react";
-
 import { StateCard } from "@/components/ask/state-card";
 import { SuggestionChips } from "@/components/ask/suggestion-chips";
 import { Button } from "@/components/ui/button";
@@ -28,7 +26,7 @@ export function AnswerBody({
   if (answer.status === "unavailable") {
     const { alternative } = answer;
     return (
-      <StateCard tone="caveat" icon={CircleMinus} tag="Data not available">
+      <StateCard tone="caveat" tag="Data not available">
         <p className="text-lg text-foreground-2">{answer.summary}</p>
         {alternative && (
           <div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
@@ -48,7 +46,7 @@ export function AnswerBody({
   }
 
   return (
-    <StateCard tone="neutral" icon={Ban} tag="Out of scope">
+    <StateCard tone="neutral" tag="Out of scope">
       <p className="text-lg text-foreground-2">{answer.summary}</p>
       {suggestions.length > 0 && (
         <div className="flex flex-col gap-2.5">

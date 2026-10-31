@@ -1,5 +1,3 @@
-import { TriangleAlert } from "lucide-react";
-
 import { AskPage } from "@/components/ask/ask-page";
 import { SiteHeader } from "@/components/ask/site-header";
 import { StateCard } from "@/components/ask/state-card";
@@ -18,7 +16,6 @@ export default function Home() {
           <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-12 pb-16 sm:px-10">
             <StateCard
               tone="error"
-              icon={TriangleAlert}
               tag="Not set up"
               title="This page cannot reach the analyst API."
               alert

@@ -1,4 +1,4 @@
-import { PillDisc, pill } from "@/components/ask/pill";
+import { pill } from "@/components/ask/pill";
 import { cn } from "@/lib/utils";
 
 // The sections of the landing screen. Each one has the id of its link.
@@ -62,18 +62,14 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
             <span>
               Ask<span className="max-sm:sr-only"> the Analyst</span>
             </span>
-            <PillDisc />
           </button>
         )}
         {onNewQuestion && (
-          <button
-            type="button"
-            onClick={onNewQuestion}
-            className={cn(pill, "max-sm:size-12 max-sm:justify-center max-sm:gap-0 max-sm:p-0")}
-          >
-            {/* A phone shows the icon only, on one paper disc. The text stays as the name of the button. */}
-            <span className="max-sm:sr-only">New question</span>
-            <PillDisc icon="plus" className="max-sm:bg-transparent max-sm:text-background" />
+          <button type="button" onClick={onNewQuestion} className={pill}>
+            {/* A phone has room for the first word only. */}
+            <span>
+              New<span className="max-sm:sr-only"> question</span>
+            </span>
           </button>
         )}
       </div>

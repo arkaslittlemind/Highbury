@@ -1,5 +1,3 @@
-import { Check, CircleAlert, Minus } from "lucide-react";
-
 import { Reveal } from "@/components/ask/reveal";
 import { SectionTag } from "@/components/ask/section-tag";
 import { cn } from "@/lib/utils";
@@ -73,17 +71,20 @@ function SeasonCard({ season, now = false }: { season: Season; now?: boolean }) 
       <ul className="relative flex flex-col gap-2.5 text-[17px]">
         {season.has.map((item) => (
           <li key={item} className="flex gap-2.5">
-            <Check
+            <span
               aria-hidden="true"
-              className="mt-1 size-4.5 shrink-0 text-verified"
-              strokeWidth={2.6}
+              className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-verified"
             />
             {item}
           </li>
         ))}
         {season.lacks && (
           <li className="flex gap-2.5 text-now-muted">
-            <Minus aria-hidden="true" className="mt-1 size-4.5 shrink-0" strokeWidth={2.6} />
+            {/* A hollow dot: the season does not have this. */}
+            <span
+              aria-hidden="true"
+              className="mt-[0.6em] size-1.5 shrink-0 rounded-full border border-current"
+            />
             {season.lacks}
           </li>
         )}
@@ -118,8 +119,7 @@ export function Seasons() {
         </Reveal>
       </div>
       <Reveal>
-        <p className="flex items-start gap-2.5 text-caveat-text">
-          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-caveat" />
+        <p className="text-caveat-text">
           A comparison of the two seasons uses only the metrics that both have, and says that
           the two xG models are different.
         </p>

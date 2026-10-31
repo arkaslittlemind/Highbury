@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent, type RefObject } from "react";
 
-import { PillDisc, pill } from "@/components/ask/pill";
+import { pill } from "@/components/ask/pill";
 import { cn } from "@/lib/utils";
 
 // The limit of the service (MAX_QUESTION_LENGTH in api.py).
@@ -71,7 +71,6 @@ export function AskPill({
       />
       <button type="submit" className={cn(pill, "text-[17px]")}>
         Ask
-        <PillDisc />
       </button>
     </form>
   );

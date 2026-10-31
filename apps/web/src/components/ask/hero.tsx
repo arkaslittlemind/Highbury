@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ShotMark } from "@/components/charts/shot-map";
@@ -135,8 +134,7 @@ function SampleCard({ className }: { className?: string }) {
     >
       <div className="flex items-center justify-between gap-3 bg-paper px-5 py-3.5 text-background">
         <span className="font-bold">Checked answer</span>
-        <span className="flex items-center gap-1.5 font-bold text-verified-on-paper">
-          <ShieldCheck aria-hidden="true" className="size-4" strokeWidth={2.4} />
+        <span className="font-bold text-verified-on-paper">
           {goals} goals · {shots.length} shots
         </span>
       </div>

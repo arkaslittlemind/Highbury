@@ -1,5 +1,4 @@
-import { ShieldAlert, ShieldCheck } from "lucide-react";
-
+import { AlertMark, CheckMark } from "@/components/ask/marks";
 import type { Verification } from "@/lib/analyst-schema";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +21,7 @@ export function AnswerMeta({
   onOpenWorking,
 }: AnswerMetaProps) {
   const partial = badge === "partial";
-  const Shield = partial ? ShieldAlert : ShieldCheck;
+  const Mark = partial ? AlertMark : CheckMark;
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
@@ -37,7 +36,7 @@ export function AnswerMeta({
               : "border-verified-line bg-verified-bg text-verified hover:border-verified",
           )}
         >
-          <Shield aria-hidden="true" className="size-4" strokeWidth={2.4} />
+          <Mark className="size-4" />
           {partial
             ? "Partially verified"
             : `${verification.passed} of ${verification.checked} claims verified`}

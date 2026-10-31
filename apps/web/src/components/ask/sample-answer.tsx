@@ -1,4 +1,4 @@
-import { PillDisc, pill } from "@/components/ask/pill";
+import { pill } from "@/components/ask/pill";
 import { Reveal } from "@/components/ask/reveal";
 import { SectionTag } from "@/components/ask/section-tag";
 import { ShotMap } from "@/components/charts/shot-map";
@@ -33,7 +33,6 @@ export function SampleAnswer({ onSeeAnswer }: SampleAnswerProps) {
         {onSeeAnswer && (
           <button type="button" onClick={onSeeAnswer} className={cn(pill, "self-start")}>
             See a full answer
-            <PillDisc />
           </button>
         )}
       </Reveal>

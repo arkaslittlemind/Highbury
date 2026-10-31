@@ -1,7 +1,7 @@
-import { Check, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import type { Ref } from "react";
 
 import { CallRef } from "@/components/ask/call-ref";
+import { AlertMark, CheckMark, CrossMark } from "@/components/ask/marks";
 import { SummaryChevron } from "@/components/ask/summary-chevron";
 import type { Claim, Verification, WorkingStep } from "@/lib/analyst-schema";
 import { workingRowOf } from "@/lib/ask-state";
@@ -37,7 +37,7 @@ export function VerificationList({
   detailsRef,
 }: VerificationListProps) {
   const { checked, passed, removed } = verification;
-  const Shield = partial ? ShieldAlert : ShieldCheck;
+  const Mark = partial ? AlertMark : CheckMark;
 
   function callRef(claim: Claim) {
     const row = workingRowOf(working, claim.tool_call_id);
@@ -61,10 +61,7 @@ export function VerificationList({
       <summary className="flex min-h-target cursor-pointer list-none items-center gap-3 px-5 py-4">
         <span className="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <span className="flex items-center gap-2.5 font-bold">
-            <Shield
-              aria-hidden="true"
-              className={cn("size-5", partial ? "text-caveat" : "text-verified")}
-            />
+            <Mark className={cn("size-5", partial ? "text-caveat" : "text-verified")} />
             Verification
           </span>
           <span className="font-mono text-[13px] text-muted-foreground">
@@ -79,7 +76,7 @@ export function VerificationList({
             key={index}
             className="grid grid-cols-[20px_1fr_auto] items-baseline gap-3 border-t border-line-subtle py-2.5"
           >
-            <Check aria-label="Passed" className="size-4 self-center text-verified" />
+            <CheckMark aria-label="Passed" className="size-4 self-center text-verified" />
             <span className="flex flex-col items-start gap-0.5">
               <span>{claim.text}</span>
               {callRef(claim)}
@@ -92,7 +89,7 @@ export function VerificationList({
             key={index}
             className="grid grid-cols-[20px_1fr_auto] items-baseline gap-3 border-t border-line-subtle py-2.5 text-caveat-text"
           >
-            <X aria-label="Removed" className="size-4 self-center text-caveat" />
+            <CrossMark aria-label="Removed" className="size-4 self-center text-caveat" />
             <span className="flex flex-col items-start gap-0.5">
               <s>{claim.text}</s>
               <span className="text-sm">Removed: {REMOVED_REASONS[reason]}.</span>

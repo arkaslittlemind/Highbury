@@ -1,5 +1,3 @@
-import { Ban, TriangleAlert } from "lucide-react";
-
 import { RateLimitCard } from "@/components/ask/rate-limit-card";
 import { StateCard } from "@/components/ask/state-card";
 import { Button } from "@/components/ui/button";
@@ -64,7 +62,6 @@ export function FailureCard({
     return (
       <StateCard
         tone="neutral"
-        icon={Ban}
         tag="Conversation ended"
         title="This conversation has ended."
         alert
@@ -87,7 +84,6 @@ export function FailureCard({
   return (
     <StateCard
       tone="error"
-      icon={TriangleAlert}
       tag="Something went wrong"
       title={title(failure)}
       alert

@@ -1,8 +1,8 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { CheckMark } from "@/components/ask/marks";
 import { Button } from "@/components/ui/button";
 import type { Step } from "@/lib/analyst-schema";
 import { formatElapsed } from "@/lib/ask-state";
@@ -63,7 +63,7 @@ export function StepList({ steps, startedAt, onStop }: StepListProps) {
                 // The check replaces the spinner, so it plays this only when its step ends.
                 className="flex size-6 shrink-0 animate-in items-center justify-center rounded-full bg-verified-bg-2 duration-150 ease-out-strong fade-in zoom-in-90"
               >
-                <Check className="size-3.5 text-verified-strong" strokeWidth={3} />
+                <CheckMark className="size-3.5 text-verified-strong" />
               </span>
             )}
             <span className="font-semibold">{step.label}</span>

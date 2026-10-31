@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronMark } from "@/components/ask/marks";
 
 /**
  * The sign at the end of a summary that the row opens. The details element
@@ -6,9 +6,6 @@ import { ChevronDown } from "lucide-react";
  */
 export function SummaryChevron() {
   return (
-    <ChevronDown
-      aria-hidden="true"
-      className="size-5 shrink-0 text-muted-foreground transition-[rotate] duration-200 ease-out-strong group-open:rotate-180"
-    />
+    <ChevronMark className="size-5 shrink-0 text-muted-foreground transition-[rotate] duration-200 ease-out-strong group-open:rotate-180" />
   );
 }
