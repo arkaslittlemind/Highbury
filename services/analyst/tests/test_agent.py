@@ -235,15 +235,6 @@ def test_a_call_with_wrong_arguments_is_recorded_with_its_error(seeded):
     assert "sql" in record.result["error"]
 
 
-@pytest.mark.parametrize("name", ["get_data_catalog", "get_schema"])
-def test_the_tools_with_no_required_argument_work(seeded, name):
-    model = ScriptedModel(replies=[calls((name, {})), answer()])
-
-    turn = agent.ask(agent.build_agent(model), "What data do you have?", "t1")
-
-    assert turn.records[0].result["error"] is None
-
-
 def query(number: int) -> AIMessage:
     return calls(("run_sql", {"sql": f"SELECT {number} AS n"}))
 
@@ -454,8 +445,6 @@ def test_a_tool_description_is_the_docstring_with_no_code_indent():
     by_name = {tool.name: tool for tool in agent.AGENT_TOOLS}
 
     assert list(by_name) == [
-        "get_data_catalog",
-        "get_schema",
         "resolve_player",
         "run_sql",
         "build_chart",

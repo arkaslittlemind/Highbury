@@ -36,7 +36,7 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
     "rule",
     [
         "call no tool and give the status out_of_scope",
-        "Read the data catalog before a claim about a season",
+        "The data catalog is in this prompt. Check it before a claim about a season",
         "give the status unavailable",
         "in alternative",
         "Season labels are 2003-04 and 2025-26, with a hyphen",
@@ -46,6 +46,8 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
         "Every number in the summary has a claim",
         "the call_id of a run_sql result of this question whose rows hold the value",
         "To give a number of an earlier answer again, run its query again",
+        "do not run a query again to check a number",
+        "One run_sql can hold the numbers of more than one claim",
         "only metrics that both seasons have",
         "StatsBomb for 2003-04, Understat for 2025-26",
         "A comparison with no xG, such as points or results, has no xG caveat",

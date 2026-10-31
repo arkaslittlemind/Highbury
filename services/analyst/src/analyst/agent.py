@@ -118,11 +118,11 @@ def agent_tool(function: Callable[..., BaseModel]) -> StructuredTool:
     )
 
 
+# The catalog and the views are already in the system prompt. As tools they only
+# cost a model call and tokens for data that the model already has.
 AGENT_TOOLS = [
     agent_tool(function)
     for function in (
-        tools.get_data_catalog,
-        tools.get_schema,
         tools.resolve_player,
         tools.run_sql,
         tools.build_chart,

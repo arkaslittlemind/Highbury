@@ -40,8 +40,6 @@ SUGGESTIONS = (
 
 # What a visitor reads while a tool runs.
 STEP_LABELS = {
-    "get_data_catalog": "Checking what data is available",
-    "get_schema": "Reading the data layout",
     "resolve_player": "Finding the player",
     "run_sql": "Querying the match data",
     "build_chart": "Drawing the chart",

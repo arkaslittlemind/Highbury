@@ -10,9 +10,9 @@ INTRO = (
 RULES = (
     "Scope: Arsenal's 2003-04 and 2025-26 league seasons, their matches and their players."
     " For any other topic, call no tool and give the status out_of_scope.",
-    "Read the data catalog before a claim about a season. When the catalog says that the"
-    " data is not available, give the status unavailable, say in the summary what is"
-    " missing, and put a related thing that the data can show in alternative.",
+    "The data catalog is in this prompt. Check it before a claim about a season. When the"
+    " catalog says that the data is not available, give the status unavailable, say in the"
+    " summary what is missing, and put a related thing that the data can show in alternative.",
     "For a question that the data answers, give the status answered and leave alternative empty.",
     "Season labels are 2003-04 and 2025-26, with a hyphen, also when the user writes them"
     " in another form.",
@@ -25,6 +25,9 @@ RULES = (
     " a run_sql result of this question whose rows hold the value, and the value of a claim"
     " is the number as that row has it. To give a number of an earlier answer again, run its"
     " query again.",
+    "After the answer, each claim is checked against the rows of its run_sql result, so do"
+    " not run a query again to check a number. One run_sql can hold the numbers of more"
+    " than one claim.",
     "A comparison across the two seasons uses only metrics that both seasons have. When it"
     " uses xG, its caveats say that the xG models differ: StatsBomb for 2003-04, Understat"
     " for 2025-26. A comparison with no xG, such as points or results, has no xG caveat.",
