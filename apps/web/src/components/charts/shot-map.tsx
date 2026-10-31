@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type Ref } from "react";
 
 import { ChartTitle } from "@/components/charts/chart-title";
 import { Pitch } from "@/components/charts/pitch";
@@ -90,20 +90,23 @@ type LegendProps = {
   kinds: OutcomeKind[];
   hidden: ReadonlySet<OutcomeKind>;
   onToggle: (kind: OutcomeKind) => void;
+  onShowAll: () => void;
+  firstRef: Ref<HTMLButtonElement>;
 };
 
 /** The legend is also the filter: each outcome is a button that shows or hides its marks. */
-function Legend({ kinds, hidden, onToggle }: LegendProps) {
+function Legend({ kinds, hidden, onToggle, onShowAll, firstRef }: LegendProps) {
   return (
     <ul
       aria-label="Legend"
       className="flex flex-wrap items-center gap-x-5 text-sm text-foreground-2"
     >
-      {kinds.map((kind) => {
+      {kinds.map((kind, index) => {
         const off = hidden.has(kind);
         return (
           <li key={kind}>
             <button
+              ref={index === 0 ? firstRef : undefined}
               type="button"
               aria-pressed={!off}
               onClick={() => onToggle(kind)}
@@ -127,6 +130,18 @@ function Legend({ kinds, hidden, onToggle }: LegendProps) {
           </li>
         );
       })}
+      {/* With every outcome on, there is nothing to show again. */}
+      {hidden.size > 0 && (
+        <li>
+          <button
+            type="button"
+            onClick={onShowAll}
+            className="flex min-h-target cursor-pointer items-center hover:text-foreground"
+          >
+            Show all
+          </button>
+        </li>
+      )}
       <li className="ml-auto flex min-h-target items-center gap-2">
         <svg
           aria-hidden="true"
@@ -152,6 +167,7 @@ function Legend({ kinds, hidden, onToggle }: LegendProps) {
  */
 export function ShotMap({ chart }: { chart: ShotMapSpec }) {
   const marks = useRef<(SVGGElement | null)[]>([]);
+  const firstLegendButton = useRef<HTMLButtonElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
   // The mark that Tab goes to: the last one that had the focus.
@@ -179,15 +195,25 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
   const active = hovered ?? focused;
   const activeShot = active === null ? null : shots[active];
 
-  function toggleKind(kind: OutcomeKind) {
-    const next = new Set(hiddenKinds);
-    if (!next.delete(kind)) next.add(kind);
+  function showKinds(next: ReadonlySet<OutcomeKind>) {
     setHiddenKinds(next);
     // The indexes count the visible marks, so an old index is a different shot.
     setHovered(null);
     setFocused(null);
     setTabStop(0);
     setTooltipHidden(false);
+  }
+
+  function toggleKind(kind: OutcomeKind) {
+    const next = new Set(hiddenKinds);
+    if (!next.delete(kind)) next.add(kind);
+    showKinds(next);
+  }
+
+  function showAll() {
+    showKinds(new Set());
+    // Show all goes away after the click, so the focus must not fall to the page.
+    firstLegendButton.current?.focus();
   }
 
   function onKeyDown(event: KeyboardEvent<SVGSVGElement>) {
@@ -269,6 +295,8 @@ export function ShotMap({ chart }: { chart: ShotMapSpec }) {
         kinds={OUTCOME_KINDS.filter((kind) => drawnKinds.has(kind))}
         hidden={hiddenKinds}
         onToggle={toggleKind}
+        onShowAll={showAll}
+        firstRef={firstLegendButton}
       />
       <figcaption className="border-t pt-3.5 text-[15px] text-foreground-2">
         <strong className="text-foreground">Chart summary.</strong> {summaryText(chart.shots)}
