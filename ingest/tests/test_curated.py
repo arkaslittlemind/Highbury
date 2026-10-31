@@ -169,6 +169,7 @@ MATRIX = {
     ("2003-04", "pressures"): True,
     ("2003-04", "pass_networks"): True,
     ("2003-04", "pass_maps"): True,
+    ("2003-04", "heatmaps"): True,
     ("2003-04", "substitutions"): True,
     ("2003-04", "chances_created"): True,
     ("2003-04", "duels"): True,
@@ -187,6 +188,7 @@ MATRIX = {
     ("2025-26", "pressures"): False,
     ("2025-26", "pass_networks"): False,
     ("2025-26", "pass_maps"): False,
+    ("2025-26", "heatmaps"): False,
     ("2025-26", "substitutions"): False,
     ("2025-26", "chances_created"): False,
     ("2025-26", "duels"): False,
@@ -288,7 +290,7 @@ def test_the_command_loads_both_and_the_analyst_can_read_them(
     assert curated.run(alias_file(tmp_path), env(db)) == 0
 
     assert capsys.readouterr().out == first
-    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 36"]
+    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 38"]
     assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (
         len(curated.CATALOG),
     )

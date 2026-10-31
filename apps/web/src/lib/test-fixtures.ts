@@ -65,6 +65,20 @@ export const PASS_MAP = {
   passes: [PASS, { ...PASS, outcome: "out", recipient: null, minute: 81 }],
 };
 
+export const HEATMAP = {
+  type: "heatmap",
+  id: "chart_7",
+  title: "Thierry Henry, touches in 2003-04",
+  player: "Thierry Henry",
+  season: "2003-04",
+  total: 100,
+  zones: [
+    { zone_x: 10, zone_y: 1, touches: 60 },
+    { zone_x: 5, zone_y: 4, touches: 30 },
+    { zone_x: 0, zone_y: 7, touches: 10 },
+  ],
+};
+
 export const XG_TIMELINE = {
   type: "xg_timeline",
   id: "chart_4",

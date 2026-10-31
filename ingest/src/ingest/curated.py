@@ -100,6 +100,13 @@ CATALOG = (
     ),
     (
         "2003-04",
+        "heatmaps",
+        True,
+        STATSBOMB,
+        "The touches of one player, counted in 10 x 10 yard zones, from v_touches.",
+    ),
+    (
+        "2003-04",
         "substitutions",
         True,
         STATSBOMB,
@@ -161,6 +168,13 @@ CATALOG = (
         False,
         None,
         f"{NO_EVENTS} Offer a 2003-04 pass map or a 2025-26 shot map instead.",
+    ),
+    (
+        "2025-26",
+        "heatmaps",
+        False,
+        None,
+        f"{NO_EVENTS} Offer a 2003-04 heatmap or the player's 2025-26 shot map instead.",
     ),
     (
         "2025-26",

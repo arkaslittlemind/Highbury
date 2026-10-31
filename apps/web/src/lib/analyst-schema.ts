@@ -127,6 +127,30 @@ const passMapSchema = z.object({
   passes: z.array(passArrowSchema),
 });
 
+// A heatmap zone is 10 x 10 on the 120 x 80 pitch, so the grid is 12 x 8.
+export const ZONES_X = 12;
+export const ZONES_Y = 8;
+
+const zoneSchema = z.object({
+  zone_x: z.number().int().min(0).max(ZONES_X - 1),
+  zone_y: z.number().int().min(0).max(ZONES_Y - 1),
+  touches: passCount,
+});
+
+const heatmapSchema = z.object({
+  type: z.literal("heatmap"),
+  id: z.string(),
+  title: z.string(),
+  player: text,
+  season: z.string().nullable().optional(),
+  // The sum of the touches of the zones.
+  total: passCount,
+  zones: z
+    .array(zoneSchema)
+    .min(1)
+    .max(ZONES_X * ZONES_Y),
+});
+
 export const chartSpecSchema = z.discriminatedUnion("type", [
   shotMapSchema,
   compareBarsSchema,
@@ -134,6 +158,7 @@ export const chartSpecSchema = z.discriminatedUnion("type", [
   xgTimelineSchema,
   pointsPaceSchema,
   passMapSchema,
+  heatmapSchema,
 ]);
 
 export const stepSchema = z.object({

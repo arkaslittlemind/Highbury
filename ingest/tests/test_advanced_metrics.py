@@ -213,3 +213,27 @@ def test_the_season_totals_match_the_raw_files(ingest, analyst, source_name, pla
         raw["long_balls"],
         raw["long_balls_completed"],
     )
+
+
+TOUCH_TYPES = {
+    "Pass", "Shot", "Dribble", "Duel", "Clearance", "Interception", "Ball Recovery", "Block",
+    "Miscontrol",
+}  # fmt: skip
+
+
+def test_the_season_touches_match_the_raw_files(ingest, analyst):
+    raw = sum(
+        1
+        for event in raw_events()
+        if (event.get("player") or {}).get("name") == "Thierry Henry"
+        and event["type"]["name"] in TOUCH_TYPES
+    )
+    rows = statsbomb.build_rows(statsbomb.fetch_season(statsbomb.RAW_DIR, *[pytest.fail] * 3))
+    load_committed(ingest, rows, overrides.read().players)
+
+    view = analyst.execute(
+        "SELECT count(*) FROM v_touches WHERE player = 'Thierry Henry'"
+    ).fetchone()[0]
+
+    assert raw > 0
+    assert view == raw

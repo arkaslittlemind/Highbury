@@ -10,6 +10,7 @@ import {
 import {
   ANSWER_DATA,
   COMPARE_BARS,
+  HEATMAP,
   PASS,
   PASS_MAP,
   PASS_NETWORK,
@@ -103,6 +104,24 @@ describe("a payload that the service cannot send", () => {
   ])("rejects a pass with %s", (_name, change) => {
     const chart = { ...PASS_MAP, passes: [{ ...PASS, ...change }] };
     expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it("reads a heatmap", () => {
+    expect(chartSpecSchema.safeParse(HEATMAP).success).toBe(true);
+  });
+
+  it.each([
+    ["a zone past the goal line", { zone_x: 12 }],
+    ["a zone past the touchline", { zone_y: 8 }],
+    ["a zone that is not whole", { zone_x: 1.5 }],
+    ["no touch", { touches: 0 }],
+  ])("rejects a heatmap zone with %s", (_name, change) => {
+    const chart = { ...HEATMAP, zones: [{ ...HEATMAP.zones[0], ...change }] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it("rejects a heatmap with no zone", () => {
+    expect(chartSpecSchema.safeParse({ ...HEATMAP, zones: [] }).success).toBe(false);
   });
 
   it("rejects an xg_timeline with one team", () => {

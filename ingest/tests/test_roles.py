@@ -29,6 +29,7 @@ def ingest(db):
         "v_league_table",
         "v_fpl_player_match",
         "v_player_match_advanced",
+        "v_touches",
     ],
 )
 def test_analyst_can_select_from_a_view(analyst, view):

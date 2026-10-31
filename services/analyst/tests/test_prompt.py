@@ -72,7 +72,7 @@ def test_the_prompt_holds_each_rule(text, rule):
 
 
 def test_the_prompt_holds_the_sql_examples(text):
-    assert 4 <= len(prompt.SQL_EXAMPLES) <= 15
+    assert 4 <= len(prompt.SQL_EXAMPLES) <= 17
     for purpose, sql in prompt.SQL_EXAMPLES:
         assert purpose in text
         assert sql in text
@@ -191,3 +191,16 @@ def test_the_points_examples_make_a_chart_whose_totals_are_the_claims(seeded):
         (line.team, line.season): (len(line.matches), line.points) for line in chart.chart.lines
     }
     assert drawn == claimed == {("Arsenal", "2003-04"): (1, 3), ("Arsenal", "2025-26"): (1, 3)}
+
+
+def test_the_heatmap_examples_make_a_chart_whose_total_is_the_claim(seeded):
+    by_purpose = dict(prompt.SQL_EXAMPLES)
+
+    chart = tools.build_chart("heatmap", by_purpose[prompt.HEATMAP_EXAMPLE], "Henry's touches")
+    totals = tools.run_sql(by_purpose[prompt.HEATMAP_TOTALS_EXAMPLE])
+
+    assert chart.ok, chart.error
+    assert totals.ok, totals.error
+    # Henry's three passes and two shots. The pass of Pirès is not his.
+    assert chart.chart.total == totals.rows[0][0] == 5
+    assert (chart.chart.player, chart.chart.season) == ("Thierry Henry", "2003-04")

@@ -11,7 +11,7 @@ from typing import Annotated, Literal, get_args
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 ChartType = Literal[
-    "shot_map", "compare_bars", "pass_network", "xg_timeline", "points_pace", "pass_map"
+    "shot_map", "compare_bars", "pass_network", "xg_timeline", "points_pace", "pass_map", "heatmap"
 ]
 
 MAX_TITLE = 120
@@ -27,6 +27,10 @@ ARSENAL = "Arsenal"
 # A Premier League season has 20 teams, so each team plays 38 league matches.
 SEASON_MATCHES = 38
 MAX_PACE_LINES = 4
+# A heatmap zone is 10 x 10 on the 120 x 80 pitch, so the grid is 12 x 8.
+ZONE_SIZE = 10
+ZONES_X = 12
+ZONES_Y = 8
 
 
 class ChartRejected(Exception):
@@ -132,6 +136,34 @@ class PassMap(Spec):
     passes: list[PassArrow]
 
 
+class ZoneRow(Spec):
+    """One row of the query: the touches of one player in one zone."""
+
+    zone_x: Annotated[int, Field(ge=0, lt=ZONES_X)]
+    zone_y: Annotated[int, Field(ge=0, lt=ZONES_Y)]
+    touches: Annotated[int, Field(ge=1)]
+    player: Text
+    season: str | None = None
+
+
+class Zone(Spec):
+    # Zone (i, j) covers x from 10i to 10i + 10 and y from 10j to 10j + 10.
+    zone_x: Annotated[int, Field(ge=0, lt=ZONES_X)]
+    zone_y: Annotated[int, Field(ge=0, lt=ZONES_Y)]
+    touches: Annotated[int, Field(ge=1)]
+
+
+class Heatmap(Spec):
+    type: Literal["heatmap"] = "heatmap"
+    id: str
+    title: str
+    player: Text
+    season: str | None = None
+    # The sum of the touches of the zones: the touch count of the query's filter.
+    total: Annotated[int, Field(ge=1)]
+    zones: Annotated[list[Zone], Field(min_length=1, max_length=ZONES_X * ZONES_Y)]
+
+
 class TimelineRow(Spec):
     """One row of the query: one shot of the match."""
 
@@ -207,7 +239,7 @@ class PointsPace(Spec):
     lines: Annotated[list[PaceLine], Field(min_length=1, max_length=MAX_PACE_LINES)]
 
 
-Chart = ShotMap | CompareBars | PassNetwork | XgTimeline | PointsPace | PassMap
+Chart = ShotMap | CompareBars | PassNetwork | XgTimeline | PointsPace | PassMap | Heatmap
 ChartSpec = Annotated[Chart, Field(discriminator="type")]
 
 Columns = Sequence[str]
@@ -267,6 +299,42 @@ def pass_map(columns: Columns, rows: Rows, title: str, chart_id: str) -> PassMap
                 " row 1. A pass_map draws the passes of one player; filter on one player."
             )
     return PassMap(id=chart_id, title=title, passes=passes)
+
+
+def heatmap(columns: Columns, rows: Rows, title: str, chart_id: str) -> Heatmap:
+    records = to_records("heatmap", columns, rows, ("zone_x", "zone_y", "touches", "player"))
+    zones = parse_rows(ZoneRow, records)
+    if not zones:
+        raise ChartRejected(
+            "A heatmap needs one touch or more. v_touches holds the touches of 2003-04 only;"
+            " check the player and the season."
+        )
+    first = zones[0]
+    seen = set()
+    for number, zone in enumerate(zones, start=1):
+        if zone.player != first.player:
+            raise ChartRejected(
+                f"Row {number}: the player is {zone.player} here and {first.player} in"
+                " row 1. A heatmap shows the touches of one player; filter on one player."
+            )
+        if zone.season != first.season:
+            raise ChartRejected(
+                f"Row {number}: the season is {zone.season} here and {first.season} in row 1."
+            )
+        if (zone.zone_x, zone.zone_y) in seen:
+            raise ChartRejected(
+                f"Row {number}: the zone {zone.zone_x}, {zone.zone_y} is in the rows two times."
+                " Group the touches by zone_x and zone_y."
+            )
+        seen.add((zone.zone_x, zone.zone_y))
+    return Heatmap(
+        id=chart_id,
+        title=title,
+        player=first.player,
+        season=first.season,
+        total=sum(zone.touches for zone in zones),
+        zones=[Zone(zone_x=z.zone_x, zone_y=z.zone_y, touches=z.touches) for z in zones],
+    )
 
 
 def is_chart_number(value: JsonValue) -> bool:
@@ -488,6 +556,7 @@ BUILDERS = {
     "xg_timeline": xg_timeline,
     "points_pace": points_pace,
     "pass_map": pass_map,
+    "heatmap": heatmap,
 }
 
 

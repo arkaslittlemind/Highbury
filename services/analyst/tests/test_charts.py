@@ -32,6 +32,10 @@ def pass_map(columns, rows):
     return charts.build("pass_map", columns, rows, "Vieira long passes", "c_00000006")
 
 
+def heatmap(columns, rows):
+    return charts.build("heatmap", columns, rows, "Henry touches", "c_00000007")
+
+
 def test_a_shot_map_has_one_shot_for_each_row_in_row_order():
     chart = shot_map(
         SHOT_COLUMNS,
@@ -715,13 +719,83 @@ def test_a_pass_map_rejects_rows_that_are_not_passes_of_one_player(columns, row,
     assert str(rejected.value).startswith(reason)
 
 
+ZONE_COLUMNS = ["zone_x", "zone_y", "touches", "player"]
+HENRY_ZONE = [10, 2, 96, "Thierry Henry"]
+
+
+def test_a_heatmap_has_one_zone_for_each_row_and_adds_up_the_touches():
+    chart = heatmap(
+        [*ZONE_COLUMNS, "season"],
+        [[*HENRY_ZONE, "2003-04"], [0, 7, 1, "Thierry Henry", "2003-04"]],
+    )
+
+    assert chart.model_dump() == {
+        "type": "heatmap",
+        "id": "c_00000007",
+        "title": "Henry touches",
+        "player": "Thierry Henry",
+        "season": "2003-04",
+        "total": 97,
+        "zones": [
+            {"zone_x": 10, "zone_y": 2, "touches": 96},
+            {"zone_x": 0, "zone_y": 7, "touches": 1},
+        ],
+    }
+
+
+def test_a_heatmap_of_no_touch_is_rejected():
+    with pytest.raises(charts.ChartRejected) as rejected:
+        heatmap(ZONE_COLUMNS, [])
+
+    assert str(rejected.value) == (
+        "A heatmap needs one touch or more. v_touches holds the touches of 2003-04 only;"
+        " check the player and the season."
+    )
+
+
+@pytest.mark.parametrize(
+    ("columns", "row", "reason"),
+    [
+        (
+            ["zone_x", "zone_y", "player"],
+            [11, 3, "Thierry Henry"],
+            "A heatmap chart needs the columns zone_x, zone_y, touches, player. Missing: touches.",
+        ),
+        (
+            ZONE_COLUMNS,
+            [11, 3, 4, "Robert Pires"],
+            "Row 2: the player is Robert Pires here and Thierry Henry in row 1."
+            " A heatmap shows the touches of one player; filter on one player.",
+        ),
+        (
+            ZONE_COLUMNS,
+            [10, 2, 4, "Thierry Henry"],
+            "Row 2: the zone 10, 2 is in the rows two times. Group the touches by zone_x"
+            " and zone_y.",
+        ),
+        (ZONE_COLUMNS, [12, 3, 4, "Thierry Henry"], "Row 2, column zone_x:"),
+        (ZONE_COLUMNS, [11, 8, 4, "Thierry Henry"], "Row 2, column zone_y:"),
+        # floor() gives a float in SQL: the example casts it to int.
+        (ZONE_COLUMNS, [11.0, 3, 4, "Thierry Henry"], "Row 2, column zone_x:"),
+        (ZONE_COLUMNS, [11, 3, 0, "Thierry Henry"], "Row 2, column touches:"),
+    ],
+)
+def test_a_heatmap_rejects_rows_that_are_not_zones_of_one_player(columns, row, reason):
+    good = [c for name, c in zip(ZONE_COLUMNS, HENRY_ZONE, strict=True) if name in columns]
+
+    with pytest.raises(charts.ChartRejected) as rejected:
+        heatmap(columns, [good, row])
+
+    assert str(rejected.value).startswith(reason)
+
+
 def test_an_unknown_chart_type_names_the_known_types():
     with pytest.raises(charts.ChartRejected) as rejected:
         charts.build("pie", SHOT_COLUMNS, [], "Henry shots", "c_00000001")
 
     assert str(rejected.value) == (
         "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network,"
-        " xg_timeline, points_pace, pass_map."
+        " xg_timeline, points_pace, pass_map, heatmap."
     )
 
 
@@ -756,6 +830,7 @@ def test_a_chart_survives_the_trip_through_json():
         xg_timeline(TIMELINE_COLUMNS, [[7, "Arsenal", "Liverpool", 31, 0.45, True, "Henry"]]),
         points_pace(PACE_COLUMNS, [["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1]]),
         pass_map(ARROW_COLUMNS, [VIEIRA_PASS]),
+        heatmap(ZONE_COLUMNS, [HENRY_ZONE]),
     ]
 
     for chart in built:

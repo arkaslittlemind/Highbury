@@ -54,6 +54,10 @@ RULES = (
     " as sqrt((end_x - x)^2 + (end_y - y)^2). The claims take the pass count and the"
     " completed count and % from a run_sql with the same filter. The summary says long"
     " passes and does not give the 35, which no claim backs.",
+    "A heatmap shows the touches of one player from v_touches, one row for each zone of"
+    " 10 x 10 on the 120 x 80 pitch, as the example does: least(floor(x / 10), 11)::int"
+    " and least(floor(y / 10), 7)::int, so the far edge of the pitch is in the last zone."
+    " The claims take the touch count from a run_sql of count(*) with the same filter.",
     "The advanced metrics of v_player_match_advanced (chances created, duels, aerial duels,"
     " pass accuracy, long balls) exist for 2003-04 only. A season % is"
     " round(100.0 * sum(won) / NULLIF(sum(total), 0), 1) in SQL, as the example does, never"
@@ -74,6 +78,8 @@ POINTS_PACE_EXAMPLE = "The league matches of Arsenal in both seasons, for a poin
 POINTS_TOTALS_EXAMPLE = "The points and matches of the same lines, for the claims"
 PASS_MAP_EXAMPLE = "The long passes of one player in one season, for a pass_map chart"
 PASS_MAP_TOTALS_EXAMPLE = "The count and completion of the same passes, for the claims"
+HEATMAP_EXAMPLE = "The touches of one player in one season by zone, for a heatmap chart"
+HEATMAP_TOTALS_EXAMPLE = "The touch count of the same player and season, for the claims"
 ADVANCED_EXAMPLE = "The season totals and % of the advanced metrics of one player"
 
 LIVERPOOL_HOME = (
@@ -110,6 +116,7 @@ VIEIRA_LONG_PASSES = (
     "FROM v_passes WHERE player = 'Patrick Vieira' AND season = '2003-04'"
     " AND sqrt(power(end_x - x, 2) + power(end_y - y, 2)) >= 35"
 )
+HENRY_TOUCHES = "FROM v_touches WHERE player = 'Thierry Henry' AND season = '2003-04'"
 
 # (what the query is for, the query). Each one must run on the views as they are:
 # a test runs them all.
@@ -192,6 +199,13 @@ SQL_EXAMPLES = (
         " round(100.0 * count(*) FILTER (WHERE outcome IS NULL) / NULLIF(count(*), 0), 1)"
         f" AS completed_pct {VIEIRA_LONG_PASSES}",
     ),
+    (
+        HEATMAP_EXAMPLE,
+        "SELECT least(floor(x / 10), 11)::int AS zone_x, least(floor(y / 10), 7)::int AS zone_y,"
+        f" count(*) AS touches, player, season {HENRY_TOUCHES}"
+        " GROUP BY zone_x, zone_y, player, season ORDER BY zone_x, zone_y",
+    ),
+    (HEATMAP_TOTALS_EXAMPLE, f"SELECT count(*) AS touches {HENRY_TOUCHES}"),
     (
         ADVANCED_EXAMPLE,
         "SELECT player, season, sum(chances_created) AS chances_created, sum(duels) AS duels,"

@@ -16,7 +16,12 @@ from analyst.settings import SettingsError
 from analyst.verifier import Verification
 
 # The key of a chart that holds its marks. The marks have the name of the key.
-CHART_MARKS = {"shot_map": "shots", "pass_network": "nodes", "pass_map": "passes"}
+CHART_MARKS = {
+    "shot_map": "shots",
+    "pass_network": "nodes",
+    "pass_map": "passes",
+    "heatmap": "zones",
+}
 
 Chart = dict[str, JsonValue]
 

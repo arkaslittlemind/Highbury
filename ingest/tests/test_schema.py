@@ -12,6 +12,7 @@ VIEWS = [
     "v_league_table",
     "v_fpl_player_match",
     "v_player_match_advanced",
+    "v_touches",
 ]
 
 
@@ -143,6 +144,32 @@ def test_passes_view_holds_only_pass_events(conn):
     rows = conn.execute("SELECT player, recipient, opponent FROM v_passes").fetchall()
 
     assert rows == [("Thierry Henry", None, "Leeds")]
+
+
+def test_touches_view_holds_the_on_ball_events_and_shots_of_2003_04(conn):
+    ids = insert_match(conn)
+    kinds = (
+        "pass", "dribble", "duel", "clearance", "interception", "ball_recovery", "block",
+        "miscontrol", "pressure", "carry", "ball_receipt", "substitution",
+    )  # fmt: skip
+    for number, kind in enumerate(kinds):
+        insert_event(conn, ids, event_type=kind, source_id=f"e{number}", x=60.0, y=40.0)
+    insert_shot(conn, ids)
+    conn.execute("INSERT INTO seasons VALUES (2025, '2025-26', 'SHOT')")
+    later = conn.execute(
+        "INSERT INTO matches (season_id, match_date, home_team_id, away_team_id, home_goals,"
+        " away_goals, source, source_match_id)"
+        " VALUES (2025, '2025-08-17', %s, %s, 1, 0, 'understat', 'm2') RETURNING id",
+        (ids["home"], ids["away"]),
+    ).fetchone()[0]
+    insert_shot(conn, ids | {"match": later}, source_id="s2")
+
+    rows = conn.execute("SELECT season, type, opponent, second FROM v_touches").fetchall()
+
+    assert sorted(row[1] for row in rows) == sorted([*kinds[:8], "shot"])
+    assert {row[0] for row in rows} == {"2003-04"}
+    assert {row[2] for row in rows} == {"Leeds"}
+    assert [row[3] for row in rows if row[1] == "shot"] == [None]
 
 
 def test_substitutions_view_names_the_player_off_the_player_on_and_the_reason(conn):

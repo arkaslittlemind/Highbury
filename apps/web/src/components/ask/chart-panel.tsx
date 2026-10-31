@@ -1,4 +1,5 @@
 import { CompareBars } from "@/components/charts/compare-bars";
+import { Heatmap } from "@/components/charts/heatmap";
 import { PassMap } from "@/components/charts/pass-map";
 import { PassNetwork } from "@/components/charts/pass-network";
 import { PointsPace } from "@/components/charts/points-pace";
@@ -33,6 +34,8 @@ export function ChartPanel({ chart }: { chart: ChartSpec | null }) {
         <XgTimeline chart={chart} />
       ) : chart.type === "pass_map" ? (
         <PassMap chart={chart} />
+      ) : chart.type === "heatmap" ? (
+        <Heatmap chart={chart} />
       ) : (
         <PointsPace chart={chart} />
       )}

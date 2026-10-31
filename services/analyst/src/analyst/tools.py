@@ -344,6 +344,9 @@ def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResu
     pass_map: one row for each pass of one player from v_passes, with x, y, end_x,
     end_y, outcome (null for a completed pass), minute, opponent, player. It also
     takes recipient, season, match_date. Filter on one player.
+    heatmap: one row for each zone of one player's touches from v_touches, with
+    zone_x (0 to 11), zone_y (0 to 7), touches (the count), player. It also takes
+    season. Group by the zone, as the example does. The chart adds up the touches.
     """
     try:
         title = charts.check_request(chart_type, title)

@@ -88,7 +88,8 @@ def season(
     return load.SeasonRows(
         season_id=season_id,
         season_label=label,
-        data_level="SHOT",
+        # As in the real seasons: StatsBomb has events, Understat has shots only.
+        data_level="EVENT" if source == "statsbomb" else "SHOT",
         source=source,
         teams=["Arsenal", opponent],
         players=[load.PlayerRow(pid, name, alias, None) for pid, name, alias, _ in players],
