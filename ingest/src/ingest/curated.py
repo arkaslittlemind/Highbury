@@ -45,8 +45,6 @@ LEAGUE_ROWS = (
     ),
 )
 
-# (season label, metric, available, source, notes). The agent reads these rows
-# before a claim about one season, so each note is written for the model.
 # The advanced metrics of v_player_match_advanced, from StatsBomb events: (metric, notes).
 ADVANCED_ROWS = (
     ("chances_created", "Passes that led to a shot or a goal, throw-ins included."),
@@ -64,6 +62,8 @@ ADVANCED_ROWS = (
     ("long_balls", "Passes of 35 yards or more (about 32 m), throw-ins excluded."),
 )
 
+# (season label, metric, available, source, notes). The agent reads these rows
+# before a claim about one season, so each note is written for the model.
 CATALOG = (
     ("2003-04", "results", True, STATSBOMB, "All 38 Arsenal league matches: date, teams, score."),
     ("2003-04", "shots", True, STATSBOMB, "Every shot of both teams, with pitch coordinates."),

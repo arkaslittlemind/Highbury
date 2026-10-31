@@ -773,6 +773,11 @@ def test_a_heatmap_of_no_touch_is_rejected():
             "Row 2: the zone 10, 2 is in the rows two times. Group the touches by zone_x"
             " and zone_y.",
         ),
+        (
+            [*ZONE_COLUMNS, "season"],
+            [11, 3, 4, "Thierry Henry", "2025-26"],
+            "Row 2: the season is 2025-26 here and 2003-04 in row 1. Filter on one season.",
+        ),
         (ZONE_COLUMNS, [12, 3, 4, "Thierry Henry"], "Row 2, column zone_x:"),
         (ZONE_COLUMNS, [11, 8, 4, "Thierry Henry"], "Row 2, column zone_y:"),
         # floor() gives a float in SQL: the example casts it to int.
@@ -782,6 +787,8 @@ def test_a_heatmap_of_no_touch_is_rejected():
 )
 def test_a_heatmap_rejects_rows_that_are_not_zones_of_one_player(columns, row, reason):
     good = [c for name, c in zip(ZONE_COLUMNS, HENRY_ZONE, strict=True) if name in columns]
+    if "season" in columns:
+        good.append("2003-04")
 
     with pytest.raises(charts.ChartRejected) as rejected:
         heatmap(columns, [good, row])

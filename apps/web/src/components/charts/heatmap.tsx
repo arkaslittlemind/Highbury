@@ -6,8 +6,7 @@ import { ChartTitle } from "@/components/charts/chart-title";
 import { Pitch } from "@/components/charts/pitch";
 import { PitchTooltip } from "@/components/charts/pitch-tooltip";
 import {
-  MAX_OPACITY,
-  MIN_OPACITY,
+  keyOpacities,
   summaryText,
   tooltipLines,
   tooltipPlace,
@@ -29,7 +28,7 @@ function ScaleKey({ fewest, most }: { fewest: number; most: number }) {
         {fewest} {fewest === 1 ? "touch" : "touches"}
       </span>
       <svg aria-hidden="true" width="100" height="12" viewBox="0 0 100 12">
-        {Array.from({ length: KEY_STEPS }, (_, step) => (
+        {keyOpacities(fewest, most, KEY_STEPS).map((opacity, step) => (
           <rect
             key={step}
             x={step * 20}
@@ -37,7 +36,7 @@ function ScaleKey({ fewest, most }: { fewest: number; most: number }) {
             width={20}
             height={12}
             className="fill-brand"
-            fillOpacity={MIN_OPACITY + ((MAX_OPACITY - MIN_OPACITY) * step) / (KEY_STEPS - 1)}
+            fillOpacity={opacity}
           />
         ))}
       </svg>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   busiestZone,
+  keyOpacities,
   MAX_OPACITY,
   MIN_OPACITY,
   shareText,
@@ -42,6 +43,22 @@ describe("zoneOpacity", () => {
     expect(zoneOpacity(0, 60)).toBe(MIN_OPACITY);
     expect(zoneOpacity(60, 60)).toBe(MAX_OPACITY);
     expect(zoneOpacity(30, 60)).toBeCloseTo((MIN_OPACITY + MAX_OPACITY) / 2);
+  });
+});
+
+describe("keyOpacities", () => {
+  it("starts at the shade of the fewest zone and ends at the busiest", () => {
+    const shades = keyOpacities(20, 60, 5);
+    expect(shades).toHaveLength(5);
+    expect(shades[0]).toBe(zoneOpacity(20, 60));
+    expect(shades[4]).toBe(MAX_OPACITY);
+    for (let step = 1; step < shades.length; step++) {
+      expect(shades[step]).toBeGreaterThan(shades[step - 1]);
+    }
+  });
+
+  it("gives every step the strongest shade when every zone has the same count", () => {
+    expect(keyOpacities(7, 7, 5)).toEqual(Array(5).fill(MAX_OPACITY));
   });
 });
 

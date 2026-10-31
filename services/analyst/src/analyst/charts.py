@@ -320,6 +320,7 @@ def heatmap(columns: Columns, rows: Rows, title: str, chart_id: str) -> Heatmap:
         if zone.season != first.season:
             raise ChartRejected(
                 f"Row {number}: the season is {zone.season} here and {first.season} in row 1."
+                " Filter on one season."
             )
         if (zone.zone_x, zone.zone_y) in seen:
             raise ChartRejected(

@@ -35,6 +35,16 @@ export function zoneOpacity(touches: number, most: number): number {
   return MIN_OPACITY + (MAX_OPACITY - MIN_OPACITY) * (touches / most);
 }
 
+/**
+ * The shades of the scale key, from the fewest touches in one zone to the most. Each
+ * end is the shade of a drawn zone, because the key uses the opacity of the zones.
+ */
+export function keyOpacities(fewest: number, most: number, steps: number): number[] {
+  return Array.from({ length: steps }, (_, step) =>
+    zoneOpacity(fewest + ((most - fewest) * step) / (steps - 1), most),
+  );
+}
+
 /** The share of all touches, as a whole %, with "<1%" for a small share that is not none. */
 export function shareText(touches: number, total: number): string {
   const share = Math.round((touches / total) * 100);
