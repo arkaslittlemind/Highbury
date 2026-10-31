@@ -10,6 +10,7 @@ import { QuestionBar } from "@/components/ask/question-bar";
 import { QuestionHeading } from "@/components/ask/question-heading";
 import { SiteHeader } from "@/components/ask/site-header";
 import { StepList } from "@/components/ask/step-list";
+import { useAnswerHistory } from "@/hooks/use-answer-history";
 import { useAsk } from "@/hooks/use-ask";
 import { useSuggestions } from "@/hooks/use-suggestions";
 
@@ -21,6 +22,8 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
   // The landing screen plays its enter motion until the first question.
   const [asked, setAsked] = useState(false);
   const questions = suggestions.status === "ready" ? suggestions.questions : [];
+  // Back keeps the question in the bar, as Edit and Stop do.
+  useAnswerHistory(state.phase === "idle", backToBar);
 
   // A screen reader and a keyboard start at the result, and the page scrolls
   // to it after a follow-up from the bar at the bottom.
