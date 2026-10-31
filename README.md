@@ -50,9 +50,9 @@ Every answer shows:
 
 | Capability | How it works |
 | --- | --- |
-| Answers from real data | An agent plans the question and calls five tools: the data catalog, the schema, a player resolver, a SQL runner, and a chart builder. The data covers shots, passes, and lineups, all 380 league matches of both seasons with team stats and the table, and FPL player data for 2025-26. |
+| Answers from real data | An agent plans the question with the data catalog and the schema already in its prompt, then calls three tools: a player resolver, a SQL runner, and a chart builder. The data covers shots, passes, and lineups, all 380 league matches of both seasons with team stats and the table, and FPL player data for 2025-26. |
 | Does not invent numbers | A verifier written in plain code, not another LLM, checks each claimed number against the rows of the query it cites. Unsupported claims are removed. |
-| Knows what it does not know | The agent reads a data catalog first. Ask for Saka's 2025-26 pass map and it says there is no pass data for that season, then offers his shot map. |
+| Knows what it does not know | The agent checks the data catalog in its prompt before a claim about a season. Ask for Saka's 2025-26 pass map and it says there is no pass data for that season, then offers his shot map. |
 | Stays in scope | "Who will win the Champions League?" is declined with no database call. |
 | Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. A conversation ends after 20 turns. |
 | Cannot change the data | Two independent locks: a SQL parser that allows one `SELECT`, and a read-only database role with a 5-second timeout and a 500-row cap. |
@@ -72,7 +72,7 @@ both runs, and it failed the conversation follow-up 2 times in 9 earlier tries.
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
-The suite has **942 Python tests** and **263 web unit tests**.
+The suite has **944 Python tests** and **263 web unit tests**.
 
 ## Architecture
 
@@ -80,7 +80,7 @@ The suite has **942 Python tests** and **263 web unit tests**.
 flowchart LR
     B["Browser<br/>Next.js on Vercel"] -- question --> API["FastAPI on AWS ECS<br/>rate limit, answer cache"]
     API --> A["LangChain agent<br/>Gemini 3.8 Flash"]
-    A -- tool calls --> T["Five tools<br/>catalog, schema, player,<br/>run_sql, build_chart"]
+    A -- tool calls --> T["Three tools<br/>player, run_sql,<br/>build_chart"]
     T -- "SELECT only" --> DB[("Postgres<br/>read-only role")]
     A -- answer and claims --> V["Claim verifier<br/>plain code"]
     V -- "checked answer, streamed (SSE)" --> B
@@ -90,7 +90,9 @@ flowchart LR
 1. The browser sends the question and receives a stream of events: each tool
    step as it runs, then the final answer. A ping event keeps the stream open
    through the load balancer while the agent is quiet.
-2. The agent calls the tools in-process. The same functions are also served as
+2. The agent calls the tools in-process. The catalog and the schema are already
+   in its prompt, so it does not spend a tool call to read them. All five data
+   functions (catalog, schema, player, run_sql, build_chart) are also served as
    an **MCP server** over stdio, so any MCP client can use them.
 3. Before the answer is sent, the verifier matches each claimed value to a cell
    in the rows of its cited tool call (exact for counts, within 0.01 for rates).
@@ -224,7 +226,7 @@ moment. You are welcome to read the code, fork it, and build on it under the
 | Path | What |
 | --- | --- |
 | `apps/web` | The Next.js web app |
-| `services/analyst` | The agent, the five tools, the verifier, the API, and the MCP server |
+| `services/analyst` | The agent, the five data tools, the verifier, the API, and the MCP server |
 | `ingest` | Offline loaders for StatsBomb, Understat, football-data.co.uk, and FPL, and the entity resolver |
 | `db/migrations` | SQL schema, views, and roles |
 | `evals` | Golden questions, model list, and results |
