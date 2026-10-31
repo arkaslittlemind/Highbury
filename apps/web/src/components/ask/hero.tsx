@@ -207,18 +207,6 @@ export function Hero({ intro, children }: HeroProps) {
       {/* The top padding is the room of the header, which lies on the hero. */}
       <div className="mx-auto grid min-h-[min(900px,100svh)] w-full max-w-[1280px] gap-10 px-4 pt-27 pb-10 sm:px-10 sm:pt-36 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:pb-0">
         <div className="flex max-w-[700px] flex-col gap-5 self-center sm:gap-6.5 lg:pb-15">
-          <p
-            className={cn(
-              RISE,
-              "flex items-center gap-2.5 self-start rounded-full border border-white/20 bg-white/8 px-4 py-2 text-sm backdrop-blur-md sm:px-4.5 sm:text-[15px]",
-            )}
-          >
-            <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-brand" />
-            <span>
-              The Invincibles <span aria-hidden="true">↔</span>
-              <span className="sr-only">and</span> 2025-26 · an AI football analyst
-            </span>
-          </p>
           <h1
             id="hero-title"
             className={cn(
@@ -236,7 +224,8 @@ export function Hero({ intro, children }: HeroProps) {
               "max-w-[520px] text-lg leading-[1.55] text-on-grass delay-[120ms] sm:text-xl",
             )}
           >
-            Ask in plain English. Highbury queries the data, draws the pitch chart, and checks
+            An AI football analyst for Arsenal&apos;s 2003-04 Invincibles and the 2025-26 side.
+            Ask in plain English: Highbury queries the data, draws the pitch chart, and checks
             every number before you see it. When the data cannot answer, it says so.
           </p>
           <div className={cn(RISE, "mt-1.5 max-w-[620px] delay-[180ms]")}>{children}</div>
