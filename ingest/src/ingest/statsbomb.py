@@ -44,11 +44,20 @@ SHOT_OUTCOMES = {
     "Post": "post",
 }
 # StatsBomb type name -> stored type, which is also the key of the event's detail record.
+# The on-ball types after Substitution feed the advanced metrics and the heatmap.
 EVENT_TYPES = {
     "Pass": "pass",
     "Carry": "carry",
     "Pressure": "pressure",
     "Substitution": "substitution",
+    "Ball Receipt*": "ball_receipt",
+    "Dribble": "dribble",
+    "Duel": "duel",
+    "Clearance": "clearance",
+    "Interception": "interception",
+    "Ball Recovery": "ball_recovery",
+    "Block": "block",
+    "Miscontrol": "miscontrol",
 }
 REGULAR_PERIODS = (1, 2)
 SENDING_OFF_CARDS = ("Red Card", "Second Yellow")
@@ -205,6 +214,7 @@ def shot_row(event: dict, match_id: str) -> ShotRow:
         outcome=shot_outcome(shot["outcome"]["name"]),
         body_part=lower_name(shot.get("body_part")),
         situation=lower_name(shot.get("type")),
+        aerial_won=shot.get("aerial_won", False),
     )
 
 
@@ -231,6 +241,14 @@ def event_row(event: dict, match_id: str) -> EventRow:
         # A substitution stores the player who comes on as its recipient.
         recipient=player_id(detail.get("recipient") or detail.get("replacement")),
         period=event["period"],
+        pass_length=detail.get("length") if kind == "pass" else None,
+        # Null for open play: StatsBomb gives a type only to set pieces and restarts.
+        pass_type=lower_name(detail.get("type")) if kind == "pass" else None,
+        shot_assist=detail.get("shot_assist", False),
+        goal_assist=detail.get("goal_assist", False),
+        # StatsBomb marks the pass, clearance, or miscontrol that won an aerial duel.
+        aerial_won=detail.get("aerial_won", False),
+        duel_type=lower_name(detail.get("type")) if kind == "duel" else None,
     )
 
 

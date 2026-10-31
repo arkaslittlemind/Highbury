@@ -11,6 +11,7 @@ VIEWS = [
     "v_league_matches",
     "v_league_table",
     "v_fpl_player_match",
+    "v_player_match_advanced",
 ]
 
 

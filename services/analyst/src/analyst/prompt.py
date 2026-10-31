@@ -54,6 +54,10 @@ RULES = (
     " as sqrt((end_x - x)^2 + (end_y - y)^2). The claims take the pass count and the"
     " completed count and % from a run_sql with the same filter. The summary says long"
     " passes and does not give the 35, which no claim backs.",
+    "The advanced metrics of v_player_match_advanced (chances created, duels, aerial duels,"
+    " pass accuracy, long balls) exist for 2003-04 only. A season % is"
+    " round(100.0 * sum(won) / NULLIF(sum(total), 0), 1) in SQL, as the example does, never"
+    " the mean of the match % values.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",
@@ -70,6 +74,7 @@ POINTS_PACE_EXAMPLE = "The league matches of Arsenal in both seasons, for a poin
 POINTS_TOTALS_EXAMPLE = "The points and matches of the same lines, for the claims"
 PASS_MAP_EXAMPLE = "The long passes of one player in one season, for a pass_map chart"
 PASS_MAP_TOTALS_EXAMPLE = "The count and completion of the same passes, for the claims"
+ADVANCED_EXAMPLE = "The season totals and % of the advanced metrics of one player"
 
 LIVERPOOL_HOME = (
     "(SELECT match_id FROM v_matches WHERE season = '2003-04'"
@@ -186,6 +191,16 @@ SQL_EXAMPLES = (
         "SELECT count(*) AS passes, count(*) FILTER (WHERE outcome IS NULL) AS completed,"
         " round(100.0 * count(*) FILTER (WHERE outcome IS NULL) / NULLIF(count(*), 0), 1)"
         f" AS completed_pct {VIEIRA_LONG_PASSES}",
+    ),
+    (
+        ADVANCED_EXAMPLE,
+        "SELECT player, season, sum(chances_created) AS chances_created, sum(duels) AS duels,"
+        " sum(duels_won) AS duels_won, sum(aerial_duels) AS aerial_duels,"
+        " sum(aerial_duels_won) AS aerial_duels_won, round(100.0 * sum(aerial_duels_won)"
+        " / NULLIF(sum(aerial_duels), 0), 1) AS aerial_duels_won_pct, sum(passes) AS passes,"
+        " round(100.0 * sum(passes_completed) / NULLIF(sum(passes), 0), 1)"
+        " AS pass_completion_pct FROM v_player_match_advanced"
+        " WHERE player = 'Patrick Vieira' AND season = '2003-04' GROUP BY player, season",
     ),
 )
 

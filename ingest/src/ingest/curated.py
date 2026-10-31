@@ -47,6 +47,23 @@ LEAGUE_ROWS = (
 
 # (season label, metric, available, source, notes). The agent reads these rows
 # before a claim about one season, so each note is written for the model.
+# The advanced metrics of v_player_match_advanced, from StatsBomb events: (metric, notes).
+ADVANCED_ROWS = (
+    ("chances_created", "Passes that led to a shot or a goal, throw-ins included."),
+    (
+        "duels",
+        "Tackle duels plus aerial duels. A tackle is won when StatsBomb says won, success"
+        " in play, or success out.",
+    ),
+    (
+        "aerial_duels",
+        "Aerial duels won (StatsBomb marks the winning pass, clearance, miscontrol, or shot)"
+        " and lost.",
+    ),
+    ("pass_accuracy", "Passes completed and attempted, throw-ins excluded."),
+    ("long_balls", "Passes of 35 yards or more (about 32 m), throw-ins excluded."),
+)
+
 CATALOG = (
     ("2003-04", "results", True, STATSBOMB, "All 38 Arsenal league matches: date, teams, score."),
     ("2003-04", "shots", True, STATSBOMB, "Every shot of both teams, with pitch coordinates."),
@@ -88,6 +105,7 @@ CATALOG = (
         STATSBOMB,
         "Every substitution, with the minute, the player off, and the player on.",
     ),
+    *(("2003-04", metric, True, STATSBOMB, notes) for metric, notes in ADVANCED_ROWS),
     *(("2003-04", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
     (
         "2003-04",
@@ -150,6 +168,16 @@ CATALOG = (
         False,
         None,
         "Substitutions are not loaded for 2025-26. Offer the minutes of each player instead.",
+    ),
+    *(
+        (
+            "2025-26",
+            metric,
+            False,
+            None,
+            f"{NO_EVENTS} Offer the 2003-04 value, or the player's 2025-26 shots and xG, instead.",
+        )
+        for metric, _ in ADVANCED_ROWS
     ),
     *(("2025-26", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
     (

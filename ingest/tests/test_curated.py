@@ -159,7 +159,7 @@ def test_an_alias_can_repeat_the_name_of_its_own_player(ingest):
     assert manual_aliases(ingest) == [("Thierry Henry", "thierry henry", None)]
 
 
-# The availability matrix of build-plan features 4, 19, and 24: what each season can answer.
+# The availability matrix of build-plan features 4, 19, 24, and 25: what each season can answer.
 MATRIX = {
     ("2003-04", "results"): True,
     ("2003-04", "shots"): True,
@@ -170,6 +170,11 @@ MATRIX = {
     ("2003-04", "pass_networks"): True,
     ("2003-04", "pass_maps"): True,
     ("2003-04", "substitutions"): True,
+    ("2003-04", "chances_created"): True,
+    ("2003-04", "duels"): True,
+    ("2003-04", "aerial_duels"): True,
+    ("2003-04", "pass_accuracy"): True,
+    ("2003-04", "long_balls"): True,
     ("2003-04", "league_results"): True,
     ("2003-04", "team_match_stats"): True,
     ("2003-04", "league_table"): True,
@@ -183,6 +188,11 @@ MATRIX = {
     ("2025-26", "pass_networks"): False,
     ("2025-26", "pass_maps"): False,
     ("2025-26", "substitutions"): False,
+    ("2025-26", "chances_created"): False,
+    ("2025-26", "duels"): False,
+    ("2025-26", "aerial_duels"): False,
+    ("2025-26", "pass_accuracy"): False,
+    ("2025-26", "long_balls"): False,
     ("2025-26", "league_results"): True,
     ("2025-26", "team_match_stats"): True,
     ("2025-26", "league_table"): True,
@@ -278,7 +288,7 @@ def test_the_command_loads_both_and_the_analyst_can_read_them(
     assert curated.run(alias_file(tmp_path), env(db)) == 0
 
     assert capsys.readouterr().out == first
-    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 26"]
+    assert first.splitlines() == ["player_aliases: 2 aliases for 1 players", "data_catalog: 36"]
     assert analyst.execute("SELECT count(*) FROM data_catalog").fetchone() == (
         len(curated.CATALOG),
     )

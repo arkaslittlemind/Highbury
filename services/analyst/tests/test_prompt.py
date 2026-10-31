@@ -63,6 +63,8 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
         "A long pass is 35 or more on the 120 x 80 pitch",
         "the completed count and % from a run_sql with the same filter",
         "does not give the 35, which no claim backs",
+        "exist for 2003-04 only",
+        "never the mean of the match % values",
     ],
 )
 def test_the_prompt_holds_each_rule(text, rule):
@@ -70,7 +72,7 @@ def test_the_prompt_holds_each_rule(text, rule):
 
 
 def test_the_prompt_holds_the_sql_examples(text):
-    assert 4 <= len(prompt.SQL_EXAMPLES) <= 14
+    assert 4 <= len(prompt.SQL_EXAMPLES) <= 15
     for purpose, sql in prompt.SQL_EXAMPLES:
         assert purpose in text
         assert sql in text

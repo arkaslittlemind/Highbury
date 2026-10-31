@@ -67,6 +67,8 @@ class ShotRow:
     outcome: str
     body_part: str | None
     situation: str | None
+    # Last, with a default, because tests build this row by position.
+    aerial_won: bool = False
 
 
 @dataclass(frozen=True)
@@ -86,8 +88,15 @@ class EventRow:
     under_pressure: bool
     possession: int | None
     recipient: str | None
-    # Last, with a default, because tests build this row by position.
+    # Last, with defaults, because tests build this row by position.
     period: int | None = None
+    # The details of a pass, a duel, or an aerial win. None or False on other types.
+    pass_length: float | None = None
+    pass_type: str | None = None
+    shot_assist: bool = False
+    goal_assist: bool = False
+    aerial_won: bool = False
+    duel_type: str | None = None
 
 
 @dataclass(frozen=True)
@@ -380,13 +389,14 @@ def load(
     with conn.cursor() as cur:
         cur.executemany(
             "INSERT INTO shots (match_id, player_id, team_id, minute, x, y, xg, outcome,"
-            " body_part, situation, source, source_shot_id)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " body_part, situation, aerial_won, source, source_shot_id)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             " ON CONFLICT (source, source_shot_id) DO UPDATE SET"
             " match_id = EXCLUDED.match_id, player_id = EXCLUDED.player_id,"
             " team_id = EXCLUDED.team_id, minute = EXCLUDED.minute, x = EXCLUDED.x,"
             " y = EXCLUDED.y, xg = EXCLUDED.xg, outcome = EXCLUDED.outcome,"
-            " body_part = EXCLUDED.body_part, situation = EXCLUDED.situation",
+            " body_part = EXCLUDED.body_part, situation = EXCLUDED.situation,"
+            " aerial_won = EXCLUDED.aerial_won",
             [
                 (
                     match_ids[shot.match],
@@ -399,6 +409,7 @@ def load(
                     shot.outcome,
                     shot.body_part,
                     shot.situation,
+                    shot.aerial_won,
                     rows.source,
                     shot.source_id,
                 )
@@ -408,15 +419,20 @@ def load(
         cur.executemany(
             "INSERT INTO events (match_id, player_id, team_id, type, minute, second, x, y,"
             " end_x, end_y, outcome, under_pressure, possession, recipient_id, period,"
+            " pass_length, pass_type, shot_assist, goal_assist, aerial_won, duel_type,"
             " source_event_id)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,"
+            " %s, %s, %s, %s, %s, %s, %s)"
             " ON CONFLICT (source_event_id) DO UPDATE SET"
             " match_id = EXCLUDED.match_id, player_id = EXCLUDED.player_id,"
             " team_id = EXCLUDED.team_id, type = EXCLUDED.type, minute = EXCLUDED.minute,"
             " second = EXCLUDED.second, x = EXCLUDED.x, y = EXCLUDED.y,"
             " end_x = EXCLUDED.end_x, end_y = EXCLUDED.end_y, outcome = EXCLUDED.outcome,"
             " under_pressure = EXCLUDED.under_pressure, possession = EXCLUDED.possession,"
-            " recipient_id = EXCLUDED.recipient_id, period = EXCLUDED.period",
+            " recipient_id = EXCLUDED.recipient_id, period = EXCLUDED.period,"
+            " pass_length = EXCLUDED.pass_length, pass_type = EXCLUDED.pass_type,"
+            " shot_assist = EXCLUDED.shot_assist, goal_assist = EXCLUDED.goal_assist,"
+            " aerial_won = EXCLUDED.aerial_won, duel_type = EXCLUDED.duel_type",
             [
                 (
                     match_ids[event.match],
@@ -434,6 +450,12 @@ def load(
                     event.possession,
                     player(event.recipient),
                     event.period,
+                    event.pass_length,
+                    event.pass_type,
+                    event.shot_assist,
+                    event.goal_assist,
+                    event.aerial_won,
+                    event.duel_type,
                     event.source_id,
                 )
                 for event in rows.events

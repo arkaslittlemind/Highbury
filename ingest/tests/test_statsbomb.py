@@ -304,15 +304,22 @@ def pires_off_for_wiltord():
     )
 
 
-def test_only_passes_carries_pressures_and_substitutions_become_events():
+def test_the_known_types_become_events_and_shots_and_markers_do_not():
     season = small_season()
     season.events[100].append(pires_off_for_wiltord())
 
     rows = statsbomb.build_rows(season)
 
     events = {event.source_id: event for event in rows.events}
-    assert sorted(events) == ["c1", "p1", "p2", "pr1", "sub1"]
-    assert {event.type for event in rows.events} == {"pass", "carry", "pressure", "substitution"}
+    # The Starting XI marker is not an event, and shots go to their own table.
+    assert sorted(events) == ["c1", "p1", "p2", "pr1", "r1", "sub1"]
+    assert {event.type for event in rows.events} == {
+        "pass",
+        "carry",
+        "pressure",
+        "substitution",
+        "ball_receipt",
+    }
 
     completed = events["p1"]
     assert (completed.x, completed.y, completed.end_x, completed.end_y) == (80.0, 20.0, 100.0, 35.0)
@@ -329,6 +336,103 @@ def test_only_passes_carries_pressures_and_substitutions_become_events():
 
     pressure = events["pr1"]
     assert (pressure.x, pressure.y, pressure.end_x, pressure.end_y) == (70.0, 10.0, None, None)
+
+
+def on_ball_events():
+    return [
+        raw_event("br", "Ball Receipt*", ball_receipt={"outcome": {"name": "Incomplete"}}),
+        raw_event("dr", "Dribble", dribble={"outcome": {"name": "Complete"}}),
+        raw_event("du", "Duel", duel={"type": {"name": "Tackle"}, "outcome": {"name": "Won"}}),
+        raw_event("ae", "Duel", duel={"type": {"name": "Aerial Lost"}}),
+        raw_event("cl", "Clearance", clearance={"aerial_won": True}),
+        raw_event("in", "Interception", interception={"outcome": {"name": "Lost Out"}}),
+        raw_event("rc", "Ball Recovery"),
+        raw_event("bl", "Block"),
+        raw_event("mi", "Miscontrol", miscontrol={"aerial_won": True}),
+        raw_event("fo", "Foul Committed"),
+    ]
+
+
+def test_each_on_ball_type_becomes_an_event_with_its_outcome():
+    season = small_season()
+    season.events[100].extend(on_ball_events())
+
+    events = {event.source_id: event for event in statsbomb.build_rows(season).events}
+
+    assert {key: (events[key].type, events[key].outcome) for key in events if len(key) == 2} == {
+        "p1": ("pass", None),
+        "p2": ("pass", "incomplete"),
+        "c1": ("carry", None),
+        "r1": ("ball_receipt", None),
+        "br": ("ball_receipt", "incomplete"),
+        "dr": ("dribble", "complete"),
+        "du": ("duel", "won"),
+        "ae": ("duel", None),
+        "cl": ("clearance", None),
+        "in": ("interception", "lost out"),
+        "rc": ("ball_recovery", None),
+        "bl": ("block", None),
+        "mi": ("miscontrol", None),
+    }
+    # A foul is not an on-ball event of the metrics.
+    assert "fo" not in events
+    assert (events["du"].duel_type, events["ae"].duel_type) == ("tackle", "aerial lost")
+    assert [key for key, event in events.items() if event.aerial_won] == ["cl", "mi"]
+
+
+def test_a_pass_keeps_its_length_type_and_assists():
+    season = small_season()
+    season.events[100].extend(
+        [
+            raw_event(
+                "lp",
+                "Pass",
+                **{
+                    "pass": {
+                        "end_location": [100.0, 40.0],
+                        "length": 40.5,
+                        "type": {"name": "Throw-in"},
+                        "shot_assist": True,
+                        "aerial_won": True,
+                    }
+                },
+            )
+        ]
+    )
+
+    events = {event.source_id: event for event in statsbomb.build_rows(season).events}
+
+    long_pass = events["lp"]
+    assert (long_pass.pass_length, long_pass.pass_type) == (40.5, "throw-in")
+    assert (long_pass.shot_assist, long_pass.goal_assist, long_pass.aerial_won) == (
+        True,
+        False,
+        True,
+    )
+    # An open-play pass has no type, and only a pass has a length.
+    assert (events["p1"].pass_type, events["p1"].goal_assist) == (None, True)
+    assert (events["c1"].pass_length, events["c1"].duel_type) == (None, None)
+
+
+def test_a_shot_keeps_the_aerial_duel_it_won():
+    season = small_season()
+    season.events[100].append(
+        raw_event(
+            "sa",
+            "Shot",
+            location=(110.0, 40.0),
+            shot={
+                "statsbomb_xg": 0.1,
+                "outcome": {"name": "Saved"},
+                "aerial_won": True,
+                "body_part": {"name": "Head"},
+            },
+        )
+    )
+
+    shots = {shot.source_id: shot for shot in statsbomb.build_rows(season).shots}
+
+    assert (shots["sa"].aerial_won, shots["s1"].aerial_won) == (True, False)
 
 
 def test_a_substitution_stores_the_player_off_the_replacement_and_the_reason():

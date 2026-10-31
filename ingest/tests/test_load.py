@@ -108,6 +108,43 @@ def test_a_second_load_changes_no_row_count_and_no_id(ingest):
     assert ids(ingest, "teams") == teams
 
 
+def test_the_details_of_a_pass_a_duel_and_an_aerial_win_are_stored_and_updated(ingest):
+    rows = two_matches()
+    rows.events[0] = replace(
+        rows.events[0], pass_length=40.5, pass_type="throw-in", shot_assist=True, aerial_won=True
+    )
+    rows.events.append(
+        load.EventRow(
+            "d1", "100", "20", "Everton", "duel", 40, 0, 60.0, 40.0, None, None,
+            "won", False, 30, None, 1, duel_type="tackle",
+        )
+    )  # fmt: skip
+    rows.shots[0] = replace(rows.shots[0], aerial_won=True)
+    load.load(ingest, rows)
+
+    def details():
+        return ingest.execute(
+            "SELECT source_event_id, pass_length, pass_type, shot_assist, goal_assist,"
+            " aerial_won, duel_type FROM events WHERE source_event_id IN ('p1', 'd1', 'c1')"
+            " ORDER BY source_event_id"
+        ).fetchall()
+
+    assert details() == [
+        ("c1", None, None, False, False, False, None),
+        ("d1", None, None, False, False, False, "tackle"),
+        ("p1", 40.5, "throw-in", True, False, True, None),
+    ]
+    assert ingest.execute("SELECT source_shot_id FROM shots WHERE aerial_won").fetchall() == [
+        ("s1",)
+    ]
+
+    # A second load takes the new values from the source.
+    rows.events[0] = replace(rows.events[0], pass_type=None, goal_assist=True)
+    load.load(ingest, rows)
+
+    assert details()[2] == ("p1", 40.5, None, True, True, True, None)
+
+
 def test_a_second_load_takes_changed_values_from_the_source(ingest):
     load.load(ingest, two_matches())
     rows = two_matches()
