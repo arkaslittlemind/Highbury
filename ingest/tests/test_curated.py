@@ -159,7 +159,8 @@ def test_an_alias_can_repeat_the_name_of_its_own_player(ingest):
     assert manual_aliases(ingest) == [("Thierry Henry", "thierry henry", None)]
 
 
-# The availability matrix of build-plan features 4, 19, 24, and 25: what each season can answer.
+# The availability matrix of build-plan features 4, 19, 24, 25, and 27: what each season
+# can answer.
 MATRIX = {
     ("2003-04", "results"): True,
     ("2003-04", "shots"): True,
@@ -190,7 +191,7 @@ MATRIX = {
     ("2025-26", "pass_maps"): False,
     ("2025-26", "heatmaps"): False,
     ("2025-26", "substitutions"): False,
-    ("2025-26", "chances_created"): False,
+    ("2025-26", "chances_created"): True,
     ("2025-26", "duels"): False,
     ("2025-26", "aerial_duels"): False,
     ("2025-26", "pass_accuracy"): False,
@@ -237,6 +238,22 @@ def test_an_available_row_has_a_source_and_an_unavailable_row_says_why(ingest):
             assert source == {"2003-04": "StatsBomb Open Data", "2025-26": "Understat"}[label]
         else:
             assert source is None, (label, metric)
+
+
+def test_each_2025_26_advanced_decline_still_offers_shots_and_xg(ingest):
+    load.load(ingest, invincibles())
+    load.load(ingest, current())
+
+    curated.load_catalog(ingest)
+
+    declined = {
+        metric: notes
+        for label, metric, available, _, notes in catalog(ingest)
+        if label == "2025-26" and not available
+    }
+    for metric in curated.ADVANCED_ALTERNATIVES:
+        assert "2025-26 shots and xG" in declined[metric], metric
+    assert curated.FPL_DEFENSIVE not in declined["aerial_duels"]
 
 
 def test_a_second_catalog_load_leaves_the_same_rows(ingest):

@@ -109,6 +109,8 @@ class StatRow:
     assists: int
     xg: float | None
     xa: float | None
+    # Understat key passes. StatsBomb's chances created are in v_player_match_advanced.
+    chances_created: int | None = None
 
 
 @dataclass(frozen=True)
@@ -463,11 +465,12 @@ def load(
         )
         cur.executemany(
             "INSERT INTO player_match_stats (player_id, match_id, team_id, minutes, goals,"
-            " assists, xg, xa)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            " assists, xg, xa, chances_created)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
             " ON CONFLICT (player_id, match_id) DO UPDATE SET"
             " team_id = EXCLUDED.team_id, minutes = EXCLUDED.minutes, goals = EXCLUDED.goals,"
-            " assists = EXCLUDED.assists, xg = EXCLUDED.xg, xa = EXCLUDED.xa",
+            " assists = EXCLUDED.assists, xg = EXCLUDED.xg, xa = EXCLUDED.xa,"
+            " chances_created = EXCLUDED.chances_created",
             [
                 (
                     player_ids[stat.player],
@@ -478,6 +481,7 @@ def load(
                     stat.assists,
                     stat.xg,
                     stat.xa,
+                    stat.chances_created,
                 )
                 for stat in rows.stats
             ],

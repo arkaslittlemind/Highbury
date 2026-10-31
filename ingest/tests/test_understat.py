@@ -158,6 +158,7 @@ def roster_entry(player_id, player, position="FW", time="90", **stats):
         "assists": "0",
         "xG": "0",
         "xA": "0",
+        "key_passes": "0",
     }
     entry.update(stats)
     return entry
@@ -190,7 +191,9 @@ def small_season():
     match_data = {
         "rosters": {
             "h": rosters(
-                roster_entry("1", "Bukayo Saka", "AMR", goals="1", xG="0.4", xA="0.1"),
+                roster_entry(
+                    "1", "Bukayo Saka", "AMR", goals="1", xG="0.4", xA="0.1", key_passes="3"
+                ),
                 roster_entry("2", "Viktor Gyokeres", "FW", time="70", assists="1", xG="0.76"),
                 roster_entry("3", "Ethan Nwaneri", "Sub", time="20"),
             ),
@@ -266,6 +269,7 @@ def test_player_match_stats_are_the_roster_values():
         "500", "Arsenal", 90, 1, 0,
     )  # fmt: skip
     assert (saka.xg, saka.xa) == pytest.approx((0.4, 0.1))
+    assert (saka.chances_created, gyokeres.chances_created) == (3, 0)
     assert (gyokeres.minutes, gyokeres.goals, gyokeres.assists) == (70, 0, 1)
     assert stats["3"].minutes == 20
     # An own goal is credited to no player.
@@ -411,6 +415,51 @@ def test_an_understat_season_loads_beside_a_statsbomb_season(ingest):
     ).fetchall() == [("2003-04", 2), ("2025-26", 1)]
     assert ingest.execute("SELECT count(*) FROM teams WHERE name = 'Arsenal'").fetchone() == (1,)
     assert source_rows(ingest, "statsbomb") == statsbomb_rows
+
+
+def test_chances_created_reach_the_views_and_stay_null_for_2003_04(ingest, analyst):
+    load.load(ingest, two_matches())
+    load.load(ingest, understat.build_rows(small_season(), TEAMS))
+    # Only analyst_ro can read the views, and it sees committed rows only.
+    ingest.commit()
+
+    assert analyst.execute(
+        "SELECT player, chances_created FROM v_player_match WHERE season = '2025-26'"
+        " AND player IN ('Bukayo Saka', 'Viktor Gyokeres') ORDER BY player"
+    ).fetchall() == [("Bukayo Saka", 3), ("Viktor Gyokeres", 0)]
+    assert analyst.execute(
+        "SELECT chances_created FROM v_player_season"
+        " WHERE player = 'Bukayo Saka' AND season = '2025-26'"
+    ).fetchone() == (3,)
+    rows, filled = analyst.execute(
+        "SELECT count(*), count(chances_created) FROM v_player_season WHERE season = '2003-04'"
+    ).fetchone()
+    assert (rows > 0, filled) == (True, 0)
+
+
+def test_the_season_chances_created_match_the_raw_files(ingest, analyst):
+    files = sorted((understat.RAW_DIR / "matches").glob("*.json"))
+    if not files:
+        pytest.skip(f"no Understat cache in {understat.RAW_DIR}: run ingest.understat once")
+    raw = understat.fetch_season(understat.RAW_DIR, pytest.fail, pytest.fail)
+    # Counted from the JSON without the loader: the key passes of every Saka roster row.
+    expected = sum(
+        int(entry["key_passes"])
+        for data in raw.match_data.values()
+        for side in understat.SIDES
+        for entry in data["rosters"][side].values()
+        if entry["player"] == "Bukayo Saka"
+    )
+    load.load(ingest, understat.build_rows(raw, overrides.read().teams), overrides.read().players)
+    ingest.commit()
+
+    (view,) = analyst.execute(
+        "SELECT chances_created FROM v_player_season"
+        " WHERE player = 'Bukayo Saka' AND season = '2025-26'"
+    ).fetchone()
+
+    assert expected > 0
+    assert view == expected
 
 
 def stub_command(monkeypatch, tmp_path, season, url):

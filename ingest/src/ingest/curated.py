@@ -20,7 +20,10 @@ SOURCE = load.MANUAL_SOURCE
 
 STATSBOMB = "StatsBomb Open Data"
 UNDERSTAT = "Understat"
-NO_EVENTS = "Understat has shots but no pass, carry, or pressure events."
+NO_EVENTS = (
+    "No open source has 2025-26 event data: Understat has shots only, and FPL has counts"
+    " with no pitch position."
+)
 FOOTBALL_DATA = "football-data.co.uk"
 # The archive asks a site that uses its data to link back to it.
 FPL = "Fantasy Premier League, via github.com/vaastav/Fantasy-Premier-League"
@@ -61,6 +64,18 @@ ADVANCED_ROWS = (
     ("pass_accuracy", "Passes completed and attempted, throw-ins excluded."),
     ("long_balls", "Passes of 35 yards or more (about 32 m), throw-ins excluded."),
 )
+FPL_DEFENSIVE = "tackles, recoveries, and clearances-blocks-interceptions (CBI)"
+# The 2025-26 alternative of each advanced metric that only 2003-04 has.
+ADVANCED_ALTERNATIVES = {
+    "duels": "Offer the 2003-04 value, or the player's 2025-26 shots and xG or FPL"
+    f" {FPL_DEFENSIVE}, instead.",
+    # Tackles and CBI are not aerial duels, so they are no alternative here.
+    "aerial_duels": "Offer the 2003-04 value, or the player's 2025-26 shots and xG, instead.",
+    "pass_accuracy": "Offer the 2003-04 value, or the player's 2025-26 shots and xG or chances"
+    " created, instead.",
+    "long_balls": "Offer the 2003-04 value, or the player's 2025-26 shots and xG or chances"
+    " created, instead.",
+}
 
 # (season label, metric, available, source, notes). The agent reads these rows
 # before a claim about one season, so each note is written for the model.
@@ -119,9 +134,10 @@ CATALOG = (
         FPL_METRIC,
         False,
         None,
-        "FPL data (clean sheets, saves, bonus, BPS, cards, defensive contributions, FPL"
-        " points, price) is loaded for 2025-26 only. Offer the minutes, goals, and"
-        " assists of 2003-04 instead.",
+        "FPL data (clean sheets, saves, bonus, BPS, cards, defensive contributions,"
+        f" {FPL_DEFENSIVE}, FPL points, price) is loaded for 2025-26 only. Offer the"
+        " minutes, goals, and assists of 2003-04, or the duels and chances created of"
+        " v_player_match_advanced, instead.",
     ),
     ("2025-26", "results", True, UNDERSTAT, "All 38 Arsenal league matches: date, teams, score."),
     ("2025-26", "shots", True, UNDERSTAT, "Every shot of both teams, with pitch coordinates."),
@@ -183,15 +199,18 @@ CATALOG = (
         None,
         "Substitutions are not loaded for 2025-26. Offer the minutes of each player instead.",
     ),
+    (
+        "2025-26",
+        "chances_created",
+        True,
+        UNDERSTAT,
+        "Understat key passes, passes that led to a shot, in v_player_match and"
+        " v_player_season. A different provider from the StatsBomb value of 2003-04, so"
+        " say this caveat in a comparison of the two seasons.",
+    ),
     *(
-        (
-            "2025-26",
-            metric,
-            False,
-            None,
-            f"{NO_EVENTS} Offer the 2003-04 value, or the player's 2025-26 shots and xG, instead.",
-        )
-        for metric, _ in ADVANCED_ROWS
+        ("2025-26", metric, False, None, f"{NO_EVENTS} {alternative}")
+        for metric, alternative in ADVANCED_ALTERNATIVES.items()
     ),
     *(("2025-26", metric, True, FOOTBALL_DATA, notes) for metric, notes in LEAGUE_ROWS),
     (
@@ -201,7 +220,8 @@ CATALOG = (
         FPL,
         "Every Premier League player in each match he played, not only Arsenal's, in"
         " v_fpl_player_match: clean sheets, saves, bonus, BPS, yellow and red cards,"
-        " defensive contributions, FPL points, and FPL price by gameweek. No FPL xG: use"
+        f" defensive contributions, {FPL_DEFENSIVE}, FPL points, and FPL price by"
+        " gameweek. No FPL xG: use"
         " the Understat xG of v_player_match.",
     ),
 )

@@ -42,6 +42,9 @@ def gw_row(**cells) -> dict:
         "bonus": "3",
         "bps": "41",
         "defensive_contribution": "7",
+        "tackles": "2",
+        "recoveries": "4",
+        "clearances_blocks_interceptions": "1",
         "total_points": "15",
         "value": "105",
     }
@@ -92,6 +95,9 @@ def test_a_row_becomes_an_fpl_row_with_canonical_names():
         defensive_contribution=7,
         points=15,
         price=Decimal("10.5"),
+        tackles=2,
+        recoveries=4,
+        clearances_blocks_interceptions=1,
     )
     assert (season.rows[1].home_team, season.rows[1].gameweek) == ("Manchester United", 2)
     assert season.rows[1].price == Decimal("10.4")
@@ -130,12 +136,28 @@ def test_a_missing_column_is_named():
         fpl.parse(gw.replace("defensive_contribution", "dc", 1), fixtures, teams, TEAMS)
 
 
+@pytest.mark.parametrize("column", ["tackles", "recoveries", "clearances_blocks_interceptions"])
+def test_a_missing_defensive_count_column_is_named(column):
+    gw, fixtures, teams = files([gw_row()])
+    header, rest = gw.split("\n", 1)
+    renamed = ",".join("x" if name == column else name for name in header.split(","))
+
+    with pytest.raises(ValueError, match=f"merged_gw.csv: the file has no column {column}"):
+        fpl.parse(f"{renamed}\n{rest}", fixtures, teams, TEAMS)
+
+
 @pytest.mark.parametrize(
     ("cells", "reason"),
     [
         ({"minutes": "x"}, "line 2: minutes is 'x', not a count"),
         ({"goals_scored": "-1"}, "line 2: goals_scored is '-1', not a count"),
         ({"saves": ""}, "line 2: saves is '', not a count"),
+        ({"tackles": "-1"}, "line 2: tackles is '-1', not a count"),
+        ({"recoveries": ""}, "line 2: recoveries is '', not a count"),
+        (
+            {"clearances_blocks_interceptions": "x"},
+            "line 2: clearances_blocks_interceptions is 'x', not a count",
+        ),
         ({"total_points": "1.5"}, "line 2: total_points is '1.5', not an integer"),
         ({"clean_sheets": "2"}, "line 2: clean_sheets is 2, not 0 or 1"),
         ({"value": "0"}, "line 2: value is 0, not a price"),
@@ -245,8 +267,9 @@ def seed(conn: psycopg.Connection, *, football_data: bool = True) -> None:
 
 def row(player: str, team: str, home: str, away: str, goals: int = 0) -> FplRow:
     return FplRow(
-        player, team, home, away, 1, 90, goals, 0, False, 0, 0, 10, 0, 0, 3, 2, Decimal("5.5")
-    )
+        player, team, home, away, 1, 90, goals, 0, False, 0, 0, 10, 0, 0, 3, 2, Decimal("5.5"),
+        2, 4, 1,
+    )  # fmt: skip
 
 
 # (FPL id, name, team, goals) in Arsenal v Everton, as FPL names them.
@@ -321,6 +344,11 @@ def test_players_link_by_name_within_the_team_and_the_rows_are_written(ingest):
         2,
         Decimal("5.5"),
     )
+    assert ingest.execute(
+        "SELECT f.tackles, f.recoveries, f.clearances_blocks_interceptions"
+        " FROM fpl_player_match f JOIN players p ON p.id = f.player_id"
+        " WHERE p.name = 'Bukayo Saka'"
+    ).fetchone() == (2, 4, 1)
     assert (
         "FPL players with minutes: 5, 5 with an fpl alias, 5 linked to a player of another source"
         in lines

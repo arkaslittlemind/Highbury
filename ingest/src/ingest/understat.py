@@ -182,6 +182,7 @@ def stat_row(entry: dict, match_id: str, team: str) -> StatRow:
         assists=int(entry["assists"]),
         xg=float(entry["xG"]),
         xa=float(entry["xA"]),
+        chances_created=int(entry["key_passes"]),
     )
 
 

@@ -55,6 +55,9 @@ COUNTS = (
     ("yellow_cards", "yellow_cards"),
     ("red_cards", "red_cards"),
     ("defensive_contribution", "defensive_contribution"),
+    ("tackles", "tackles"),
+    ("recoveries", "recoveries"),
+    ("clearances_blocks_interceptions", "clearances_blocks_interceptions"),
 )
 SIGNED = (("bps", "bps"), ("total_points", "points"))
 GW_COLUMNS = (
@@ -91,6 +94,9 @@ class FplRow:
     points: int
     # Millions of pounds.
     price: Decimal
+    tackles: int
+    recoveries: int
+    clearances_blocks_interceptions: int
 
 
 @dataclass(frozen=True)
@@ -399,8 +405,10 @@ def load_fpl(
         cur.executemany(
             "INSERT INTO fpl_player_match (player_id, match_id, team_id, gameweek, minutes,"
             " goals, assists, clean_sheet, saves, bonus, bps, yellow_cards, red_cards,"
-            " defensive_contribution, points, price)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " defensive_contribution, points, price, tackles, recoveries,"
+            " clearances_blocks_interceptions)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,"
+            " %s)"
             " ON CONFLICT (player_id, match_id) DO UPDATE SET"
             " team_id = EXCLUDED.team_id, gameweek = EXCLUDED.gameweek,"
             " minutes = EXCLUDED.minutes, goals = EXCLUDED.goals, assists = EXCLUDED.assists,"
@@ -408,7 +416,9 @@ def load_fpl(
             " bonus = EXCLUDED.bonus, bps = EXCLUDED.bps, yellow_cards = EXCLUDED.yellow_cards,"
             " red_cards = EXCLUDED.red_cards,"
             " defensive_contribution = EXCLUDED.defensive_contribution,"
-            " points = EXCLUDED.points, price = EXCLUDED.price",
+            " points = EXCLUDED.points, price = EXCLUDED.price,"
+            " tackles = EXCLUDED.tackles, recoveries = EXCLUDED.recoveries,"
+            " clearances_blocks_interceptions = EXCLUDED.clearances_blocks_interceptions",
             [
                 (
                     player_ids[row.player],
@@ -427,6 +437,9 @@ def load_fpl(
                     row.defensive_contribution,
                     row.points,
                     row.price,
+                    row.tackles,
+                    row.recoveries,
+                    row.clearances_blocks_interceptions,
                 )
                 for row in season.rows
             ],
