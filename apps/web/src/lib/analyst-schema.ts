@@ -104,12 +104,36 @@ const pointsPaceSchema = z.object({
     .max(4),
 });
 
+const passArrowSchema = z.object({
+  x: pitchX,
+  y: pitchY,
+  end_x: pitchX,
+  end_y: pitchY,
+  // Null for a completed pass. Otherwise the reason it failed.
+  outcome: text.nullable(),
+  minute: matchMinute,
+  opponent: text,
+  player: text,
+  recipient: z.string().nullable().optional(),
+  season: z.string().nullable().optional(),
+  match_date: z.string().nullable().optional(),
+});
+
+const passMapSchema = z.object({
+  type: z.literal("pass_map"),
+  id: z.string(),
+  title: z.string(),
+  // The passes of one player.
+  passes: z.array(passArrowSchema),
+});
+
 export const chartSpecSchema = z.discriminatedUnion("type", [
   shotMapSchema,
   compareBarsSchema,
   passNetworkSchema,
   xgTimelineSchema,
   pointsPaceSchema,
+  passMapSchema,
 ]);
 
 export const stepSchema = z.object({

@@ -49,6 +49,11 @@ RULES = (
     " that season in v_league_table, or the team that finished second when Arsenal"
     " finished first. The claims take the points and the matches of each line from a"
     " run_sql of the same teams and seasons, grouped by team and season.",
+    "A pass_map draws the passes of one player, one row for each pass from v_passes, as the"
+    " example does. A long pass is 35 or more on the 120 x 80 pitch (about 32 m), measured"
+    " as sqrt((end_x - x)^2 + (end_y - y)^2). The claims take the pass count and the"
+    " completed count and % from a run_sql with the same filter. The summary says long"
+    " passes and does not give the 35, which no claim backs.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",
@@ -63,6 +68,8 @@ XG_TIMELINE_EXAMPLE = "The shots of both teams in one match, for an xg_timeline 
 XG_TOTALS_EXAMPLE = "The xG totals of both teams in the same match, for the claims"
 POINTS_PACE_EXAMPLE = "The league matches of Arsenal in both seasons, for a points_pace chart"
 POINTS_TOTALS_EXAMPLE = "The points and matches of the same lines, for the claims"
+PASS_MAP_EXAMPLE = "The long passes of one player in one season, for a pass_map chart"
+PASS_MAP_TOTALS_EXAMPLE = "The count and completion of the same passes, for the claims"
 
 LIVERPOOL_HOME = (
     "(SELECT match_id FROM v_matches WHERE season = '2003-04'"
@@ -93,6 +100,11 @@ TEAM_MATCHES = (
     " FROM v_league_matches) AS team_matches"
 )
 PACE_LINES = "(team, season) IN (('Arsenal', '2003-04'), ('Arsenal', '2025-26'))"
+# Both pass map examples read it, so the chart and its claims count the same passes.
+VIEIRA_LONG_PASSES = (
+    "FROM v_passes WHERE player = 'Patrick Vieira' AND season = '2003-04'"
+    " AND sqrt(power(end_x - x, 2) + power(end_y - y, 2)) >= 35"
+)
 
 # (what the query is for, the query). Each one must run on the views as they are:
 # a test runs them all.
@@ -163,6 +175,17 @@ SQL_EXAMPLES = (
         "SELECT team, season, count(*) AS matches, sum(CASE WHEN goals_for > goals_against"
         " THEN 3 WHEN goals_for = goals_against THEN 1 ELSE 0 END) AS points"
         f" FROM {TEAM_MATCHES} WHERE {PACE_LINES} GROUP BY team, season ORDER BY season",
+    ),
+    (
+        PASS_MAP_EXAMPLE,
+        "SELECT x, y, end_x, end_y, outcome, minute, opponent, player, recipient, season,"
+        f" match_date {VIEIRA_LONG_PASSES} ORDER BY match_date, period, minute, second",
+    ),
+    (
+        PASS_MAP_TOTALS_EXAMPLE,
+        "SELECT count(*) AS passes, count(*) FILTER (WHERE outcome IS NULL) AS completed,"
+        " round(100.0 * count(*) FILTER (WHERE outcome IS NULL) / NULLIF(count(*), 0), 1)"
+        f" AS completed_pct {VIEIRA_LONG_PASSES}",
     ),
 )
 

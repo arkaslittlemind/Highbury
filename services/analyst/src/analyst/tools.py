@@ -341,6 +341,9 @@ def build_chart(chart_type: charts.ChartType, sql: str, title: str) -> ChartResu
     points_pace: one row for each league match of each team and season to draw, with
     team, season, match_date, opponent, goals_for, goals_against. Each team and
     season is one line; Arsenal is one of them. The chart adds up the points.
+    pass_map: one row for each pass of one player from v_passes, with x, y, end_x,
+    end_y, outcome (null for a completed pass), minute, opponent, player. It also
+    takes recipient, season, match_date. Filter on one player.
     """
     try:
         title = charts.check_request(chart_type, title)

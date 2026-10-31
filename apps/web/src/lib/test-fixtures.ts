@@ -44,6 +44,27 @@ export const PASS_NETWORK = {
   edges: [{ source: "Patrick Vieira", target: "Robert Pires", passes: 9 }],
 };
 
+export const PASS = {
+  x: 40,
+  y: 30,
+  end_x: 90,
+  end_y: 10,
+  outcome: null,
+  minute: 12,
+  opponent: "Everton",
+  player: "Patrick Vieira",
+  recipient: "Thierry Henry",
+  season: "2003-04",
+  match_date: "2003-08-16",
+};
+
+export const PASS_MAP = {
+  type: "pass_map",
+  id: "chart_6",
+  title: "Patrick Vieira, long passes in 2003-04",
+  passes: [PASS, { ...PASS, outcome: "out", recipient: null, minute: 81 }],
+};
+
 export const XG_TIMELINE = {
   type: "xg_timeline",
   id: "chart_4",

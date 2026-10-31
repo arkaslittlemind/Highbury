@@ -422,6 +422,24 @@ def test_build_chart_gives_a_pass_network_from_the_grouped_passes(seeded):
     ]
 
 
+def test_build_chart_gives_a_pass_map_of_the_passes_of_one_player(seeded):
+    result = tools.build_chart(
+        "pass_map",
+        "SELECT x, y, end_x, end_y, outcome, minute, opponent, player, recipient FROM v_passes"
+        " WHERE player = 'Thierry Henry' ORDER BY x",
+        "Henry passes",
+    )
+
+    assert result.error is None
+    assert [
+        (arrow.x, arrow.end_y, arrow.outcome, arrow.recipient) for arrow in result.chart.passes
+    ] == [
+        (60.0, 40.0, None, "Robert Pirès"),
+        (80.0, 20.0, None, "Robert Pirès"),
+        (100.0, 70.0, "incomplete", None),
+    ]
+
+
 def test_build_chart_gives_a_points_pace_of_the_league_matches_of_each_team(seeded):
     result = tools.build_chart(
         "points_pace",

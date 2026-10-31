@@ -76,6 +76,13 @@ CATALOG = (
     ),
     (
         "2003-04",
+        "pass_maps",
+        True,
+        STATSBOMB,
+        "The passes of one player drawn as arrows, from v_passes.",
+    ),
+    (
+        "2003-04",
         "substitutions",
         True,
         STATSBOMB,
@@ -129,6 +136,13 @@ CATALOG = (
         False,
         None,
         f"{NO_EVENTS} Offer a 2003-04 pass network or a 2025-26 shot map instead.",
+    ),
+    (
+        "2025-26",
+        "pass_maps",
+        False,
+        None,
+        f"{NO_EVENTS} Offer a 2003-04 pass map or a 2025-26 shot map instead.",
     ),
     (
         "2025-26",

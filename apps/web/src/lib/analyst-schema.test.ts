@@ -10,6 +10,8 @@ import {
 import {
   ANSWER_DATA,
   COMPARE_BARS,
+  PASS,
+  PASS_MAP,
   PASS_NETWORK,
   POINTS_PACE,
   SHOT,
@@ -86,6 +88,20 @@ describe("a payload that the service cannot send", () => {
 
   it("rejects a pass_network node with no passes", () => {
     const chart = { ...PASS_NETWORK, nodes: [{ ...PASS_NETWORK.nodes[0], passes: 0 }] };
+    expect(chartSpecSchema.safeParse(chart).success).toBe(false);
+  });
+
+  it("reads a pass_map with completed and failed passes", () => {
+    expect(chartSpecSchema.safeParse(PASS_MAP).success).toBe(true);
+  });
+
+  it.each([
+    ["an end off the pitch", { end_x: 121 }],
+    ["an empty outcome", { outcome: "" }],
+    ["no player", { player: null }],
+    ["no outcome key", { outcome: undefined }],
+  ])("rejects a pass with %s", (_name, change) => {
+    const chart = { ...PASS_MAP, passes: [{ ...PASS, ...change }] };
     expect(chartSpecSchema.safeParse(chart).success).toBe(false);
   });
 

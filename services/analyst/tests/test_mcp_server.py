@@ -33,6 +33,7 @@ def test_the_server_lists_the_five_tools_with_what_a_client_needs():
         "pass_network",
         "xg_timeline",
         "points_pace",
+        "pass_map",
     ]
 
 

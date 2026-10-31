@@ -10,7 +10,9 @@ from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-ChartType = Literal["shot_map", "compare_bars", "pass_network", "xg_timeline", "points_pace"]
+ChartType = Literal[
+    "shot_map", "compare_bars", "pass_network", "xg_timeline", "points_pace", "pass_map"
+]
 
 MAX_TITLE = 120
 
@@ -108,6 +110,28 @@ class PassPair(Spec):
     until_minute: Minute | None = None
 
 
+class PassArrow(Spec):
+    x: PitchX
+    y: PitchY
+    end_x: PitchX
+    end_y: PitchY
+    # Null for a completed pass, as in v_passes. Otherwise the reason it failed.
+    outcome: Text | None
+    minute: Minute
+    opponent: Text
+    player: Text
+    recipient: str | None = None
+    season: str | None = None
+    match_date: str | None = None
+
+
+class PassMap(Spec):
+    type: Literal["pass_map"] = "pass_map"
+    id: str
+    title: str
+    passes: list[PassArrow]
+
+
 class TimelineRow(Spec):
     """One row of the query: one shot of the match."""
 
@@ -183,7 +207,7 @@ class PointsPace(Spec):
     lines: Annotated[list[PaceLine], Field(min_length=1, max_length=MAX_PACE_LINES)]
 
 
-Chart = ShotMap | CompareBars | PassNetwork | XgTimeline | PointsPace
+Chart = ShotMap | CompareBars | PassNetwork | XgTimeline | PointsPace | PassMap
 ChartSpec = Annotated[Chart, Field(discriminator="type")]
 
 Columns = Sequence[str]
@@ -226,6 +250,23 @@ def shot_map(columns: Columns, rows: Rows, title: str, chart_id: str) -> ShotMap
         "shot_map", columns, rows, ("x", "y", "xg", "outcome", "minute", "opponent")
     )
     return ShotMap(id=chart_id, title=title, shots=parse_rows(Shot, records))
+
+
+def pass_map(columns: Columns, rows: Rows, title: str, chart_id: str) -> PassMap:
+    records = to_records(
+        "pass_map",
+        columns,
+        rows,
+        ("x", "y", "end_x", "end_y", "outcome", "minute", "opponent", "player"),
+    )
+    passes = parse_rows(PassArrow, records)
+    for number, arrow in enumerate(passes, start=1):
+        if arrow.player != passes[0].player:
+            raise ChartRejected(
+                f"Row {number}: the player is {arrow.player} here and {passes[0].player} in"
+                " row 1. A pass_map draws the passes of one player; filter on one player."
+            )
+    return PassMap(id=chart_id, title=title, passes=passes)
 
 
 def is_chart_number(value: JsonValue) -> bool:
@@ -446,6 +487,7 @@ BUILDERS = {
     "pass_network": pass_network,
     "xg_timeline": xg_timeline,
     "points_pace": points_pace,
+    "pass_map": pass_map,
 }
 
 

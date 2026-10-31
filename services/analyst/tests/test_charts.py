@@ -28,6 +28,10 @@ def points_pace(columns, rows):
     return charts.build("points_pace", columns, rows, "Arsenal points pace", "c_00000005")
 
 
+def pass_map(columns, rows):
+    return charts.build("pass_map", columns, rows, "Vieira long passes", "c_00000006")
+
+
 def test_a_shot_map_has_one_shot_for_each_row_in_row_order():
     chart = shot_map(
         SHOT_COLUMNS,
@@ -621,13 +625,103 @@ def test_a_points_pace_rejects_lines_that_are_not_an_arsenal_comparison(rows, re
     assert str(rejected.value) == reason
 
 
+ARROW_COLUMNS = ["x", "y", "end_x", "end_y", "outcome", "minute", "opponent", "player"]
+VIEIRA_PASS = [40.0, 30.0, 90.0, 10.0, None, 12, "Everton", "Patrick Vieira"]
+
+
+def test_a_pass_map_has_one_arrow_for_each_pass_in_row_order():
+    chart = pass_map(
+        [*ARROW_COLUMNS, "recipient", "match_date"],
+        [
+            [*VIEIRA_PASS, "Thierry Henry", "2003-08-16"],
+            [60, 70, 120, 0, "out", 81, "Leeds United", "Patrick Vieira", None, None],
+        ],
+    )
+
+    assert (chart.type, chart.id, chart.title) == ("pass_map", "c_00000006", "Vieira long passes")
+    assert [arrow.model_dump() for arrow in chart.passes] == [
+        {
+            "x": 40.0,
+            "y": 30.0,
+            "end_x": 90.0,
+            "end_y": 10.0,
+            "outcome": None,
+            "minute": 12,
+            "opponent": "Everton",
+            "player": "Patrick Vieira",
+            "recipient": "Thierry Henry",
+            "season": None,
+            "match_date": "2003-08-16",
+        },
+        {
+            "x": 60.0,
+            "y": 70.0,
+            "end_x": 120.0,
+            "end_y": 0.0,
+            "outcome": "out",
+            "minute": 81,
+            "opponent": "Leeds United",
+            "player": "Patrick Vieira",
+            "recipient": None,
+            "season": None,
+            "match_date": None,
+        },
+    ]
+
+
+@pytest.mark.parametrize(
+    ("columns", "row", "reason"),
+    [
+        (
+            ARROW_COLUMNS[:4] + ARROW_COLUMNS[5:],
+            [40.0, 30.0, 90.0, 10.0, 12, "Everton", "Patrick Vieira"],
+            "A pass_map chart needs the columns x, y, end_x, end_y, outcome, minute,"
+            " opponent, player. Missing: outcome.",
+        ),
+        (
+            ARROW_COLUMNS,
+            [40.0, 30.0, 90.0, 10.0, None, 30, "Everton", "Thierry Henry"],
+            "Row 2: the player is Thierry Henry here and Patrick Vieira in row 1."
+            " A pass_map draws the passes of one player; filter on one player.",
+        ),
+        (
+            ARROW_COLUMNS,
+            [40.0, 30.0, 121.0, 10.0, None, 30, "Everton", "Patrick Vieira"],
+            "Row 2, column end_x:",
+        ),
+        (
+            ARROW_COLUMNS,
+            [40.0, 30.0, 90.0, 80.5, None, 30, "Everton", "Patrick Vieira"],
+            "Row 2, column end_y:",
+        ),
+        (
+            ARROW_COLUMNS,
+            [40.0, 30.0, 90.0, 10.0, "", 30, "Everton", "Patrick Vieira"],
+            "Row 2, column outcome:",
+        ),
+        (
+            ARROW_COLUMNS,
+            [40.0, 30.0, 90.0, 10.0, None, 30, "Everton", None],
+            "Row 2, column player:",
+        ),
+    ],
+)
+def test_a_pass_map_rejects_rows_that_are_not_passes_of_one_player(columns, row, reason):
+    good = [c for name, c in zip(ARROW_COLUMNS, VIEIRA_PASS, strict=True) if name in columns]
+
+    with pytest.raises(charts.ChartRejected) as rejected:
+        pass_map(columns, [good, row])
+
+    assert str(rejected.value).startswith(reason)
+
+
 def test_an_unknown_chart_type_names_the_known_types():
     with pytest.raises(charts.ChartRejected) as rejected:
         charts.build("pie", SHOT_COLUMNS, [], "Henry shots", "c_00000001")
 
     assert str(rejected.value) == (
         "Unknown chart type 'pie'. Known types: shot_map, compare_bars, pass_network,"
-        " xg_timeline, points_pace."
+        " xg_timeline, points_pace, pass_map."
     )
 
 
@@ -661,6 +755,7 @@ def test_a_chart_survives_the_trip_through_json():
         pass_network(WINDOW_COLUMNS, [["Patrick Vieira", "Thierry Henry", 2, 10.0, 10.0, 71]]),
         xg_timeline(TIMELINE_COLUMNS, [[7, "Arsenal", "Liverpool", 31, 0.45, True, "Henry"]]),
         points_pace(PACE_COLUMNS, [["Arsenal", "2003-04", "2003-08-16", "Everton", 2, 1]]),
+        pass_map(ARROW_COLUMNS, [VIEIRA_PASS]),
     ]
 
     for chart in built:
