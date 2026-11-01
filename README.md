@@ -6,7 +6,7 @@ queries a curated Postgres database, draws an interactive chart, and checks
 every number against the data before you see it. When the data cannot answer,
 it says so.
 
-**Try it first, with nothing to install:** [highbury-sigma.vercel.app](https://highbury-sigma.vercel.app).
+**Try it first, with nothing to install:** [highbury.arkaslittlemind.com](https://highbury.arkaslittlemind.com).
 Click an example question to see a verified answer.
 
 Built by Arkadipta Mojumder ([GitHub](https://github.com/arkaslittlemind),
@@ -41,16 +41,25 @@ Every answer shows:
 - **A verification badge**, such as "6 of 6 claims verified". Each claim links
   to the exact query that produced it.
 - **The working**: the tools the agent called and the SQL it ran.
-- **A chart**: a shot map, comparison bars, a pass network, an xG timeline of
-  one match, or a points-pace line, with a text summary under it.
+- **A chart** when the question calls for one: a shot map, comparison bars, a
+  pass network, a pass map, a touch heatmap, an xG timeline of one match, or a
+  points-pace line, with a text summary under it.
 - **Caveats** where they matter. For example, the two seasons use different xG
   models, so the comparison says so.
+
+Two of the 2003-04 charts, from live answers: Patrick Vieira's 190 long passes,
+and Thierry Henry's 2,218 touches counted in zones of the pitch.
+
+<p>
+  <img src="docs/pass-map.png" alt="Pass map of Patrick Vieira's 190 long passes in 2003-04: solid arrows for the 129 completed, dashed for the incomplete" width="49%">
+  <img src="docs/heatmap.png" alt="Touch heatmap of Thierry Henry in 2003-04: 2,218 touches in zones of the pitch, busiest on the left of the final third" width="49%">
+</p>
 
 ## What it shows
 
 | Capability | How it works |
 | --- | --- |
-| Answers from real data | An agent plans the question with the data catalog and the schema already in its prompt, then calls three tools: a player resolver, a SQL runner, and a chart builder. The data covers shots, passes, and lineups, all 380 league matches of both seasons with team stats and the table, and FPL player data for 2025-26. |
+| Answers from real data | An agent plans the question with the data catalog and the schema already in its prompt, then calls three tools: a player resolver, a SQL runner, and a chart builder. For 2003-04 the data has every on-ball event (shots, passes, dribbles, duels, clearances, interceptions, recoveries, blocks), lineups, and advanced metrics such as chances created, aerial duels, pass accuracy, and long balls. For 2025-26 it has shots, player match stats with chances created, and FPL player data with saves, tackles, and recoveries. Both seasons have all 380 league matches with team stats and the table. |
 | Does not invent numbers | A verifier written in plain code, not another LLM, checks each claimed number against the rows of the query it cites. Unsupported claims are removed. |
 | Knows what it does not know | The agent checks the data catalog in its prompt before a claim about a season. Ask for Saka's 2025-26 pass map and it says there is no pass data for that season, then offers his shot map. |
 | Stays in scope | "Who will win the Champions League?" is declined with no database call. |
@@ -73,7 +82,7 @@ both of its runs, and it failed the conversation follow-up 2 times in 9 earlier 
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
-The suite has **944 Python tests** and **263 web unit tests**.
+The suite has **998 Python tests** and **300 web unit tests**.
 
 ## Architecture
 
@@ -112,6 +121,10 @@ flowchart LR
 - **Flat views for the model.** The agent queries pre-joined views such as
   `v_shots` and `v_player_season` instead of writing multi-table joins. Fewer
   wrong joins, less flexibility.
+- **A chart and its claims share one filter.** The pass map and its claims
+  count the same passes, so the drawing and the verified numbers cannot
+  disagree. The heatmap counts its zones in SQL, so a full season fits the
+  500-row cap.
 - **Model as configuration.** One environment variable names the model, so the
   evals compare models on the same questions.
 - **Few sources, honest catalog.** Four open sources, and a catalog that says
@@ -150,7 +163,7 @@ study document for every finished feature and fix is in
 
 ## Run it locally
 
-You do not need this to try Highbury: the [live app](https://highbury-sigma.vercel.app)
+You do not need this to try Highbury: the [live app](https://highbury.arkaslittlemind.com)
 runs the same code. Run it locally to read, change, or extend it.
 
 **You need:**
@@ -208,12 +221,16 @@ server, and the deploy.
 
 - **Two seasons only.** Highbury knows Arsenal in 2003-04 and 2025-26, nothing
   else. More seasons are a planned extension.
-- **Different depth for each season.** 2025-26 has shots and league data but no
-  pass or pressure events. The agent says so and offers what it has.
+- **Different depth for each season.** 2003-04 has every on-ball event. 2025-26
+  has shots, player match stats, league data, and FPL counts, but no open source
+  has its events. So 2025-26 has no pass map, heatmap, pass network, duels,
+  aerial duels, pass accuracy, long balls, or pressures. The agent says so and
+  offers what it has.
 - **The verifier checks numbers, not opinions.** It cannot judge a claim like
   "Henry was better" and it rejects some loose but correct phrasing.
-- **An answer takes 30 seconds or so.** The default model favours reliability
-  over speed. The evals show a faster model that is less reliable.
+- **An answer takes 20 to 30 seconds.** The latest evals give a median of 24
+  seconds. The default model favours reliability over speed. The evals show a
+  faster model that is less reliable.
 - **No automatic checks on pull requests yet.** The tests run locally.
 
 ## Contributing
@@ -249,11 +266,13 @@ Data:
 
 - [StatsBomb Open Data](https://github.com/statsbomb/open-data) for the 2003-04
   events and shots.
-- [Understat](https://understat.com) for the 2025-26 shots.
+- [Understat](https://understat.com) for the 2025-26 shots and per-match player
+  stats, key passes included.
 - [football-data.co.uk](https://www.football-data.co.uk) for every league match
   and team match stats of both seasons.
 - The [Fantasy Premier League archive](https://github.com/vaastav/Fantasy-Premier-League)
-  of vaastav for the 2025-26 per-match player data.
+  of vaastav for the 2025-26 per-match player data, with saves, bonus points,
+  and defensive counts.
 
 Raw data is not redistributed in this repository; the loaders download and cache
 it locally.
