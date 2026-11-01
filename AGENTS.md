@@ -81,6 +81,7 @@ Run Python and database commands from the repository root.
 - Evals: `uv run --env-file .env evals` (asks the 32 questions of `evals/golden.yaml` on each model of `evals/models.yaml`, 2 runs each, and writes `evals/runs/` and `evals/results.md`; needs the local database and the key of each provider; every question costs money. `--only q01 --runs 1` for one question, `--model <id>` for one model, `--pause 60` between questions for a per-minute limit, `--report` to write `results.md` again with no model call)
 - MCP server: `uv run --env-file .env python -m analyst.mcp_server` (the five data tools over stdio; it waits for an MCP client and prints nothing by itself)
 - MCP Inspector: `npx @modelcontextprotocol/inspector --config services/analyst/mcp.json --server highbury` (web UI; needs Node. For terminal output add `--cli --method tools/list` after `inspector`. The config file is needed because the Inspector does not pass flags such as `--env-file` from an inline command)
+- Dependency audit (Python): `uv export --all-packages --no-dev --no-hashes --no-emit-workspace --format requirements-txt -o <temp>/requirements.txt`, then `uvx pip-audit -r <temp>/requirements.txt` (uvx runs pip-audit in a throwaway environment, so it is not a project dependency; fix a finding with `uv lock --upgrade-package <name>`)
 - Python lint: `uv run ruff check .`
 - Python format: `uv run ruff format .`
 - Test: `uv run --env-file .env pytest` (Python only; needs the local database running)
@@ -93,6 +94,7 @@ Run web commands from `apps/web`.
 - Build: `pnpm build`
 - Production server: `pnpm start`
 - Lint: `pnpm lint`
+- Dependency audit (web): `pnpm audit --audit-level high` (the `shadcn` CLI and `eslint` bring most findings, and they do not ship; a fix for a nested package goes under `overrides` in `pnpm-workspace.yaml`)
 - Web test: `pnpm test` (Vitest, one run; the unit tests are the `src/**/*.test.ts` files and need no database and no API)
 - Web test watch: `pnpm test:watch`
 - Deploy the web: push to `main`. The Vercel project `highbury` is connected to the GitHub repository, and each push to `main` builds `apps/web` (the Root Directory of the project) and replaces production. `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` for production are set on the project; `vercel.json` names the framework because the project was not made by auto-detection. A push to `main` changes production, so ask first. Do not run `vercel deploy` from `apps/web`: with the Root Directory set, the command looks for `apps/web/apps/web`. The Content-Security-Policy of `next.config.ts` lets the page reach only its own origin, `NEXT_PUBLIC_API_URL`, Cloudflare Turnstile, and the Cloudflare Web Analytics script that the Cloudflare proxy injects, so a new external script, frame, or API origin needs a change in `src/lib/security-headers.ts`. `/index.md` (also `/` with `Accept: text/markdown`), `/llms.txt`, and `/llms-full.txt` give AI agents a text copy of the page; their facts come from `src/lib/landing-content.ts`, the same copy the page renders, so change the landing text there
