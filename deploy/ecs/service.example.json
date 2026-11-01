@@ -28,6 +28,10 @@
       {
         "name": "GOOGLE_API_KEY",
         "valueFrom": "arn:aws:ssm:<region>:<account id>:parameter/highbury/GOOGLE_API_KEY"
+      },
+      {
+        "name": "TURNSTILE_SECRET_KEY",
+        "valueFrom": "arn:aws:ssm:<region>:<account id>:parameter/highbury/TURNSTILE_SECRET_KEY"
       }
     ]
   }

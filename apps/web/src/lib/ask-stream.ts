@@ -26,7 +26,7 @@ export type AskEvent =
   | { type: "answer"; data: AnswerData }
   | { type: "failure"; failure: AskFailure };
 
-export type AskBody = { question: string; conversation_id?: string };
+export type AskBody = { question: string; conversation_id?: string; turnstile_token?: string };
 
 const UNEXPECTED: AskEvent = { type: "failure", failure: { kind: "unexpected" } };
 

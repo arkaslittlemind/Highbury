@@ -1,5 +1,6 @@
 "use client";
 
+import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 import { AnswerPanel } from "@/components/ask/answer-panel";
@@ -13,11 +14,19 @@ import { StepList } from "@/components/ask/step-list";
 import { useAnswerHistory } from "@/hooks/use-answer-history";
 import { useAsk } from "@/hooks/use-ask";
 import { useSuggestions } from "@/hooks/use-suggestions";
+import { TURNSTILE_SCRIPT, useTurnstile } from "@/hooks/use-turnstile";
+
+type AskPageProps = {
+  apiUrl: string;
+  // With no key the page has no bot check, and the API refuses each question.
+  turnstileSiteKey: string | undefined;
+};
 
 /** The Ask the Analyst page: one question and its answer at a time. */
-export function AskPage({ apiUrl }: { apiUrl: string }) {
+export function AskPage({ apiUrl, turnstileSiteKey }: AskPageProps) {
   const suggestions = useSuggestions(apiUrl);
-  const { state, ask, backToBar, reset } = useAsk(apiUrl);
+  const { container, getToken, onScriptLoad, onScriptError } = useTurnstile(turnstileSiteKey);
+  const { state, checking, ask, backToBar, reset } = useAsk(apiUrl, getToken);
   const titleRef = useRef<HTMLHeadingElement>(null);
   // The landing screen plays its enter motion until the first question.
   const [asked, setAsked] = useState(false);
@@ -32,22 +41,42 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
     if (settled) titleRef.current?.focus();
   }, [settled]);
 
+  // The same element in each phase, so the widget stays when the screen changes.
+  // It is empty for most visitors. Cloudflare puts a checkbox in it only for a
+  // visitor whom it must ask, and the step list waits above it.
+  const bot = (
+    <>
+      {turnstileSiteKey && (
+        <Script
+          src={TURNSTILE_SCRIPT}
+          onReady={onScriptLoad}
+          onError={onScriptError}
+        />
+      )}
+      <div ref={container} className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2" />
+    </>
+  );
+
   if (state.phase === "idle") {
     return (
-      <Landing
-        suggestions={suggestions}
-        draft={state.draft}
-        intro={!asked}
-        onAsk={(question) => {
-          setAsked(true);
-          ask(question, { asNew: true });
-        }}
-      />
+      <>
+        {bot}
+        <Landing
+          suggestions={suggestions}
+          draft={state.draft}
+          intro={!asked}
+          onAsk={(question) => {
+            setAsked(true);
+            ask(question, { asNew: true });
+          }}
+        />
+      </>
     );
   }
 
   return (
     <>
+      {bot}
       <SiteHeader onNewQuestion={reset} />
       <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-8 px-4 pt-8 pb-16 sm:px-10 sm:pt-12">
         {state.phase === "asking" && (
@@ -59,6 +88,7 @@ export function AskPage({ apiUrl }: { apiUrl: string }) {
               <StepList
                 steps={state.turn.steps}
                 startedAt={state.turn.startedAt}
+                checking={checking}
                 onStop={backToBar}
               />
               <AnswerSkeleton />

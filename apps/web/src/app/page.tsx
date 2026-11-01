@@ -5,11 +5,12 @@ import { StateCard } from "@/components/ask/state-card";
 export default function Home() {
   // Next.js puts the value into the bundle at build time. A change needs a new build.
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   return (
     <>
       {apiUrl ? (
-        <AskPage apiUrl={apiUrl} />
+        <AskPage apiUrl={apiUrl} turnstileSiteKey={turnstileSiteKey} />
       ) : (
         <>
           <SiteHeader />

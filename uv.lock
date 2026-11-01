@@ -20,6 +20,7 @@ version = "0.1.0"
 source = { editable = "services/analyst" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-google-genai" },
     { name = "langgraph" },
@@ -36,6 +37,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "langchain", specifier = ">=1.0" },
     { name = "langchain-google-genai", specifier = ">=3" },
     { name = "langgraph", specifier = ">=1.0" },

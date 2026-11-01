@@ -29,6 +29,23 @@ WEB = "http://localhost:3000"
 QUESTION = "Show me Henry's shots."
 SUGGESTION = "Show me Thierry Henry's shots in 2003-04."
 CHART = {"chart_type": "shot_map", "sql": SHOTS_SQL, "title": "Henry"}
+# The token that the fake Cloudflare of the tests accepts.
+TOKEN = "a-valid-token"
+
+
+class FakeCloudflare:
+    """Gives a verdict on each token like siteverify, and keeps each call."""
+
+    def __init__(self, down: bool = False) -> None:
+        self.down = down
+        self.calls: list[tuple[str, str]] = []
+
+    def __call__(self, token: str, address: str) -> str:
+        self.calls.append((token, address))
+        if self.down:
+            return "unavailable"
+        return "passed" if token == TOKEN else "failed"
+
 
 Serve = Callable[..., tuple[TestClient, ScriptedModel]]
 
@@ -55,6 +72,7 @@ def serve(seeded, api_env) -> Serve:
             ANALYST_OUTPUT_USD_PER_MTOK=output_price,
         )
         model = ScriptedModel(replies=list(replies))
+        options.setdefault("verify_token", FakeCloudflare())
         return TestClient(api.create_app(model, **options)), model
 
     return start
@@ -76,7 +94,7 @@ def events(response: Any) -> list[tuple[str, dict]]:
 
 
 def ask(client: TestClient, question: str = QUESTION, **more) -> Any:
-    return client.post("/api/ask", json={"question": question, **more})
+    return client.post("/api/ask", json={"question": question, "turnstile_token": TOKEN, **more})
 
 
 def conversation(response: Any) -> str:
@@ -391,7 +409,7 @@ JSON_BODY = {"Content-Type": "application/json"}
 
 def body_of(size: int) -> bytes:
     """A valid question in a JSON body of exactly this number of bytes."""
-    body = json.dumps({"question": QUESTION}).encode()
+    body = json.dumps({"question": QUESTION, "turnstile_token": TOKEN}).encode()
     # JSON permits space after the value.
     return body + b" " * (size - len(body))
 
@@ -1199,7 +1217,9 @@ def test_the_web_page_can_read_the_wait_of_a_429(serve):
     client, _ = serve(answer(), limit=1)
     ask(client)
 
-    refused = client.post("/api/ask", json={"question": QUESTION}, headers={"Origin": WEB})
+    refused = client.post(
+        "/api/ask", json={"question": QUESTION, "turnstile_token": TOKEN}, headers={"Origin": WEB}
+    )
 
     assert refused.status_code == 429
     assert refused.headers["retry-after"] == "60"
@@ -1306,3 +1326,114 @@ def test_a_step_leaves_while_the_turn_still_runs(serve):
     assert still_running
     assert out.get_nowait().startswith("event: answer\n")
     assert out.get_nowait() is None
+
+
+def test_a_question_with_a_valid_token_gets_its_answer(serve):
+    cloudflare = FakeCloudflare()
+    client, _ = serve(answer(), verify_token=cloudflare)
+
+    response = ask(client)
+
+    assert response.status_code == 200
+    assert events(response)[-1][0] == "answer"
+    assert cloudflare.calls == [(TOKEN, "testclient")]
+
+
+@pytest.mark.parametrize("token", [None, "", "a-made-up-token"])
+def test_a_question_with_no_token_or_a_bad_one_gets_403_and_counts_nothing(serve, token):
+    client, model = serve(answer())
+
+    response = ask(client, turnstile_token=token)
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": api.BOT_CHECK_FAILED}
+    assert model.seen == []
+    service = client.app.state.service
+    assert (service.daily.total, service.active) == (0, 0)
+
+
+def test_a_missing_token_is_not_sent_to_cloudflare(serve):
+    cloudflare = FakeCloudflare()
+    client, _ = serve(verify_token=cloudflare)
+
+    ask(client, turnstile_token=None)
+
+    assert cloudflare.calls == []
+
+
+def test_a_token_over_the_length_of_cloudflare_gets_422(serve):
+    client, model = serve(answer())
+
+    response = ask(client, turnstile_token="t" * (api.MAX_TOKEN_LENGTH + 1))
+
+    assert response.status_code == 422
+    assert model.seen == []
+
+
+def test_a_question_when_cloudflare_does_not_answer_gets_503_and_counts_nothing(serve):
+    client, model = serve(answer(), verify_token=FakeCloudflare(down=True))
+
+    response = ask(client)
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": api.BOT_CHECK_UNAVAILABLE}
+    assert model.seen == []
+    assert client.app.state.service.daily.total == 0
+
+
+def test_a_kept_suggestion_needs_a_token_too(serve):
+    client, _ = serve(answer())
+    assert ask(client, SUGGESTION).status_code == 200
+
+    response = ask(client, SUGGESTION, turnstile_token=None)
+
+    assert response.status_code == 403
+
+
+def test_a_follow_up_needs_a_token_too(serve):
+    client, model = serve(answer(), answer())
+    first = conversation(ask(client))
+
+    response = ask(client, conversation_id=first, turnstile_token=None)
+
+    assert response.status_code == 403
+    assert len(model.seen) == 1
+
+
+def test_a_question_over_the_rate_limit_is_not_sent_to_cloudflare(serve):
+    cloudflare = FakeCloudflare()
+    client, _ = serve(answer(), limit=1, verify_token=cloudflare)
+    ask(client)
+
+    response = ask(client)
+
+    assert response.status_code == 429
+    assert len(cloudflare.calls) == 1
+
+
+def test_the_web_page_can_read_a_403(serve):
+    client, _ = serve()
+
+    response = client.post("/api/ask", json={"question": QUESTION}, headers={"Origin": WEB})
+
+    assert response.status_code == 403
+    assert response.headers["access-control-allow-origin"] == WEB
+
+
+def test_with_no_fake_the_app_sends_the_secret_of_the_settings_to_cloudflare(
+    seeded, api_env, monkeypatch
+):
+    api_env(TURNSTILE_SECRET_KEY="the-real-secret", RATE_LIMIT_PER_MINUTE="1000")
+    seen = []
+
+    def verify(client, secret, token, address):
+        seen.append((secret, token, address))
+        return "failed"
+
+    monkeypatch.setattr(api.turnstile, "verify", verify)
+    client = TestClient(api.create_app(ScriptedModel(replies=[])))
+
+    response = ask(client)
+
+    assert response.status_code == 403
+    assert seen == [("the-real-secret", TOKEN, "testclient")]

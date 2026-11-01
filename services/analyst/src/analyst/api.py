@@ -24,7 +24,7 @@ from pydantic import BaseModel, JsonValue, StringConstraints
 from pydantic_core import to_json
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from analyst import agent
+from analyst import agent, turnstile
 from analyst.answer import Answer, ToolRecord
 from analyst.settings import ApiSettings, api_settings
 from analyst.verifier import Verification
@@ -51,8 +51,12 @@ OTHER_STEP_LABEL = "Working"
 # The question goes to a paid model, so its length has a limit.
 MAX_QUESTION_LENGTH = 500
 
-# The largest valid body is about 6 KB: a question of 500 characters, where JSON
-# can write one character as 12 bytes, plus the conversation id and the keys.
+# Cloudflare gives a token of up to 2048 characters.
+MAX_TOKEN_LENGTH = 2048
+
+# The largest valid body is about 8 KB: a question of 500 characters, where JSON
+# can write one character as 12 bytes, plus the token, the conversation id and
+# the keys.
 MAX_BODY_BYTES = 16 * 1024
 
 # Each conversation holds the rows of its queries, and the service is public.
@@ -77,6 +81,14 @@ TOO_LARGE = "The request body is too large."
 ADDRESS_LIMIT = "You have asked {limit} questions today. Come back tomorrow."
 SITE_LIMIT = "Highbury has answered all the questions it can today. Come back tomorrow."
 SERVICE_BUSY = "Highbury is busy. Try again in a minute."
+BOT_CHECK_FAILED = (
+    "The bot check did not pass. If you use an ad blocker or privacy extension, "
+    "allow challenges.cloudflare.com, then try again."
+)
+BOT_CHECK_UNAVAILABLE = "The bot check is not available. Try again in a few minutes."
+
+# Asks Cloudflare about a token for an address.
+VerifyToken = Callable[[str, str], turnstile.Verdict]
 
 
 class AskRequest(BaseModel):
@@ -86,6 +98,9 @@ class AskRequest(BaseModel):
     ]
     # The id that an answer event gave. With no id, the question starts a conversation.
     conversation_id: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")] | None = None
+    # Optional here so that a question with no token gets the 403 that the page
+    # can show, and not a 422.
+    turnstile_token: Annotated[str, StringConstraints(max_length=MAX_TOKEN_LENGTH)] | None = None
 
 
 class StepData(BaseModel):
@@ -403,11 +418,13 @@ class Service:
         settings: ApiSettings,
         clock: Callable[[], float],
         max_conversations: int,
+        verify_token: VerifyToken,
         today: Callable[[], date] = utc_today,
         max_active_turns: int = MAX_ACTIVE_TURNS,
     ) -> None:
         self.graph = graph
         self.settings = settings
+        self.verify_token = verify_token
         self.clock = clock
         self.limiter = RateLimiter(settings.rate_limit_per_minute, clock)
         self.daily = DailyLimits(
@@ -590,19 +607,31 @@ def create_app(
     max_conversations: int = MAX_CONVERSATIONS,
     today: Callable[[], date] = utc_today,
     max_active_turns: int = MAX_ACTIVE_TURNS,
+    verify_token: VerifyToken | None = None,
 ) -> FastAPI:
     """Return the app. With no model, the model is the one that ANALYST_MODEL names.
+
+    With no verify_token, each token goes to Cloudflare with the secret of the
+    settings. A test gives its own, so that it calls no network.
 
     This is a factory so that an import of the module reads no environment. It
     checks the settings and builds the agent, so a bad environment stops the
     start and not the first question.
     """
     settings = api_settings()
+    if verify_token is None:
+        client = turnstile.make_client()
+        secret = settings.turnstile_secret_key.get_secret_value()
+
+        def verify_token(token: str, address: str) -> turnstile.Verdict:
+            return turnstile.verify(client, secret, token, address)
+
     service = Service(
         agent.build_agent(model),
         settings,
         clock,
         max_conversations,
+        verify_token,
         today=today,
         max_active_turns=max_active_turns,
     )
@@ -656,6 +685,19 @@ def create_app(
                 f"Too many questions. Try again in {seconds} seconds.",
                 {"Retry-After": str(seconds)},
             )
+        # After the rate limit, so that a flood is not a flood of calls to
+        # Cloudflare. Before the daily limits, so that a refusal counts nothing.
+        # Each question needs a token, a kept suggestion too: it is free, but it
+        # makes a conversation, and its follow-up calls the model. When
+        # Cloudflare does not answer, the question is refused: an answer then
+        # would let any made-up token through for as long as Cloudflare is away.
+        if not body.turnstile_token:
+            raise HTTPException(403, BOT_CHECK_FAILED)
+        verdict = service.verify_token(body.turnstile_token, address)
+        if verdict == "unavailable":
+            raise HTTPException(503, BOT_CHECK_UNAVAILABLE)
+        if verdict != "passed":
+            raise HTTPException(403, BOT_CHECK_FAILED)
         new = body.conversation_id is None
         # A kept suggestion calls no model, so the daily limits and the slots are
         # only for the other questions.

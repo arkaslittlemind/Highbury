@@ -1,4 +1,5 @@
 import pytest
+from pydantic import SecretStr
 
 from analyst.settings import ApiSettings, SettingsError, api_settings, get_settings, model_name
 
@@ -56,6 +57,7 @@ def test_the_api_settings_come_from_the_environment(analyst_url, api_env):
         RATE_LIMIT_PER_MINUTE="5",
         DAILY_LIMIT_PER_ADDRESS="10",
         DAILY_LIMIT_TOTAL="250",
+        TURNSTILE_SECRET_KEY="the-secret",
         ANALYST_INPUT_USD_PER_MTOK="0.30",
         ANALYST_OUTPUT_USD_PER_MTOK="2.5",
     )
@@ -65,6 +67,7 @@ def test_the_api_settings_come_from_the_environment(analyst_url, api_env):
         rate_limit_per_minute=5,
         daily_limit_per_address=10,
         daily_limit_total=250,
+        turnstile_secret_key=SecretStr("the-secret"),
         input_usd_per_mtok=0.3,
         output_usd_per_mtok=2.5,
     )
@@ -87,6 +90,7 @@ def test_each_missing_api_variable_is_named(analyst_url, api_env):
         RATE_LIMIT_PER_MINUTE="",
         DAILY_LIMIT_PER_ADDRESS=None,
         DAILY_LIMIT_TOTAL="",
+        TURNSTILE_SECRET_KEY="  ",
     )
 
     with pytest.raises(SettingsError) as error:
@@ -94,8 +98,19 @@ def test_each_missing_api_variable_is_named(analyst_url, api_env):
 
     assert str(error.value) == (
         "CORS_ORIGINS is not set, RATE_LIMIT_PER_MINUTE is not set, "
-        "DAILY_LIMIT_PER_ADDRESS is not set, DAILY_LIMIT_TOTAL is not set"
+        "DAILY_LIMIT_PER_ADDRESS is not set, DAILY_LIMIT_TOTAL is not set, "
+        "TURNSTILE_SECRET_KEY is not set"
     )
+
+
+def test_the_turnstile_secret_is_not_in_the_repr_of_the_settings(analyst_url, api_env):
+    analyst_url(URL)
+    api_env(TURNSTILE_SECRET_KEY="the-secret")
+
+    settings = api_settings()
+
+    assert settings.turnstile_secret_key.get_secret_value() == "the-secret"
+    assert "the-secret" not in repr(settings)
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "5.5", "five", "1e2"])

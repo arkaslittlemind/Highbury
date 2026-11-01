@@ -4,7 +4,7 @@ import math
 from functools import lru_cache
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 INPUT_PRICE = "ANALYST_INPUT_USD_PER_MTOK"
@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: str | None = None
     daily_limit_per_address: str | None = None
     daily_limit_total: str | None = None
+    turnstile_secret_key: str | None = None
     analyst_input_usd_per_mtok: str | None = None
     analyst_output_usd_per_mtok: str | None = None
 
@@ -40,6 +41,8 @@ class ApiSettings(BaseModel):
     # The paid questions of one address, and of all addresses, in one UTC day.
     daily_limit_per_address: int
     daily_limit_total: int
+    # The secret of the Turnstile widget. SecretStr keeps it out of a repr.
+    turnstile_secret_key: SecretStr
     # US dollars for one million tokens. None when the price is not known.
     input_usd_per_mtok: float | None
     output_usd_per_mtok: float | None
@@ -104,6 +107,7 @@ def api_settings() -> ApiSettings:
         "RATE_LIMIT_PER_MINUTE": whole_number,
         "DAILY_LIMIT_PER_ADDRESS": whole_number,
         "DAILY_LIMIT_TOTAL": whole_number,
+        "TURNSTILE_SECRET_KEY": str,
         INPUT_PRICE: price,
         OUTPUT_PRICE: price,
     }
@@ -115,6 +119,7 @@ def api_settings() -> ApiSettings:
         "RATE_LIMIT_PER_MINUTE",
         "DAILY_LIMIT_PER_ADDRESS",
         "DAILY_LIMIT_TOTAL",
+        "TURNSTILE_SECRET_KEY",
     }
     if texts[INPUT_PRICE] or texts[OUTPUT_PRICE]:
         # One price with no second price gives a cost that is too low, with no sign of it.
@@ -132,6 +137,7 @@ def api_settings() -> ApiSettings:
         rate_limit_per_minute=values["RATE_LIMIT_PER_MINUTE"],
         daily_limit_per_address=values["DAILY_LIMIT_PER_ADDRESS"],
         daily_limit_total=values["DAILY_LIMIT_TOTAL"],
+        turnstile_secret_key=SecretStr(values["TURNSTILE_SECRET_KEY"]),
         input_usd_per_mtok=values[INPUT_PRICE],
         output_usd_per_mtok=values[OUTPUT_PRICE],
     )

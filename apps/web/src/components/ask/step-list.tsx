@@ -11,6 +11,8 @@ type StepListProps = {
   steps: Step[];
   // The time of performance.now() when the question went out.
   startedAt: number;
+  // The bot check of the question is slow, and no step has come yet.
+  checking: boolean;
   onStop: () => void;
 };
 
@@ -23,7 +25,7 @@ function useNow(start: number): number {
   return now;
 }
 
-export function StepList({ steps, startedAt, onStop }: StepListProps) {
+export function StepList({ steps, startedAt, checking, onStop }: StepListProps) {
   const now = useNow(startedAt);
   // The service says when a tool call starts and not when it ends, so only the
   // newest step can still run.
@@ -71,7 +73,10 @@ export function StepList({ steps, startedAt, onStop }: StepListProps) {
         ))}
       </ol>
       {steps.length === 0 && (
-        <p className="py-3 text-sm text-muted-foreground">Waiting for the first step.</p>
+        // A live region, so that a screen reader hears why the wait is long.
+        <p role="status" className="py-3 text-sm text-muted-foreground">
+          {checking ? "Checking your browser." : "Waiting for the first step."}
+        </p>
       )}
       <Button
         variant="outline"

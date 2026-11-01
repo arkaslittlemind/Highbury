@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { failureFromResponse, readEvents, type AskEvent } from "@/lib/ask-stream";
+import { askStream, failureFromResponse, readEvents, type AskEvent } from "@/lib/ask-stream";
 import { ANSWER_DATA, SHOT, SHOT_MAP, STEP, sse } from "@/lib/test-fixtures";
 
 async function eventsOf(...chunks: string[]): Promise<AskEvent[]> {
@@ -109,11 +109,47 @@ describe("failureFromResponse", () => {
   });
 
   it.each([
+    [
+      403,
+      "The bot check did not pass. If you use an ad blocker or privacy extension, " +
+        "allow challenges.cloudflare.com, then try again.",
+    ],
+    [503, "The bot check is not available. Try again in a few minutes."],
+  ])("gives the text of a bot check refusal with %i", (status, detail) => {
+    expect(failureFromResponse(status, null, { detail })).toEqual({
+      kind: "http",
+      message: detail,
+    });
+  });
+
+  it.each([
     ["a list", { detail: [{ loc: ["body", "question"], msg: "too long" }] }],
     ["no detail", {}],
     ["no JSON body", null],
     ["a text body", "Bad Gateway"],
   ])("gives no message for a 422 with %s", (_name, body) => {
     expect(failureFromResponse(422, null, body)).toEqual({ kind: "http", message: null });
+  });
+});
+
+describe("askStream", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the token of the bot check in the body", async () => {
+    const fetch = vi.fn(async () => new Response(sse("answer", ANSWER_DATA)));
+    vi.stubGlobal("fetch", fetch);
+    const body = { question: "Shots?", turnstile_token: "token-1" };
+
+    const events: AskEvent[] = [];
+    for await (const event of askStream("http://api", body, new AbortController().signal)) {
+      events.push(event);
+    }
+
+    expect(events.map((event) => event.type)).toEqual(["answer"]);
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("http://api/api/ask");
+    expect(JSON.parse(init.body as string)).toEqual(body);
   });
 });
