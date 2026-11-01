@@ -27,7 +27,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "Highbury", template: "%s · Highbury" },
   description: SITE_DESCRIPTION,
-  alternates: { canonical: "/" },
+  alternates: {
+    canonical: "/",
+    // The Markdown copy of the page, for AI agents (index.md/route.ts).
+    types: { "text/markdown": "/index.md" },
+  },
   // opengraph-image.tsx and twitter-image.tsx add the images.
   openGraph: {
     type: "website",
@@ -42,6 +46,32 @@ export const metadata: Metadata = {
     title: "Highbury",
     description: SITE_DESCRIPTION,
   },
+  // A short summary that AI agents read; the same text as the description.
+  other: { "ai-summary": SITE_DESCRIPTION },
+};
+
+// Who runs the site and what the site is, for search engines and AI agents.
+// No logo, contact, or social links: the project publishes none.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Highbury",
+      url: `${SITE_URL}/`,
+      description: SITE_DESCRIPTION,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: "Highbury",
+      url: `${SITE_URL}/`,
+      description: SITE_DESCRIPTION,
+      inLanguage: "en-GB",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export const viewport: Viewport = {
@@ -60,7 +90,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${barlowCondensed.variable} ${sourceSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* The browser does not run a JSON-LD script, so the CSP does not apply.
+            The escape of < is the one the Next.js JSON-LD guide gives. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c") }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

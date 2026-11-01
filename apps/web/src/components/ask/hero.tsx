@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ShotMark } from "@/components/charts/shot-map";
+import { HERO } from "@/lib/landing-content";
 import { PENALTY_AREA, PITCH_WIDTH, SIX_YARD_BOX, toPitchPoint } from "@/lib/pitch";
 import { SAMPLE_SHOT_MAP } from "@/lib/sample-shots";
 import { drawOrder, outcomeKind, shotRadius, summaryText } from "@/lib/shot-map";
@@ -212,9 +213,9 @@ export function Hero({ intro, children }: HeroProps) {
               "font-display text-[clamp(52px,7.2vw,104px)] leading-[0.95] font-semibold text-balance delay-[60ms]",
             )}
           >
-            Two Arsenal eras.
+            {HERO.headline[0]}
             <br />
-            <em>Every number checked.</em>
+            <em>{HERO.headline[1]}</em>
           </h1>
           <p
             className={cn(
@@ -222,9 +223,7 @@ export function Hero({ intro, children }: HeroProps) {
               "max-w-[520px] text-lg leading-[1.55] text-on-grass delay-[120ms] sm:text-xl",
             )}
           >
-            An AI football analyst for Arsenal&apos;s 2003-04 Invincibles and the 2025-26 side.
-            Ask in plain English: Highbury queries the data, draws the pitch chart, and checks
-            every number before you see it. When the data cannot answer, it says so.
+            {HERO.intro}
           </p>
           <div className={cn(RISE, "mt-1.5 max-w-[620px] delay-[180ms]")}>{children}</div>
           <div className={cn(RISE, "flex items-center gap-3 delay-[240ms]")}>

@@ -1,21 +1,7 @@
 import { Reveal } from "@/components/ask/reveal";
 import { SectionTag } from "@/components/ask/section-tag";
+import { HOW_IT_WORKS } from "@/lib/landing-content";
 import { cn } from "@/lib/utils";
-
-const CARDS: { title: string; text: string }[] = [
-  {
-    title: "Reads the catalog first",
-    text: "The agent reads what each season holds before it writes a query, so it knows that 2025-26 has shots but no passes.",
-  },
-  {
-    title: "Queries read-only",
-    text: "One SELECT in each call, checked by a parser and run as a read-only role with a 5-second timeout and a row limit.",
-  },
-  {
-    title: "Checks every number",
-    text: "Plain code checks every number against the tool output that it cites. A claim with no support is removed before you see it.",
-  },
-];
 
 /** The three things that make an answer one that a visitor can trust. */
 export function HowItWorks() {
@@ -33,18 +19,17 @@ export function HowItWorks() {
             id="how-title"
             className="font-display text-[40px] leading-none font-semibold sm:text-[64px]"
           >
-            Not a chatbot. <em className="block">An analyst with receipts.</em>
+            {`${HOW_IT_WORKS.headline[0]} `}<em className="block">{HOW_IT_WORKS.headline[1]}</em>
           </h2>
         </div>
         <p className="max-w-[380px] text-[17px] text-foreground-2">
-          Every answer shows the tools it called, the SQL it ran, and which numbers passed the
-          check.
+          {HOW_IT_WORKS.lead}
         </p>
       </Reveal>
       <ol className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-4 sm:gap-5">
-        {CARDS.map(({ title, text }, index) => {
+        {HOW_IT_WORKS.cards.map(({ title, text }, index) => {
           // The last card is the promise of the page, so it is the light one.
-          const light = index === CARDS.length - 1;
+          const light = index === HOW_IT_WORKS.cards.length - 1;
           return (
             <li key={title} className="flex">
               <Reveal

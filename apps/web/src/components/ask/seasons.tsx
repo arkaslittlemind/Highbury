@@ -1,40 +1,7 @@
 import { Reveal } from "@/components/ask/reveal";
 import { SectionTag } from "@/components/ask/section-tag";
+import { SEASONS, type Season } from "@/lib/landing-content";
 import { cn } from "@/lib/utils";
-
-type Season = {
-  label: string;
-  source: string;
-  line: string;
-  // What the season holds. The data catalog of the service is the source.
-  has: string[];
-  lacks?: string;
-};
-
-const THEN: Season = {
-  label: "2003-04",
-  source: "StatsBomb Open Data",
-  line: "The Invincibles · 26 W 12 D 0 L",
-  has: [
-    "Shots with StatsBomb xG and coordinates",
-    "Passes and pressures, with coordinates",
-    "Player stats for each match and for the season",
-    "Every league match and the table, from football-data.co.uk",
-  ],
-};
-
-const NOW: Season = {
-  label: "2025-26",
-  source: "Understat",
-  line: "The current side, shot by shot",
-  has: [
-    "Shots with Understat xG and coordinates",
-    "Player stats for each match and for the season",
-    "Every league match and the table, from football-data.co.uk",
-    "FPL points, saves, clean sheets, and bonus for each match",
-  ],
-  lacks: "No pass data. Highbury says so and offers a shot map.",
-};
 
 function SeasonCard({ season, now = false }: { season: Season; now?: boolean }) {
   return (
@@ -107,21 +74,20 @@ export function Seasons() {
           id="seasons-title"
           className="font-display text-[40px] leading-none font-semibold text-balance sm:text-[64px]"
         >
-          Two seasons. <em>Honest about the gaps.</em>
+          {`${SEASONS.headline[0]} `}<em>{SEASONS.headline[1]}</em>
         </h2>
       </Reveal>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(420px,100%),1fr))] gap-4 sm:gap-5">
         <Reveal>
-          <SeasonCard season={THEN} />
+          <SeasonCard season={SEASONS.then} />
         </Reveal>
         <Reveal delay={70}>
-          <SeasonCard season={NOW} now />
+          <SeasonCard season={SEASONS.now} now />
         </Reveal>
       </div>
       <Reveal>
         <p className="text-caveat-text">
-          A comparison of the two seasons uses only the metrics that both have, and says that
-          the two xG models are different.
+          {SEASONS.note}
         </p>
       </Reveal>
     </section>
