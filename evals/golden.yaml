@@ -263,3 +263,82 @@
   status: unavailable
   chart: null
   note: FPL data is loaded for 2025-26 only.
+
+- id: q25
+  question: Show Vieira's long passes in 2003-04.
+  status: answered
+  chart: pass_map
+  # The filter of VIEIRA_LONG_PASSES in the prompt, so the claims count the same passes.
+  sql: >-
+    SELECT count(*) AS passes,
+    round(100.0 * count(*) FILTER (WHERE outcome IS NULL) / NULLIF(count(*), 0), 1)
+    AS completed_pct
+    FROM v_passes WHERE player = 'Patrick Vieira' AND season = '2003-04'
+    AND sqrt(power(end_x - x, 2) + power(end_y - y, 2)) >= 35
+  note: The done-when question of the pass map.
+
+- id: q26
+  question: Show Henry's touch heatmap in 2003-04.
+  status: answered
+  chart: heatmap
+  sql: >-
+    SELECT count(*) AS touches FROM v_touches
+    WHERE player = 'Thierry Henry' AND season = '2003-04'
+  note: The done-when question of the heatmap.
+
+- id: q27
+  question: Show Saka's touch heatmap in 2025-26.
+  status: unavailable
+  chart: null
+  note: Understat and FPL have no events, so 2025-26 has no touches.
+
+- id: q28
+  question: >-
+    How many aerial duels did Patrick Vieira win in 2003-04, and what share of his
+    aerial duels was that?
+  status: answered
+  chart: null
+  # A season %, never the mean of the match % values.
+  sql: >-
+    SELECT sum(aerial_duels_won) AS aerial_duels_won,
+    round(100.0 * sum(aerial_duels_won) / NULLIF(sum(aerial_duels), 0), 1)
+    AS aerial_duels_won_pct
+    FROM v_player_match_advanced WHERE player = 'Patrick Vieira' AND season = '2003-04'
+
+- id: q29
+  question: How many chances did Bukayo Saka create in the 2025-26 league season?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT chances_created FROM v_player_season
+    WHERE player = 'Bukayo Saka' AND season = '2025-26'
+  note: Understat key passes.
+
+- id: q30
+  question: How many tackles did Declan Rice make in the 2025-26 league season?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT sum(tackles) AS tackles FROM v_fpl_player_match
+    WHERE player = 'Declan Rice' AND season = '2025-26'
+  note: Only FPL has tackles for 2025-26.
+
+- id: q31
+  question: What was Declan Rice's pass completion rate in 2025-26?
+  status: unavailable
+  chart: null
+  note: No source of 2025-26 has passes.
+
+- id: q32
+  question: Compare Thierry Henry's chances created in 2003-04 with Bukayo Saka's in 2025-26.
+  status: answered
+  chart: null
+  sql: >-
+    SELECT
+    (SELECT sum(chances_created) FROM v_player_match_advanced
+    WHERE player = 'Thierry Henry' AND season = '2003-04') AS henry_chances_created,
+    (SELECT chances_created FROM v_player_season
+    WHERE player = 'Bukayo Saka' AND season = '2025-26') AS saka_chances_created
+  note: >-
+    StatsBomb counts the 2003-04 chances and Understat the 2025-26 ones, so the answer
+    also needs the caveat on the two providers. The chart is not scored.

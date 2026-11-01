@@ -56,19 +56,20 @@ Every answer shows:
 | Stays in scope | "Who will win the Champions League?" is declined with no database call. |
 | Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. A conversation ends after 20 turns. |
 | Cannot change the data | Two independent locks: a SQL parser that allows one `SELECT`, and a read-only database role with a 5-second timeout and a 500-row cap. |
-| Measured, not guessed | 24 golden questions with hand-written SQL answers, run on two models. Flash scored 24 of 24, Flash-Lite 23 of 24. |
+| Measured, not guessed | 32 golden questions with hand-written SQL answers. Flash, the production model, scored 32 of 32. Flash-Lite scored 23 of 24 on the earlier set of 24. |
 
 ## Results
 
-From [`evals/results.md`](evals/results.md): 24 questions, 2 runs per model.
+From [`evals/results.md`](evals/results.md): 32 questions, 1 run of Flash. Flash-Lite
+did not run again; its row is the 24-question refresh of 2026-10-25, 2 runs.
 
 | Model | Correct | Verified claims | Median time | Cost per question |
 | --- | --- | --- | --- | --- |
-| Gemini 3.8 Flash (in production) | 24 / 24 | 100% | 28.5 s | $0.037 |
-| Gemini 3.5 Flash-Lite | 23 / 24 | 100% | 4.7 s | $0.008 |
+| Gemini 3.8 Flash (in production) | 32 / 32 | 100% | 24.2 s | $0.042 |
+| Gemini 3.5 Flash-Lite (24 questions, 2026-10-25) | 23 / 24 | 100% | 4.7 s | $0.008 |
 
 Flash-Lite is faster and cheaper, but it missed the xG timeline question (q16) in
-both runs, and it failed the conversation follow-up 2 times in 9 earlier tries.
+both of its runs, and it failed the conversation follow-up 2 times in 9 earlier tries.
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
