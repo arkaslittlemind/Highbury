@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Barlow Condensed is not a variable font, so each weight is named. The
@@ -23,9 +24,24 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Highbury",
-  description:
-    "An AI football analyst for Arsenal's 2003-04 and 2025-26 seasons. Unofficial fan project.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Highbury", template: "%s · Highbury" },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  // opengraph-image.tsx and twitter-image.tsx add the images.
+  openGraph: {
+    type: "website",
+    siteName: "Highbury",
+    title: "Highbury",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Highbury",
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
