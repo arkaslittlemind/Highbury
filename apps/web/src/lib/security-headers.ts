@@ -1,4 +1,9 @@
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+// The Cloudflare proxy puts the Web Analytics script into the page; the code
+// does not load it. A host, not a file, because the script URL has a version
+// path after beacon.min.js. The beacon reports to /cdn-cgi/rum on the site
+// itself, so connect-src needs nothing more.
+const CLOUDFLARE_ANALYTICS_ORIGIN = "https://static.cloudflareinsights.com";
 
 type Options = {
   // NEXT_PUBLIC_API_URL. The page streams answers from it.
@@ -25,7 +30,7 @@ export function buildCsp({ apiUrl, dev }: Options): string {
   const directives = [
     "default-src 'self'",
     // React needs eval in development only, for its error stacks.
-    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""} ${TURNSTILE_ORIGIN}`,
+    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""} ${TURNSTILE_ORIGIN} ${CLOUDFLARE_ANALYTICS_ORIGIN}`,
     // The charts render style attributes on the server.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",

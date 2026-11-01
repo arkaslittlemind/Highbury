@@ -41,6 +41,12 @@ describe("buildCsp", () => {
     expect(directive(csp, "frame-src")).toBe("frame-src https://challenges.cloudflare.com");
   });
 
+  it("allows the Cloudflare Web Analytics script, which reports to the site itself", () => {
+    const csp = buildCsp({ apiUrl: "https://api.example.com", dev: false });
+    expect(directive(csp, "script-src")).toContain("https://static.cloudflareinsights.com");
+    expect(directive(csp, "connect-src")).not.toContain("cloudflareinsights");
+  });
+
   it("denies framing, plugins, and other bases and form targets", () => {
     const csp = buildCsp({ apiUrl: "https://api.example.com", dev: false });
     expect(directive(csp, "frame-ancestors")).toBe("frame-ancestors 'none'");
