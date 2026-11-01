@@ -16,6 +16,8 @@
       { "name": "ANALYST_MODEL", "value": "<provider:model>" },
       { "name": "CORS_ORIGINS", "value": "https://<project>.vercel.app" },
       { "name": "RATE_LIMIT_PER_MINUTE", "value": "5" },
+      { "name": "DAILY_LIMIT_PER_ADDRESS", "value": "10" },
+      { "name": "DAILY_LIMIT_TOTAL", "value": "250" },
       { "name": "FORWARDED_ALLOW_IPS", "value": "<address range of the VPC of the load balancer, never *>" }
     ],
     "secrets": [

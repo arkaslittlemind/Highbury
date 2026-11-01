@@ -45,6 +45,20 @@ TOOL_CALL_LIMIT = 10
 MODEL_CALL_LIMIT = TOOL_CALL_LIMIT + 5
 
 NO_ANSWER = "The model gave no structured answer."
+# A slow model call is a failed question, not a turn that waits for ever. The preview
+# models of a provider can take more than a minute or give a 504 when they are busy.
+# Without these, the client waits with no limit and tries 6 times, and a stalled
+# call holds one of the few turn slots of the API.
+MODEL_TIMEOUT_SECONDS = 120
+# The attempts of one model call, the first one included: one retry after a busy
+# provider. The Gemini class passes max_retries to its client as attempts, which
+# counts the first request, so 1 would give no retry.
+MODEL_ATTEMPTS = 2
+# What a visitor reads when the prepaid credits of the provider run out. It names
+# no provider and no balance.
+NO_BUDGET = "Highbury has used its question budget for now. Try again later."
+# The HTTP status of a provider that wants payment before the next call.
+PAYMENT_REQUIRED = 402
 
 # What the model reads of a chart. The data of the chart stays in the record.
 CHART_KEYS = ("id", "type", "title")
@@ -186,9 +200,25 @@ def name_model_failure(request: ModelRequest, handler: Callable[[ModelRequest], 
     except StructuredOutputError as error:
         raise AgentError(NO_ANSWER, usage) from error
     except Exception as error:
+        if out_of_credit(error):
+            raise AgentError(NO_BUDGET, usage) from error
         # The providers have no shared error class, and the text of their errors
         # can repeat the request. Only the class name goes into the text.
         raise AgentError(f"The model call failed ({type(error).__name__}).", usage) from error
+
+
+def out_of_credit(error: BaseException) -> bool:
+    """Tell if the provider refused the call for want of payment.
+
+    The chat model class raises its own error from the error of the client, and
+    only the client error has the status, as code.
+    """
+    seen: BaseException | None = error
+    while seen is not None:
+        if getattr(seen, "code", None) == PAYMENT_REQUIRED:
+            return True
+        seen = seen.__cause__
+    return False
 
 
 @wrap_model_call
@@ -210,7 +240,7 @@ def count_usage(
 def load_model() -> BaseChatModel:
     name = model_name()
     try:
-        return init_chat_model(name)
+        return init_chat_model(name, timeout=MODEL_TIMEOUT_SECONDS, max_retries=MODEL_ATTEMPTS)
     except Exception as error:
         # An unknown provider, a package that is not installed, or no API key.
         raise AgentError(

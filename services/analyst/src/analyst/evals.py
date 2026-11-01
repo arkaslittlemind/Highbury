@@ -30,10 +30,6 @@ from analyst.verifier import cell_matches
 Status = Literal["answered", "unavailable", "out_of_scope"]
 REFUSALS = ("unavailable", "out_of_scope")
 EVALS_DIR = Path("evals")
-# A slow model call is a failed question, not a run that waits for ever. The preview
-# models of a provider can take more than a minute or give a 504 when they are busy.
-MODEL_TIMEOUT_SECONDS = 120
-MODEL_RETRIES = 1
 
 
 class EvalError(Exception):
@@ -579,7 +575,10 @@ def pick[T](
 
 
 def load_eval_model(model_id: str) -> BaseChatModel:
-    return init_chat_model(model_id, timeout=MODEL_TIMEOUT_SECONDS, max_retries=MODEL_RETRIES)
+    # The same limits as production, so the evals measure what a visitor gets.
+    return init_chat_model(
+        model_id, timeout=agent.MODEL_TIMEOUT_SECONDS, max_retries=agent.MODEL_ATTEMPTS
+    )
 
 
 @dataclass

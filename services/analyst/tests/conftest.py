@@ -126,6 +126,8 @@ def analyst_model(monkeypatch) -> Iterator[Callable[[str | None], None]]:
 API_VARIABLES = {
     "CORS_ORIGINS": "http://localhost:3000",
     "RATE_LIMIT_PER_MINUTE": "5",
+    "DAILY_LIMIT_PER_ADDRESS": "10",
+    "DAILY_LIMIT_TOTAL": "250",
     "ANALYST_INPUT_USD_PER_MTOK": None,
     "ANALYST_OUTPUT_USD_PER_MTOK": None,
 }

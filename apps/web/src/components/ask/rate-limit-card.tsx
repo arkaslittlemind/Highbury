@@ -41,8 +41,8 @@ export function RateLimitCard({ detail, retryAfterSeconds, failedAt, onRetry }: 
       alert
     >
       <p className="text-foreground-2">
-        Each answer runs a live model and database queries, so the number of questions in
-        a minute has a limit for each visitor.
+        Each answer runs a live model and database queries, so the number of questions has
+        a limit for each visitor.
       </p>
       {retryAfterSeconds === null ? (
         <p className="text-foreground-2">{detail}</p>

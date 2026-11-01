@@ -339,6 +339,53 @@ def test_a_model_that_fails_gives_an_error_with_no_question_text(seeded):
     assert isinstance(error.value.__cause__, ConnectionError)
 
 
+def test_the_model_loads_with_a_timeout_and_one_retry_after_the_first_attempt(
+    monkeypatch,
+):
+    seen = {}
+    monkeypatch.setattr(agent, "model_name", lambda: "google_genai:gemini-3.8-flash")
+    monkeypatch.setattr(agent, "init_chat_model", lambda name, **options: seen.update(options))
+
+    agent.load_model()
+
+    assert seen == {"timeout": 120, "max_retries": 2}
+
+
+class ProviderError(Exception):
+    """An error of a provider client, with the HTTP status as its code."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__(f"{code} from the provider")
+        self.code = code
+
+
+def wrapped(cause: Exception) -> Exception:
+    """An error of the chat model class, raised from the error of its client."""
+    try:
+        raise RuntimeError("Error calling model") from cause
+    except RuntimeError as error:
+        return error
+
+
+def test_a_provider_with_no_credit_left_gives_the_budget_message(seeded):
+    model = ScriptedModel(replies=[wrapped(ProviderError(402))])
+
+    with pytest.raises(agent.AgentError) as error:
+        agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert str(error.value) == agent.NO_BUDGET
+
+
+@pytest.mark.parametrize("cause", [ProviderError(500), ProviderError(429), ValueError("x")])
+def test_another_provider_error_keeps_the_class_name(seeded, cause):
+    model = ScriptedModel(replies=[wrapped(cause)])
+
+    with pytest.raises(agent.AgentError) as error:
+        agent.ask(agent.build_agent(model), "Show me Henry's shots.", "t1")
+
+    assert str(error.value) == "The model call failed (RuntimeError)."
+
+
 def test_a_turn_that_ends_with_no_structured_answer_fails(seeded):
     model = ScriptedModel(replies=[answer(), AIMessage(content="Henry was very good.")])
     analyst = agent.build_agent(model)

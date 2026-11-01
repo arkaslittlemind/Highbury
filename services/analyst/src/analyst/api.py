@@ -10,6 +10,7 @@ import uuid
 from collections import OrderedDict, deque
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -65,10 +66,17 @@ WINDOW_SECONDS = 60
 # The key of a request with no client address.
 NO_ADDRESS = "unknown"
 
+# Most of a turn waits on the model, but each turn holds a thread and the rows
+# of its queries, and the one task of the service is small.
+MAX_ACTIVE_TURNS = 10
+
 UNEXPECTED = "Something went wrong. Try again."
 ENDED = "This conversation has ended. Start a new one."
 BUSY = "This conversation is busy. Wait for its answer."
 TOO_LARGE = "The request body is too large."
+ADDRESS_LIMIT = "You have asked {limit} questions today. Come back tomorrow."
+SITE_LIMIT = "Highbury has answered all the questions it can today. Come back tomorrow."
+SERVICE_BUSY = "Highbury is busy. Try again in a minute."
 
 
 class AskRequest(BaseModel):
@@ -234,6 +242,61 @@ class RateLimiter:
             return max(1, math.ceil(times[0] - oldest))
 
 
+def utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
+class DailyLimitReached(Exception):
+    """A daily limit refused the question. scope is "address" or "site"."""
+
+    def __init__(self, scope: str) -> None:
+        super().__init__(scope)
+        self.scope = scope
+
+
+class DailyLimits:
+    """A limit on the paid questions of one address, and of all addresses, in a UTC day.
+
+    The counts live in memory, so they are right only while the service runs one
+    task, and a restart or a deploy clears them.
+    """
+
+    def __init__(self, per_address: int, total: int, today: Callable[[], date]) -> None:
+        self.per_address = per_address
+        self.limit = total
+        self.today = today
+        self.day = today()
+        self.by_address: dict[str, int] = {}
+        self.total = 0
+        self.lock = threading.Lock()
+
+    def take(self, address: str) -> date:
+        """Count a question and return the day of the count.
+
+        Raise DailyLimitReached and count nothing when a limit is reached.
+        """
+        with self.lock:
+            today = self.today()
+            if today != self.day:
+                self.day, self.by_address, self.total = today, {}, 0
+            if self.by_address.get(address, 0) >= self.per_address:
+                raise DailyLimitReached("address")
+            if self.total >= self.limit:
+                raise DailyLimitReached("site")
+            self.by_address[address] = self.by_address.get(address, 0) + 1
+            self.total += 1
+            return self.day
+
+    def give_back(self, address: str, day: date) -> None:
+        """Take back the count that take made on day, for a question that did not start."""
+        with self.lock:
+            # After midnight the counts of that day are gone, and a count of the new
+            # day belongs to another question.
+            if day == self.day and self.by_address.get(address, 0) > 0:
+                self.by_address[address] -= 1
+                self.total -= 1
+
+
 class UnknownConversation(Exception):
     pass
 
@@ -340,21 +403,57 @@ class Service:
         settings: ApiSettings,
         clock: Callable[[], float],
         max_conversations: int,
+        today: Callable[[], date] = utc_today,
+        max_active_turns: int = MAX_ACTIVE_TURNS,
     ) -> None:
         self.graph = graph
         self.settings = settings
         self.clock = clock
         self.limiter = RateLimiter(settings.rate_limit_per_minute, clock)
+        self.daily = DailyLimits(
+            settings.daily_limit_per_address, settings.daily_limit_total, today
+        )
+        # The turns that call the model now. A kept suggestion takes no slot.
+        self.max_active = max_active_turns
+        self.active = 0
+        self.active_lock = threading.Lock()
         self.conversations = Conversations(max_conversations, graph.checkpointer.delete_thread)
         # The kept turn of each suggestion that a visitor asked. It lives as long
         # as the process: the data changes only when an offline loader runs.
         self.kept: dict[str, KeptTurn] = {}
         self.kept_lock = threading.Lock()
 
-    def run_turn(self, question: str, conversation_id: str, new: bool, events: queue.Queue) -> None:
+    def take_slot(self) -> bool:
+        """Hold a slot for a turn that calls the model, or return False when all are held."""
+        with self.active_lock:
+            if self.active >= self.max_active:
+                return False
+            self.active += 1
+            return True
+
+    def free_slot(self) -> None:
+        with self.active_lock:
+            self.active -= 1
+
+    def kept_turn(self, question: str, new: bool) -> "KeptTurn | None":
+        """The kept turn that answers the question, or None when the model must answer."""
+        with self.kept_lock:
+            # A suggestion that comes as a follow-up needs the model: its answer
+            # depends on the turns before it.
+            return self.kept.get(question) if new else None
+
+    def run_turn(
+        self,
+        question: str,
+        conversation_id: str,
+        new: bool,
+        events: queue.Queue,
+        slot: bool = False,
+    ) -> None:
         """Answer one question on a worker thread. None on the queue ends the stream.
 
-        new says that the question starts its conversation.
+        new says that the question starts its conversation, and slot that the
+        route took a slot for it.
         """
         started = self.clock()
         try:
@@ -373,6 +472,8 @@ class Service:
             events.put(end.event)
             self.log(end, started)
         finally:
+            if slot:
+                self.free_slot()
             # With no end mark, the stream of the client never ends.
             events.put(None)
 
@@ -401,10 +502,7 @@ class Service:
         self, question: str, conversation_id: str, new: bool, send: Callable[[str], None]
     ) -> TurnEnd:
         """Send the step and chart events of the turn. Return how it ended."""
-        with self.kept_lock:
-            # A suggestion that comes as a follow-up needs the model: its answer
-            # depends on the turns before it.
-            kept = self.kept.get(question) if new else None
+        kept = self.kept_turn(question, new)
         if kept:
             return self.replay(kept, conversation_id, send)
         return self.ask_model(question, conversation_id, new, send)
@@ -490,6 +588,8 @@ def create_app(
     *,
     clock: Callable[[], float] = time.monotonic,
     max_conversations: int = MAX_CONVERSATIONS,
+    today: Callable[[], date] = utc_today,
+    max_active_turns: int = MAX_ACTIVE_TURNS,
 ) -> FastAPI:
     """Return the app. With no model, the model is the one that ANALYST_MODEL names.
 
@@ -498,7 +598,14 @@ def create_app(
     start and not the first question.
     """
     settings = api_settings()
-    service = Service(agent.build_agent(model), settings, clock, max_conversations)
+    service = Service(
+        agent.build_agent(model),
+        settings,
+        clock,
+        max_conversations,
+        today=today,
+        max_active_turns=max_active_turns,
+    )
     show_log()
     app = FastAPI(title="Highbury analyst")
     app.state.service = service
@@ -549,21 +656,47 @@ def create_app(
                 f"Too many questions. Try again in {seconds} seconds.",
                 {"Retry-After": str(seconds)},
             )
-        try:
-            conversation_id = service.conversations.begin(body.conversation_id)
-        except UnknownConversation:
-            raise HTTPException(404, ENDED) from None
-        except BusyConversation:
-            raise HTTPException(409, BUSY) from None
-        events: queue.Queue[str | None] = queue.Queue()
-        # The agent is synchronous. On its own thread, each event leaves when it
-        # is made, and the turn ends also when the client goes away.
         new = body.conversation_id is None
-        threading.Thread(
-            target=service.run_turn,
-            args=(body.question, conversation_id, new, events),
-            daemon=True,
-        ).start()
+        # A kept suggestion calls no model, so the daily limits and the slots are
+        # only for the other questions.
+        paid = service.kept_turn(body.question, new) is None
+        day: date | None = None
+        if paid:
+            try:
+                day = service.daily.take(address)
+            except DailyLimitReached as reached:
+                if reached.scope == "address":
+                    limit = service.settings.daily_limit_per_address
+                    # No Retry-After: the page shows the text and no countdown of hours.
+                    raise HTTPException(429, ADDRESS_LIMIT.format(limit=limit)) from None
+                raise HTTPException(503, SITE_LIMIT) from None
+            if not service.take_slot():
+                service.daily.give_back(address, day)
+                raise HTTPException(503, SERVICE_BUSY)
+        started = False
+        try:
+            try:
+                conversation_id = service.conversations.begin(body.conversation_id)
+            except UnknownConversation:
+                raise HTTPException(404, ENDED) from None
+            except BusyConversation:
+                raise HTTPException(409, BUSY) from None
+            events: queue.Queue[str | None] = queue.Queue()
+            # The agent is synchronous. On its own thread, each event leaves when it
+            # is made, and the turn ends also when the client goes away.
+            threading.Thread(
+                target=service.run_turn,
+                args=(body.question, conversation_id, new, events, paid),
+                daemon=True,
+            ).start()
+            started = True
+        finally:
+            # Once the thread runs, run_turn frees the slot. Before that, any error
+            # (a refusal or one that nobody expects) must free it here, or ten of
+            # them refuse every paid question until a restart.
+            if paid and day is not None and not started:
+                service.free_slot()
+                service.daily.give_back(address, day)
         return StreamingResponse(
             stream(events),
             media_type="text/event-stream",

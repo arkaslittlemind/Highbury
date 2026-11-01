@@ -54,6 +54,8 @@ def test_the_api_settings_come_from_the_environment(analyst_url, api_env):
     api_env(
         CORS_ORIGINS="http://localhost:3000, https://highbury.example",
         RATE_LIMIT_PER_MINUTE="5",
+        DAILY_LIMIT_PER_ADDRESS="10",
+        DAILY_LIMIT_TOTAL="250",
         ANALYST_INPUT_USD_PER_MTOK="0.30",
         ANALYST_OUTPUT_USD_PER_MTOK="2.5",
     )
@@ -61,6 +63,8 @@ def test_the_api_settings_come_from_the_environment(analyst_url, api_env):
     assert api_settings() == ApiSettings(
         cors_origins=("http://localhost:3000", "https://highbury.example"),
         rate_limit_per_minute=5,
+        daily_limit_per_address=10,
+        daily_limit_total=250,
         input_usd_per_mtok=0.3,
         output_usd_per_mtok=2.5,
     )
@@ -78,23 +82,36 @@ def test_the_prices_are_optional_and_a_blank_value_is_no_value(analyst_url, api_
 
 def test_each_missing_api_variable_is_named(analyst_url, api_env):
     analyst_url(URL)
-    api_env(CORS_ORIGINS=None, RATE_LIMIT_PER_MINUTE="")
+    api_env(
+        CORS_ORIGINS=None,
+        RATE_LIMIT_PER_MINUTE="",
+        DAILY_LIMIT_PER_ADDRESS=None,
+        DAILY_LIMIT_TOTAL="",
+    )
 
     with pytest.raises(SettingsError) as error:
         api_settings()
 
-    assert str(error.value) == "CORS_ORIGINS is not set, RATE_LIMIT_PER_MINUTE is not set"
+    assert str(error.value) == (
+        "CORS_ORIGINS is not set, RATE_LIMIT_PER_MINUTE is not set, "
+        "DAILY_LIMIT_PER_ADDRESS is not set, DAILY_LIMIT_TOTAL is not set"
+    )
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "5.5", "five", "1e2"])
-def test_a_rate_limit_that_is_not_a_whole_number_above_zero_is_refused(analyst_url, api_env, value):
+@pytest.mark.parametrize(
+    "name", ["RATE_LIMIT_PER_MINUTE", "DAILY_LIMIT_PER_ADDRESS", "DAILY_LIMIT_TOTAL"]
+)
+def test_a_limit_that_is_not_a_whole_number_above_zero_is_refused(
+    analyst_url, api_env, name, value
+):
     analyst_url(URL)
-    api_env(RATE_LIMIT_PER_MINUTE=value)
+    api_env(**{name: value})
 
     with pytest.raises(SettingsError) as error:
         api_settings()
 
-    assert str(error.value) == "RATE_LIMIT_PER_MINUTE is not valid"
+    assert str(error.value) == f"{name} is not valid"
 
 
 @pytest.mark.parametrize(

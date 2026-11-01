@@ -452,11 +452,11 @@ def test_a_golden_query_that_fails_stops_before_any_model_call(evals_dir):
     assert printed[0].startswith("Evals stopped: q01")
 
 
-def test_the_evals_load_a_model_with_a_timeout_and_one_retry(monkeypatch):
+def test_the_evals_load_a_model_with_the_limits_of_production(monkeypatch):
     seen = {}
     monkeypatch.setattr(evals, "init_chat_model", lambda name, **options: seen.update(options))
 
     evals.load_eval_model("google_genai:gemini-3.8-flash")
 
-    assert seen == {"timeout": 120, "max_retries": 1}
+    assert seen == {"timeout": 120, "max_retries": 2}
     assert evals.Deps().load_model is evals.load_eval_model

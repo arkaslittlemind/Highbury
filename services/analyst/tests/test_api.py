@@ -7,6 +7,7 @@ import re
 import threading
 import time
 from collections.abc import Callable
+from datetime import date, timedelta
 from typing import Any
 
 import pytest
@@ -37,12 +38,19 @@ def serve(seeded, api_env) -> Serve:
     """Start the app with a scripted model. Return the client and the model."""
 
     def start(
-        *replies, limit: int = 1000, prices: tuple[str, str] | None = None, **options
+        *replies,
+        limit: int = 1000,
+        per_address: int = 1000,
+        total: int = 1000,
+        prices: tuple[str, str] | None = None,
+        **options,
     ) -> tuple[TestClient, ScriptedModel]:
         input_price, output_price = prices or (None, None)
         api_env(
-            # A test asks many times in one second, so the limit is high by default.
+            # A test asks many times in one second, so the limits are high by default.
             RATE_LIMIT_PER_MINUTE=str(limit),
+            DAILY_LIMIT_PER_ADDRESS=str(per_address),
+            DAILY_LIMIT_TOTAL=str(total),
             ANALYST_INPUT_USD_PER_MTOK=input_price,
             ANALYST_OUTPUT_USD_PER_MTOK=output_price,
         )
@@ -742,6 +750,180 @@ def test_the_limit_is_for_each_address(serve):
     assert ask(other).status_code == 200
     assert ask(client).status_code == 429
     assert ask(other).status_code == 429
+
+
+class Day:
+    """A UTC date that a test moves."""
+
+    def __init__(self) -> None:
+        self.today = date(2026, 11, 2)
+
+    def __call__(self) -> date:
+        return self.today
+
+
+def refusal(limits: api.DailyLimits, address: str) -> str | None:
+    """The scope of the limit that refused the question, or None when it counted."""
+    try:
+        limits.take(address)
+    except api.DailyLimitReached as error:
+        return error.scope
+    return None
+
+
+def test_the_daily_limits_refuse_an_address_then_the_site():
+    limits = api.DailyLimits(per_address=2, total=3, today=Day())
+
+    assert [refusal(limits, "1.1.1.1") for _ in range(3)] == [None, None, "address"]
+    assert refusal(limits, "2.2.2.2") is None
+    assert refusal(limits, "3.3.3.3") == "site"
+
+
+def test_a_refused_or_returned_question_does_not_count():
+    limits = api.DailyLimits(per_address=1, total=10, today=Day())
+    day = limits.take("1.1.1.1")
+    assert refusal(limits, "1.1.1.1") == "address"
+
+    limits.give_back("1.1.1.1", day)
+
+    assert refusal(limits, "1.1.1.1") is None
+
+
+def test_a_new_day_clears_both_counts():
+    day = Day()
+    limits = api.DailyLimits(per_address=1, total=1, today=day)
+    assert limits.take("1.1.1.1") == date(2026, 11, 2)
+    assert refusal(limits, "2.2.2.2") == "site"
+
+    day.today += timedelta(days=1)
+
+    assert limits.take("1.1.1.1") == date(2026, 11, 3)
+    assert list(limits.by_address) == ["1.1.1.1"]
+
+
+def test_a_count_given_back_after_midnight_leaves_the_new_day_alone():
+    day = Day()
+    limits = api.DailyLimits(per_address=1, total=10, today=day)
+    before_midnight = limits.take("1.1.1.1")
+    day.today += timedelta(days=1)
+    limits.take("1.1.1.1")
+
+    limits.give_back("1.1.1.1", before_midnight)
+
+    assert refusal(limits, "1.1.1.1") == "address"
+    assert limits.total == 1
+
+
+def test_an_address_over_its_daily_limit_gets_429_with_no_countdown(serve):
+    client, model = serve(answer(), answer(), answer(), per_address=2)
+    other = TestClient(client.app, client=("10.0.0.2", 50000))
+    assert [ask(client).status_code for _ in range(2)] == [200, 200]
+
+    refused = ask(client)
+
+    assert refused.status_code == 429
+    assert "retry-after" not in refused.headers
+    assert refused.json() == {"detail": "You have asked 2 questions today. Come back tomorrow."}
+    assert len(model.seen) == 2
+    assert ask(other).status_code == 200
+
+
+def test_the_site_over_its_daily_limit_gets_503(serve):
+    client, model = serve(answer(), answer(), total=2)
+    other = TestClient(client.app, client=("10.0.0.2", 50000))
+    assert ask(client).status_code == 200
+    assert ask(other).status_code == 200
+
+    refused = ask(TestClient(client.app, client=("10.0.0.3", 50000)))
+
+    assert refused.status_code == 503
+    assert refused.json() == {"detail": api.SITE_LIMIT}
+    assert len(model.seen) == 2
+
+
+def test_the_daily_limits_start_again_on_a_new_day(serve):
+    day = Day()
+    client, _ = serve(answer(), answer(), per_address=1, today=day)
+    assert ask(client).status_code == 200
+    assert ask(client).status_code == 429
+
+    day.today += timedelta(days=1)
+
+    assert ask(client).status_code == 200
+
+
+def test_a_question_that_gets_404_does_not_use_the_daily_limit_or_a_slot(serve):
+    client, _ = serve(answer(), per_address=1)
+    service = client.app.state.service
+
+    assert ask(client, conversation_id="0" * 32).status_code == 404
+    assert (service.active, service.daily.total) == (0, 0)
+    assert ask(client).status_code == 200
+
+
+def test_a_question_that_gets_409_does_not_use_the_daily_limit_or_a_slot(serve):
+    client, _ = serve(answer())
+    service = client.app.state.service
+    first = conversation(ask(client))
+    # The conversation holds a turn in flight, as a running answer does.
+    service.conversations.begin(first)
+
+    busy = ask(client, conversation_id=first)
+
+    assert busy.status_code == 409
+    assert (service.active, service.daily.total) == (0, 1)
+
+
+def test_an_error_before_the_turn_starts_frees_its_slot_and_its_count(serve, monkeypatch):
+    client, _ = serve(answer())
+    service = client.app.state.service
+
+    def fails(conversation_id):
+        raise RuntimeError("the checkpointer failed")
+
+    monkeypatch.setattr(service.conversations, "begin", fails)
+
+    with pytest.raises(RuntimeError):
+        ask(client)
+
+    assert (service.active, service.daily.total) == (0, 0)
+
+
+def test_a_kept_suggestion_is_free_of_the_daily_limits(serve):
+    client, model = serve(*suggestion_turn(), per_address=1, total=1)
+    assert ask(client, SUGGESTION).status_code == 200
+    assert ask(client).status_code == 429
+
+    kept = ask(client, SUGGESTION)
+
+    assert kept.status_code == 200
+    assert events(kept)[-1][1]["cached"] is True
+    assert client.app.state.service.daily.by_address == {"testclient": 1}
+
+
+def test_a_question_past_the_active_turn_limit_gets_503(serve):
+    client, model = serve(answer(), max_active_turns=1)
+    service = client.app.state.service
+    assert service.take_slot()
+
+    refused = ask(client)
+
+    assert refused.status_code == 503
+    assert refused.json() == {"detail": api.SERVICE_BUSY}
+    assert model.seen == []
+    # The refused question gave its daily count back.
+    assert service.daily.total == 0
+    service.free_slot()
+    assert ask(client).status_code == 200
+
+
+@pytest.mark.parametrize("reply", [answer(), ConnectionError("down")])
+def test_a_turn_frees_its_slot_when_it_ends(serve, reply):
+    client, _ = serve(reply)
+
+    ask(client)
+
+    assert client.app.state.service.active == 0
 
 
 def suggestion_turn() -> list:

@@ -22,10 +22,12 @@ class Settings(BaseSettings):
     analyst_database_url: str
     # Only the agent needs a model. The MCP server starts without one.
     analyst_model: str | None = None
-    # Only the API needs these four, so they are text here and api_settings
-    # checks them. The command line and the MCP server start without them.
+    # Only the API needs these, so they are text here and api_settings checks
+    # them. The command line and the MCP server start without them.
     cors_origins: str | None = None
     rate_limit_per_minute: str | None = None
+    daily_limit_per_address: str | None = None
+    daily_limit_total: str | None = None
     analyst_input_usd_per_mtok: str | None = None
     analyst_output_usd_per_mtok: str | None = None
 
@@ -35,6 +37,9 @@ class ApiSettings(BaseModel):
 
     cors_origins: tuple[str, ...]
     rate_limit_per_minute: int
+    # The paid questions of one address, and of all addresses, in one UTC day.
+    daily_limit_per_address: int
+    daily_limit_total: int
     # US dollars for one million tokens. None when the price is not known.
     input_usd_per_mtok: float | None
     output_usd_per_mtok: float | None
@@ -97,13 +102,20 @@ def api_settings() -> ApiSettings:
     parsers = {
         "CORS_ORIGINS": origins,
         "RATE_LIMIT_PER_MINUTE": whole_number,
+        "DAILY_LIMIT_PER_ADDRESS": whole_number,
+        "DAILY_LIMIT_TOTAL": whole_number,
         INPUT_PRICE: price,
         OUTPUT_PRICE: price,
     }
     # A blank value is the same as no value.
     texts = {name: (getattr(settings, name.lower()) or "").strip() for name in parsers}
     values = {name: parsers[name](text) if text else None for name, text in texts.items()}
-    required = {"CORS_ORIGINS", "RATE_LIMIT_PER_MINUTE"}
+    required = {
+        "CORS_ORIGINS",
+        "RATE_LIMIT_PER_MINUTE",
+        "DAILY_LIMIT_PER_ADDRESS",
+        "DAILY_LIMIT_TOTAL",
+    }
     if texts[INPUT_PRICE] or texts[OUTPUT_PRICE]:
         # One price with no second price gives a cost that is too low, with no sign of it.
         required |= {INPUT_PRICE, OUTPUT_PRICE}
@@ -118,6 +130,8 @@ def api_settings() -> ApiSettings:
     return ApiSettings(
         cors_origins=values["CORS_ORIGINS"],
         rate_limit_per_minute=values["RATE_LIMIT_PER_MINUTE"],
+        daily_limit_per_address=values["DAILY_LIMIT_PER_ADDRESS"],
+        daily_limit_total=values["DAILY_LIMIT_TOTAL"],
         input_usd_per_mtok=values[INPUT_PRICE],
         output_usd_per_mtok=values[OUTPUT_PRICE],
     )
