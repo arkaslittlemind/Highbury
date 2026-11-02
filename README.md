@@ -66,6 +66,8 @@ and Thierry Henry's 2,218 touches counted in zones of the pitch.
 | Remembers the conversation | Follow-ups such as "Only the ones inside the box." refine the previous answer. A conversation ends after 20 turns. |
 | Cannot change the data | Two independent locks: a SQL parser that allows one `SELECT`, and a read-only database role with a 5-second timeout and a 500-row cap. |
 | Measured, not guessed | 32 golden questions with hand-written SQL answers. Flash, the production model, scored 32 of 32. Flash-Lite scored 23 of 24 on the earlier set of 24. |
+| Safe to leave open | Each question carries a Cloudflare Turnstile token that the API checks before any model call, so a script with `curl` gets 403. An address can ask 5 questions a minute and 10 a day, the whole site has a daily cap, and at most 10 questions run at once. A daily refusal shows a "Daily limit" card with no retry, because a retry cannot help before midnight UTC. The example questions on the page have kept answers, which call no model and do not count toward the daily limits. |
+| Readable by AI agents | `/llms.txt`, `/llms-full.txt`, and `/index.md` (also `/` with `Accept: text/markdown`) give agents a text copy of the page, from the same source as the page text. The page also has JSON-LD, Open Graph images, a sitemap, and crawler rules. |
 
 ## Results
 
@@ -82,13 +84,14 @@ both of its runs, and it failed the conversation follow-up 2 times in 9 earlier 
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
-The suite has **998 Python tests** and **300 web unit tests**.
+The suite has **1,050 Python tests** and **335 web unit tests**.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    B["Browser<br/>Next.js on Vercel"] -- question --> API["FastAPI on AWS ECS<br/>rate limit, answer cache"]
+    B["Browser<br/>Next.js on Vercel"] -- "question + Turnstile token" --> API["FastAPI on AWS ECS<br/>bot check, rate and daily limits,<br/>answer cache"]
+    API -- verify token --> CF["Cloudflare Turnstile"]
     API --> A["LangChain agent<br/>Gemini 3.8 Flash"]
     A -- tool calls --> T["Three tools<br/>player, run_sql,<br/>build_chart"]
     T -- "SELECT only" --> DB[("Postgres<br/>read-only role")]
@@ -97,9 +100,11 @@ flowchart LR
     S["StatsBomb, Understat,<br/>football-data.co.uk, FPL"] -. offline ingest .-> DB
 ```
 
-1. The browser sends the question and receives a stream of events: each tool
-   step as it runs, then the final answer. A ping event keeps the stream open
-   through the load balancer while the agent is quiet.
+1. The browser sends the question with a Turnstile token and receives a stream
+   of events: each tool step as it runs, then the final answer. A ping event
+   keeps the stream open through the load balancer while the agent is quiet.
+   Before the agent starts, the API verifies the token with Cloudflare and
+   checks the per-minute and daily limits and the number of running questions.
 2. The agent calls the tools in-process. The catalog and the schema are already
    in its prompt, so it does not spend a tool call to read them. All five data
    functions (catalog, schema, player, run_sql, build_chart) are also served as
@@ -134,6 +139,15 @@ flowchart LR
 - **One identity for every player and team.** A resolver links each source
   record to one canonical ID. A hand-written `overrides.yaml` always wins, and a
   link is made only when it is certain.
+- **Spend caps in the API, in memory.** The daily counts live in the one API
+  task, with no extra database or cache service. The cost: the service must run
+  exactly one task, and a deploy resets the counts.
+- **The bot check fails closed.** If Cloudflare cannot verify a token, the API
+  refuses the question (503). Letting it through would accept any made-up token
+  for as long as Cloudflare is away.
+- **Locked-down web headers.** A Content-Security-Policy lets the page reach only
+  its own origin, the API, Cloudflare Turnstile, and Cloudflare Web Analytics.
+  The page cannot be framed.
 
 Each feature has a study document in [`design-docs/`](design-docs/README.md)
 covering its design, run-time flow, and trade-offs.
@@ -145,7 +159,7 @@ covering its design, run-time flow, and trade-offs.
 | Web | Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS v4, shadcn/ui, d3-scale, Zod, Vitest |
 | Agent and API | Python 3.12, FastAPI, LangChain and LangGraph, Gemini, sqlglot, psycopg 3, MCP, pytest |
 | Data | Postgres 17, SQL migrations, separate admin, ingest, and read-only roles |
-| Infrastructure | Vercel (web), Docker image on AWS ECS Express Mode with Amazon ECR and Systems Manager secrets (API), Neon (Postgres) |
+| Infrastructure | Vercel (web), Docker image on AWS ECS Express Mode with Amazon ECR and Systems Manager secrets (API), Neon (Postgres), Cloudflare (DNS proxy, Turnstile, Web Analytics) |
 | Tooling | uv workspace, pnpm, ruff |
 
 ## How it was built
@@ -154,8 +168,11 @@ Highbury was built AI-natively with a spec-first workflow. For each feature, an
 AI coding agent drafted a spec, and I approved it before any code was written.
 The agent then built it in small reviewed steps, a check proved the behaviour
 against the running app, and an audit recorded findings on the security-sensitive
-parts (the SQL guard, the verifier, the API, the deploy). The agent wrote the
-code. I owned the scope, the specs, the verification, and the judgement.
+parts (the SQL guard, the verifier, the API, the deploy). For the launch work
+(the spend caps, the bot check, the security headers), a second agent with a
+fresh context and no access to the builder's chat reviewed each change before it
+landed. The agent wrote the code. I owned the scope, the specs, the
+verification, and the judgement.
 
 The plans are in [`project-requirement-docs/`](project-requirement-docs/), and a
 study document for every finished feature and fix is in
@@ -200,7 +217,9 @@ Ask from the terminal (each question calls the model and costs a little):
 uv run --env-file .env ask "Show me Thierry Henry's shots in 2003-04." "Only the ones inside the box."
 ```
 
-Or run the API and the web app:
+Or run the API and the web app. Both `.env.example` files carry Cloudflare's
+public Turnstile test keys, so the bot check passes locally with no Cloudflare
+account:
 
 ```bash
 uv run --env-file .env uvicorn analyst.api:create_app --factory --port 8000
@@ -231,6 +250,13 @@ server, and the deploy.
 - **An answer takes 20 to 30 seconds.** The latest evals give a median of 24
   seconds. The default model favours reliability over speed. The evals show a
   faster model that is less reliable.
+- **Daily limits.** Each address gets 10 new questions a day, and the site has a
+  daily cap that keeps the model cost bounded. The limits start again at
+  midnight UTC. The example questions on the page do not count toward them.
+- **A broad question can fail.** A question such as "Tell me about the 2003-04
+  season" can reach the agent's limit of 10 tool calls before it answers,
+  instead of asking for detail
+  ([#8](https://github.com/arkaslittlemind/Highbury/issues/8)).
 - **No automatic checks on pull requests yet.** The tests run locally.
 
 ## Contributing
