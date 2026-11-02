@@ -746,6 +746,8 @@ def test_the_sixth_question_of_a_minute_gets_429(serve):
 
     assert refused.status_code == 429
     assert refused.headers["retry-after"] == "56"
+    # A wait of seconds, not a daily limit: the page offers to ask again.
+    assert "x-daily-limit" not in refused.headers
     assert refused.json() == {"detail": "Too many questions. Try again in 56 seconds."}
     assert len(model.seen) == 5
     clock.now = 1060.0
@@ -841,6 +843,7 @@ def test_an_address_over_its_daily_limit_gets_429_with_no_countdown(serve):
 
     assert refused.status_code == 429
     assert "retry-after" not in refused.headers
+    assert refused.headers["x-daily-limit"] == "address"
     assert refused.json() == {"detail": "You have asked 2 questions today. Come back tomorrow."}
     assert len(model.seen) == 2
     assert ask(other).status_code == 200
@@ -855,6 +858,7 @@ def test_the_site_over_its_daily_limit_gets_503(serve):
     refused = ask(TestClient(client.app, client=("10.0.0.3", 50000)))
 
     assert refused.status_code == 503
+    assert refused.headers["x-daily-limit"] == "site"
     assert refused.json() == {"detail": api.SITE_LIMIT}
     assert len(model.seen) == 2
 
@@ -927,6 +931,7 @@ def test_a_question_past_the_active_turn_limit_gets_503(serve):
     refused = ask(client)
 
     assert refused.status_code == 503
+    assert "x-daily-limit" not in refused.headers
     assert refused.json() == {"detail": api.SERVICE_BUSY}
     assert model.seen == []
     # The refused question gave its daily count back.
@@ -1224,7 +1229,7 @@ def test_the_web_page_can_read_the_wait_of_a_429(serve):
     assert refused.status_code == 429
     assert refused.headers["retry-after"] == "60"
     assert refused.headers["access-control-allow-origin"] == WEB
-    assert refused.headers["access-control-expose-headers"] == "Retry-After"
+    assert refused.headers["access-control-expose-headers"] == "Retry-After, X-Daily-Limit"
 
 
 @pytest.mark.parametrize(

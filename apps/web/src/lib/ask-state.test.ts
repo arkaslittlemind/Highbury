@@ -153,6 +153,12 @@ describe("retryOffer", () => {
     expect(retryOffer(later, { kind: "unexpected" })).toBe("none");
   });
 
+  it("offers no retry when a daily limit refused the question", () => {
+    const daily = { kind: "daily_limited", scope: "address", detail: "d" } as const;
+    expect(retryOffer(first, daily)).toBe("none");
+    expect(retryOffer(later, { ...daily, scope: "site" })).toBe("none");
+  });
+
   it("offers a question as a new one after its conversation ended", () => {
     expect(retryOffer(later, { kind: "conversation_ended" })).toBe("as_new");
   });

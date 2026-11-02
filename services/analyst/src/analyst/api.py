@@ -647,8 +647,8 @@ def create_app(
         allow_origins=list(settings.cors_origins),
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
-        # A script of another origin cannot read this header of a 429 without it.
-        expose_headers=["Retry-After"],
+        # A script of another origin cannot read these headers of a refusal without it.
+        expose_headers=["Retry-After", "X-Daily-Limit"],
     )
 
     @app.exception_handler(RequestValidationError)
@@ -707,11 +707,15 @@ def create_app(
             try:
                 day = service.daily.take(address)
             except DailyLimitReached as reached:
+                # The header tells the page that asking again cannot help before
+                # the next UTC day. The status and the text alone cannot: a 429 is
+                # also the wait of a minute, and a 503 also a busy service.
+                daily = {"X-Daily-Limit": reached.scope}
                 if reached.scope == "address":
                     limit = service.settings.daily_limit_per_address
                     # No Retry-After: the page shows the text and no countdown of hours.
-                    raise HTTPException(429, ADDRESS_LIMIT.format(limit=limit)) from None
-                raise HTTPException(503, SITE_LIMIT) from None
+                    raise HTTPException(429, ADDRESS_LIMIT.format(limit=limit), daily) from None
+                raise HTTPException(503, SITE_LIMIT, daily) from None
             if not service.take_slot():
                 service.daily.give_back(address, day)
                 raise HTTPException(503, SERVICE_BUSY)

@@ -98,6 +98,49 @@ describe("failureFromResponse", () => {
     },
   );
 
+  it.each([
+    [429, "address", "You have asked 10 questions today. Come back tomorrow."],
+    [503, "site", "Highbury has answered all the questions it can today. Come back tomorrow."],
+  ] as const)("names a daily limit from its header: %i %s", (status, scope, text) => {
+    expect(failureFromResponse(status, null, { detail: text }, scope)).toEqual({
+      kind: "daily_limited",
+      scope,
+      detail: text,
+    });
+  });
+
+  it("gives a daily limit a text when the body has none", () => {
+    expect(failureFromResponse(429, null, null, "address")).toEqual({
+      kind: "daily_limited",
+      scope: "address",
+      detail: "Come back tomorrow.",
+    });
+  });
+
+  it("keeps the wait of a 429 that names no daily limit", () => {
+    expect(failureFromResponse(429, "42", { detail }, null)).toEqual({
+      kind: "rate_limited",
+      detail,
+      retryAfterSeconds: 42,
+    });
+  });
+
+  it.each([null, "", "minute", "Address"])(
+    "treats a daily header of %s as no daily limit",
+    (header) => {
+      const busy = { detail: "Highbury is busy. Try again in a minute." };
+      expect(failureFromResponse(503, null, busy, header)).toEqual({
+        kind: "http",
+        message: busy.detail,
+      });
+      expect(failureFromResponse(429, null, { detail }, header)).toEqual({
+        kind: "rate_limited",
+        detail,
+        retryAfterSeconds: null,
+      });
+    },
+  );
+
   it("says that the conversation ended for a 404", () => {
     const body = { detail: "This conversation has ended. Start a new one." };
     expect(failureFromResponse(404, null, body)).toEqual({ kind: "conversation_ended" });

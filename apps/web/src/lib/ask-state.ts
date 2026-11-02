@@ -115,6 +115,8 @@ export function reduce(state: AskState, action: AskAction): AskState {
  */
 export function retryOffer(turn: Turn, failure: AskFailure): "same" | "as_new" | "none" {
   if (failure.kind === "conversation_ended") return "as_new";
+  // The same question meets the same limit until the next UTC day.
+  if (failure.kind === "daily_limited") return "none";
   if (!ENDS_CONVERSATION.has(failure.kind)) return "same";
   // The conversation is gone. A follow-up means nothing without it.
   return turn.followUp ? "none" : "same";

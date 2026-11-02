@@ -80,6 +80,25 @@ export function FailureCard({
     );
   }
 
+  // No ask again: the same question meets the same limit until the next UTC day.
+  if (failure.kind === "daily_limited") {
+    return (
+      <StateCard
+        tone="info"
+        tag="Daily limit"
+        title={
+          failure.scope === "address"
+            ? "You have used today's questions."
+            : "Highbury has answered all it can today."
+        }
+        alert
+      >
+        <p className="text-foreground-2">{failure.detail}</p>
+        <p className="text-foreground-2">The limits start again at midnight UTC.</p>
+      </StateCard>
+    );
+  }
+
   const canRetry = retryOffer(turn, failure) === "same";
   return (
     <StateCard

@@ -15,10 +15,15 @@ export type AskFailure =
   | { kind: "agent"; message: string }
   | { kind: "unreachable" }
   | { kind: "rate_limited"; detail: string; retryAfterSeconds: number | null }
+  // A daily limit of the address or of the whole site. Asking again cannot help
+  // before the next UTC day.
+  | { kind: "daily_limited"; scope: DailyScope; detail: string }
   | { kind: "conversation_ended" }
   // Any other status. The message is the detail of the body when it is a text.
   | { kind: "http"; message: string | null }
   | { kind: "unexpected" };
+
+export type DailyScope = "address" | "site";
 
 export type AskEvent =
   | { type: "step"; step: Step }
@@ -89,15 +94,23 @@ export async function* readEvents(chunks: AsyncIterable<string>): AsyncGenerator
   yield UNEXPECTED;
 }
 
-/** Name the failure of a response that is not OK. */
+/**
+ * Name the failure of a response that is not OK. dailyLimit is the X-Daily-Limit
+ * header: the status alone cannot tell a daily limit (429 or 503) from the wait
+ * of a minute or a busy service.
+ */
 export function failureFromResponse(
   status: number,
   retryAfter: string | null,
   body: unknown,
+  dailyLimit: string | null = null,
 ): AskFailure {
   const detail =
     typeof body === "object" && body !== null && "detail" in body ? body.detail : null;
   const message = typeof detail === "string" ? detail : null;
+  if (dailyLimit === "address" || dailyLimit === "site") {
+    return { kind: "daily_limited", scope: dailyLimit, detail: message ?? "Come back tomorrow." };
+  }
   if (status === 429) {
     const seconds = retryAfter === null ? NaN : Number(retryAfter);
     return {
@@ -150,6 +163,7 @@ export async function* askStream(
         response.status,
         response.headers.get("Retry-After"),
         errorBody,
+        response.headers.get("X-Daily-Limit"),
       ),
     };
     return;
