@@ -1,0 +1,50 @@
+/* The painting behind a landing band and the shade that keeps text on it
+   readable. The shade and the fades are one ::after layer over the image, in the
+   page colour, so the painting melts into the page at its edges and stays dark
+   behind the text. The contrast sweep of feature 32e set the alphas. */
+
+.art {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+.art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Fills the band. Solid page colour at both edges, a dark shade in the middle. */
+.cover {
+  bottom: 0;
+}
+.cover::after {
+  background: linear-gradient(
+    180deg,
+    var(--background) 0%,
+    color-mix(in srgb, var(--background) 82%, transparent) 18%,
+    color-mix(in srgb, var(--background) 78%, transparent) 50%,
+    color-mix(in srgb, var(--background) 82%, transparent) 82%,
+    var(--background) 100%
+  );
+}
+
+/* The top of a tall band: the layer keeps the painting's own 4:3 shape, so
+   object-cover never crops it and the whole painting shows at every width. On a
+   very wide screen it is taller than the band; the band clips it, and that part
+   is already faded into the page. */
+.top {
+  aspect-ratio: 4 / 3;
+}
+.top::after {
+  background: linear-gradient(
+    180deg,
+    var(--background) 0%,
+    color-mix(in srgb, var(--background) 80%, transparent) 15%,
+    color-mix(in srgb, var(--background) 80%, transparent) 55%,
+    var(--background) 100%
+  );
+}

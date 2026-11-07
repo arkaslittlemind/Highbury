@@ -2,12 +2,15 @@
 
 import { useRef, useState } from "react";
 
+import faqPainting from "@/assets/faq-painting.webp";
+import seasonsPainting from "@/assets/seasons-painting.webp";
 import { AskPill } from "@/components/ask/ask-pill";
 import { Capabilities } from "@/components/ask/capabilities";
 import { ClosingAsk } from "@/components/ask/closing-ask";
 import { Faq } from "@/components/ask/faq";
 import { Gallery } from "@/components/ask/gallery";
 import { Hero } from "@/components/ask/hero";
+import { LANDING_COLUMN, PaintedBand } from "@/components/ask/painted-band";
 import { ProofBand } from "@/components/ask/proof-band";
 import { SampleAnswer } from "@/components/ask/sample-answer";
 import { Seasons } from "@/components/ask/seasons";
@@ -82,9 +85,14 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
             )
           }
         />
-        <div className="mx-auto flex w-full max-w-[1360px] flex-col px-4 sm:px-10">
+        <div className={LANDING_COLUMN}>
           <Capabilities onTry={fillBar} />
+        </div>
+        {/* The two eras side by side; a phone keeps the seam between them. */}
+        <PaintedBand painting={seasonsPainting}>
           <Seasons />
+        </PaintedBand>
+        <div className={LANDING_COLUMN}>
           <Gallery onTry={fillBar} />
           <ProofBand />
           <SampleAnswer onSeeAnswer={first ? () => onAsk(first) : undefined} />
@@ -95,8 +103,10 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
               onAsk={onAsk}
             />
           </ClosingAsk>
-          <Faq />
         </div>
+        <PaintedBand painting={faqPainting} fit="top">
+          <Faq />
+        </PaintedBand>
       </main>
     </div>
   );
