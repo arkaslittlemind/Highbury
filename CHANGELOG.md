@@ -10,7 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). A
 minor version marks a milestone of the build plan or a new capability, and a
 patch version marks fixes only. Each push to `main` deploys the web app, so each
-version below is a production release.
+version below is a production release, and the Git tag of the same name (such as
+`v1.4.1`) marks its last commit.
 
 ## [Unreleased]
 
@@ -194,11 +195,11 @@ The first release: ask a question, get a checked answer.
 - A limit of 5 questions a minute for each address, and a size limit on each
   request.
 
-[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/7681650...HEAD
-[1.4.1]: https://github.com/arkaslittlemind/Highbury/compare/7a75e06...7681650
-[1.4.0]: https://github.com/arkaslittlemind/Highbury/compare/b298a5b...7a75e06
-[1.3.0]: https://github.com/arkaslittlemind/Highbury/compare/824db6b...b298a5b
-[1.2.0]: https://github.com/arkaslittlemind/Highbury/compare/7a6d435...824db6b
-[1.1.1]: https://github.com/arkaslittlemind/Highbury/compare/757e09f...7a6d435
-[1.1.0]: https://github.com/arkaslittlemind/Highbury/compare/fe290f2...757e09f
-[1.0.0]: https://github.com/arkaslittlemind/Highbury/commits/fe290f2
+[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/arkaslittlemind/Highbury/releases/tag/v1.0.0

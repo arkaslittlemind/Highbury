@@ -133,6 +133,7 @@ command, and CI.
   per commit. Ask before committing.
 - `CHANGELOG.md` records each change a visitor of the site can see or use. The
   work commit of such a change adds its entry under `## [Unreleased]`. Before a
-  push to `main` (which deploys), turn Unreleased into a dated version and
-  update the compare links at the end. The file's header defines the format and
-  the version rules.
+  push to `main` (which deploys), turn Unreleased into a dated version, update
+  the compare links at the end, and tag the last commit of the version with an
+  annotated tag (`git tag -a v1.5.0 -m "Highbury 1.5.0"`) pushed with the
+  branch. The file's header defines the format and the version rules.
