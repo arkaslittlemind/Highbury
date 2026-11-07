@@ -21,7 +21,10 @@ describe("renderHomeMarkdown", () => {
 
   it("holds the facts of the page", () => {
     expect(markdown).toContain(NOTICE);
-    for (const card of HOW_IT_WORKS.cards) expect(markdown).toContain(card.title);
+    for (const card of HOW_IT_WORKS.cards) {
+      expect(markdown).toContain(card.title);
+      expect(markdown).toContain(card.try.question);
+    }
     expect(markdown).toContain(SEASONS.then.label);
     expect(markdown).toContain(SEASONS.now.label);
     expect(markdown).toContain(SEASONS.now.lacks);

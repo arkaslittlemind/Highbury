@@ -10,21 +10,52 @@ export const HERO = {
     "An AI football analyst for the 2003-04 Invincibles and the 2025-26 side. It queries the data, draws the pitch chart, and checks every number before you see it.",
 };
 
-export const HOW_IT_WORKS = {
-  headline: ["Not a chatbot.", "An analyst with receipts."],
-  lead: "Every answer shows the tools it called, the SQL it ran, and which numbers passed the check.",
+export type Capability = {
+  title: string;
+  text: string;
+  // The question that the Try link puts into the hero bar.
+  try: { label: string; question: string };
+};
+
+// The same question is the Try of two cards, as in the design.
+const HENRY_V_SAKA = "Compare Henry in 2003-04 with Saka in 2025-26 on goals and xG per 90.";
+
+export const HOW_IT_WORKS: {
+  headline: [string, string];
+  // The line under the headline on the page. It speaks of hover, so the
+  // Markdown copies do not use it.
+  hint: string;
+  cards: Capability[];
+} = {
+  headline: ["See what it can do.", "Then ask your own."],
+  hint: "Hover a card to watch the analyst work. Not sure where to start? Each card has a question you can try.",
   cards: [
     {
-      title: "Reads the catalog first",
-      text: "The agent reads what each season holds before it writes a query, so it knows that 2025-26 has shots but no passes.",
+      title: "Ask in plain English",
+      text: "No query language. It reads what each season holds before it writes a query, so it knows 2025-26 has no passes.",
+      try: { label: "Henry vs Saka per 90", question: HENRY_V_SAKA },
     },
     {
-      title: "Queries read-only",
-      text: "One SELECT in each call, checked by a parser and run as a read-only role with a 5-second timeout and a row limit.",
+      title: "Charts from the data",
+      text: "Shot maps, heatmaps, pass networks and xG timelines. Every mark on the pitch is a row the analyst fetched.",
+      try: {
+        label: "Henry's shots v Liverpool",
+        question: "Show Henry's shots in the 4-2 win over Liverpool in April 2004.",
+      },
+    },
+    {
+      title: "Compare the two eras",
+      text: "Only the metrics both seasons hold, side by side, and it names the two xG models so the comparison stays fair.",
+      try: { label: "Henry vs Saka", question: HENRY_V_SAKA },
     },
     {
       title: "Checks every number",
-      text: "Plain code checks every number against the tool output that it cites. A claim with no support is removed before you see it.",
+      text: "Plain code matches each number to the read-only query that produced it. A claim with no support is removed before you see it, and you can open the SQL.",
+      try: {
+        label: "Saka's minutes and goals per 90",
+        question:
+          "How many minutes did Bukayo Saka play in the 2025-26 league season, and how many goals did he score per 90 minutes?",
+      },
     },
   ],
 };

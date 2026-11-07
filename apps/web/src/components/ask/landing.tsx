@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { AskPill } from "@/components/ask/ask-pill";
+import { Capabilities } from "@/components/ask/capabilities";
 import { ClosingAsk } from "@/components/ask/closing-ask";
 import { Hero } from "@/components/ask/hero";
-import { HowItWorks } from "@/components/ask/how-it-works";
 import { SampleAnswer } from "@/components/ask/sample-answer";
 import { Seasons } from "@/components/ask/seasons";
 import { SiteHeader } from "@/components/ask/site-header";
@@ -32,6 +32,8 @@ const CHIP =
 /** The screen before a question: what Highbury is, why its numbers hold, and the bar to ask it. */
 export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
   const bar = useRef<HTMLInputElement>(null);
+  // The text of the hero bar. A Try link of a capability card sets it.
+  const [question, setQuestion] = useState(draft);
   const questions = suggestions.status === "ready" ? suggestions.questions : [];
   const [first] = questions;
 
@@ -47,6 +49,8 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
               label="Ask the Analyst"
               placeholder="e.g. Show me Thierry Henry's shots in 2003-04"
               initialQuestion={draft}
+              value={question}
+              onValueChange={setQuestion}
               inputRef={bar}
               onAsk={onAsk}
             />
@@ -67,7 +71,15 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
           }
         />
         <div className="mx-auto flex w-full max-w-[1360px] flex-col px-4 sm:px-10">
-          <HowItWorks />
+          <Capabilities
+            onTry={(text) => {
+              setQuestion(text);
+              // The scroll is smooth unless the visitor asks for reduced motion
+              // (scroll-behavior in globals.css). The focus must not jump the page.
+              bar.current?.scrollIntoView({ block: "center" });
+              bar.current?.focus({ preventScroll: true });
+            }}
+          />
           <Seasons />
           <SampleAnswer onSeeAnswer={first ? () => onAsk(first) : undefined} />
           <ClosingAsk>

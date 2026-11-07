@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "*.css": {
+        // A CSS module keeps its own processing: through this rule it came out
+        // as a global sheet with no class names. No module uses Tailwind.
+        condition: { not: { path: "*.module.css" } },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },

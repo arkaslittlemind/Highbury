@@ -1,0 +1,130 @@
+/* The build-up of each capability card. The rest styles live in Tailwind
+   classes and are the finished frame, so a card with no play, a phone, and
+   reduced motion all show the full content. The .play class replays the
+   build-up once. Each keyframe states only its start, so it ends on the rest
+   styles. */
+
+.mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Card 1: the question types itself, Ask is pressed, the steps arrive. */
+.play .typed {
+  animation: type 1100ms steps(34, end) both;
+}
+.play .ask {
+  animation: press 240ms var(--ease-out-strong) 1150ms both;
+}
+.play .step {
+  animation: rise 420ms var(--ease-out-strong) both;
+  animation-delay: calc(1300ms + var(--i) * 220ms);
+}
+.play .tick {
+  animation: pop 320ms var(--ease-out-strong) both;
+  animation-delay: calc(1450ms + var(--i) * 220ms);
+}
+
+/* Card 2: the shots land in the order of the minutes, then the label. */
+.play .mark {
+  animation: land 420ms var(--ease-out-strong) both;
+  animation-delay: calc(200ms + var(--i) * 170ms);
+}
+.play .label {
+  animation: fade 300ms ease 1900ms both;
+}
+
+/* Card 3: the bars grow from the centre line, then the values. */
+.play .bar {
+  animation: grow 620ms var(--ease-out-strong) both;
+  animation-delay: calc(150ms + var(--i) * 140ms);
+}
+.play .value {
+  animation: fade 300ms ease both;
+  animation-delay: calc(500ms + var(--i) * 140ms);
+}
+.play .note {
+  animation: fade 300ms ease 1100ms both;
+}
+
+/* Card 4: the claims arrive, each gets its mark, the claim with no source is
+   struck and dimmed, then the SQL. */
+.play .claim {
+  animation: rise 380ms var(--ease-out-strong) both;
+  animation-delay: calc(var(--i) * 140ms);
+}
+.play .claimMark {
+  animation: pop 300ms var(--ease-out-strong) both;
+  animation-delay: calc(700ms + var(--i) * 260ms);
+}
+.play .removed {
+  animation:
+    rise 380ms var(--ease-out-strong) both,
+    dim 400ms ease 2200ms both;
+  animation-delay: calc(var(--i) * 140ms), 2200ms;
+}
+.play .strike {
+  animation: strike 360ms var(--ease-out-strong) 1800ms both;
+}
+.play .sql {
+  animation: rise 420ms var(--ease-out-strong) 2400ms both;
+}
+
+/* With reduced motion a card never replays: the finished frame is the content. */
+@media (prefers-reduced-motion: reduce) {
+  .play * {
+    animation: none !important;
+  }
+}
+
+@keyframes type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes press {
+  50% {
+    transform: scale(0.94);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes land {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes dim {
+  from {
+    color: var(--foreground-2);
+  }
+}
+@keyframes strike {
+  from {
+    transform: scaleX(0);
+  }
+}

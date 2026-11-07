@@ -16,6 +16,10 @@ type AskPillProps = {
   initialQuestion?: string;
   // For a control in a different place that sends the visitor to this bar.
   inputRef?: RefObject<HTMLInputElement | null>;
+  // A bar whose text another control can set gives both. Without them, the
+  // bar keeps its own text.
+  value?: string;
+  onValueChange?: (question: string) => void;
   className?: string;
 };
 
@@ -26,12 +30,16 @@ export function AskPill({
   onAsk,
   initialQuestion = "",
   inputRef,
+  value,
+  onValueChange,
   className,
 }: AskPillProps) {
   const inputId = useId();
   const ownRef = useRef<HTMLInputElement>(null);
   const input = inputRef ?? ownRef;
-  const [question, setQuestion] = useState(initialQuestion);
+  const [ownQuestion, setOwnQuestion] = useState(initialQuestion);
+  const question = value ?? ownQuestion;
+  const setQuestion = onValueChange ?? setOwnQuestion;
 
   function submit(event: FormEvent) {
     event.preventDefault();
