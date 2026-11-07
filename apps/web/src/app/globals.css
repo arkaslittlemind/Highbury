@@ -213,19 +213,34 @@
   --radius: 6px;
 }
 
-/* The shade over the painting of the hero: the page colour, lighter in the
-   middle so the painting shows, solid at the bottom so the hero has no edge, and
-   a dark glow behind the centred headline. */
+/* The shade over the painting of the hero: the page colour over the whole
+   painting, solid at the bottom so the hero has no edge, and a wide dark glow
+   behind the centred text. The glow gives the headline, the intro, and the bar a
+   calm ground, so the brushstrokes do not run through the letters; the stands
+   at the two sides stay in view. */
 @utility hero-painting-shade {
   background-image:
+    radial-gradient(
+      62% 34% at 50% 32%,
+      rgb(5 14 8 / 0.85),
+      rgb(5 14 8 / 0.6) 55%,
+      transparent
+    ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--background) 72%, transparent) 0%,
-      color-mix(in srgb, var(--background) 62%, transparent) 40%,
-      color-mix(in srgb, var(--background) 80%, transparent) 75%,
+      color-mix(in srgb, var(--background) 78%, transparent) 0%,
+      color-mix(in srgb, var(--background) 72%, transparent) 40%,
+      color-mix(in srgb, var(--background) 82%, transparent) 75%,
       var(--background) 100%
-    ),
-    radial-gradient(70% 55% at 50% 32%, rgb(5 14 8 / 0.35), transparent);
+    );
+}
+
+/* A soft dark edge around the hero text, so a letter stays clear where a light
+   brushstroke still shows through the glow. */
+@utility hero-text-shadow {
+  text-shadow:
+    0 1px 2px rgb(5 14 8 / 0.7),
+    0 0 18px rgb(5 14 8 / 0.55);
 }
 
 @layer base {

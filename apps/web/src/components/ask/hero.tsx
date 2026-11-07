@@ -163,7 +163,7 @@ export function Hero({ intro, bar, chips }: HeroProps) {
             style={order(1)}
             className={cn(
               RISE,
-              "font-display text-[clamp(36px,5vw,68px)] leading-[1.02] font-semibold tracking-[-0.01em] font-stretch-semi-expanded text-balance",
+              "font-display text-[clamp(36px,5vw,68px)] leading-[1.02] font-semibold tracking-[-0.01em] font-stretch-semi-expanded text-balance hero-text-shadow",
             )}
           >
             {HERO.headline[0]}
@@ -171,7 +171,7 @@ export function Hero({ intro, bar, chips }: HeroProps) {
           </h1>
           <p
             style={order(2)}
-            className={cn(RISE, "max-w-[46ch] text-[17px] leading-[1.55] text-on-grass sm:text-[19px]")}
+            className={cn(RISE, "max-w-[46ch] text-[17px] leading-[1.55] text-foreground hero-text-shadow sm:text-[19px]")}
           >
             {keepSeasonsWhole(HERO.intro)}
           </p>
