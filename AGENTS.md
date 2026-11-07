@@ -136,4 +136,8 @@ command, and CI.
   push to `main` (which deploys), turn Unreleased into a dated version, update
   the compare links at the end, and tag the last commit of the version with an
   annotated tag (`git tag -a v1.5.0 -m "Highbury 1.5.0"`) pushed with the
-  branch. The file's header defines the format and the version rules.
+  branch. Then publish the version as a GitHub release titled "Highbury 1.5.0"
+  (`gh release create v1.5.0 --verify-tag --notes-file <file>`), with the
+  version's section as the notes: each bullet on one line, because GitHub shows
+  every line break, and a closing line with the release date and a link to
+  `CHANGELOG.md`. The file's header defines the format and the version rules.
