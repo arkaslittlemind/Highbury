@@ -1,4 +1,12 @@
-import { DATA_SOURCES, HERO, HOW_IT_WORKS, NOTICE, SEASONS, type Season } from "@/lib/landing-content";
+import {
+  DATA_SOURCES,
+  FAQ,
+  HERO,
+  HOW_IT_WORKS,
+  NOTICE,
+  SEASONS,
+  type Season,
+} from "@/lib/landing-content";
 import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
 // The text that AI agents read in place of the page: /index.md, /llms.txt, and
@@ -17,6 +25,25 @@ function seasonSection(season: Season): string {
   ];
   lines.push("", `**${season.note.lead}** ${season.note.text}`);
   return lines.join("\n");
+}
+
+// Each group is a heading, and each answer follows its question in bold.
+function faqSection(): string {
+  return FAQ.groups
+    .map((group) =>
+      [
+        `### ${group.title}`,
+        "",
+        ...group.items.flatMap((item) => [
+          `**${item.question}**`,
+          "",
+          ...item.answer.flatMap((paragraph) => [paragraph, ""]),
+        ]),
+      ]
+        .join("\n")
+        .trimEnd(),
+    )
+    .join("\n\n");
 }
 
 export function renderHomeMarkdown(): string {
@@ -46,6 +73,10 @@ export function renderHomeMarkdown(): string {
     seasonSection(SEASONS.now),
     "",
     SEASONS.note,
+    "",
+    `## FAQ: ${FAQ.headline}`,
+    "",
+    faqSection(),
     "",
     "## How to use it",
     "",

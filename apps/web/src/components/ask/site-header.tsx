@@ -38,7 +38,7 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
         )}
       >
         <div className="flex items-center gap-3">
-          {/* The football of the site icon. The page has no crest and no logo of a club. */}
+          {/* The football of the site icon. The site uses no crest or club logo as its branding. */}
           <Image src={logo} alt="" width={32} height={32} unoptimized className="rounded-lg" />
           <span className="font-display text-xl leading-none font-extrabold tracking-[0.06em] uppercase">
             Highbury

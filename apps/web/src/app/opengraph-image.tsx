@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-// Text and lines only: the project uses no club crest, logo, or player photo.
+// Text and lines only: no club crest, logo, or player photo as branding.
 // The image uses the built-in font, so the build fetches no font.
 export const alt =
   "Highbury: an AI football analyst for Arsenal's 2003-04 and 2025-26 seasons. Every number checked.";

@@ -17,8 +17,9 @@ interactive pitch chart, and checks every number against the data before showing
 it. When the data cannot answer, it says so.
 
 Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the
-Premier League. No club crests, logos, or player photos. Raw source data is
-never committed.
+Premier League. The site never uses a crest or club logo as its branding and
+shows no player photos; original artwork may show club logos incidentally. Raw
+source data is never committed.
 
 ## Layout
 
@@ -90,7 +91,7 @@ Run Python and database commands from the repository root.
 Run web commands from `apps/web`.
 
 - Web install: `pnpm install`
-- Web environment: `cp .env.example .env.local` (`NEXT_PUBLIC_API_URL`, the origin of the analyst API, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, the site key of the Turnstile widget; both go into the bundle at build time)
+- Web environment: `cp .env.example .env.local` (`NEXT_PUBLIC_API_URL`, the origin of the analyst API, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, the site key of the Turnstile widget; both go into the bundle at build time. `CLOUDFLARE_ANALYTICS_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_SITE_TAG` give the footer visit count; they are server-only, the token has Account Analytics Read only, and the count is hidden when one is empty)
 - Dev server: `pnpm dev` (http://localhost:3000)
 - Build: `pnpm build`
 - Production server: `pnpm start`

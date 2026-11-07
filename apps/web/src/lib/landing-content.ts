@@ -113,3 +113,108 @@ export const SEASONS: {
 export const NOTICE =
   "Unofficial fan project. Not affiliated with or endorsed by Arsenal FC or the Premier League.";
 export const DATA_SOURCES = ["StatsBomb Open Data", "Understat", "football-data.co.uk", "FPL"];
+
+export type FaqItem = {
+  question: string;
+  // One string for each paragraph of the answer.
+  answer: string[];
+};
+
+export const FAQ: {
+  headline: string;
+  lead: string;
+  groups: { title: string; items: FaqItem[] }[];
+} = {
+  headline: "Questions, answered.",
+  lead: "What Highbury can do, what it cannot, and why.",
+  groups: [
+    {
+      title: "Asking questions",
+      items: [
+        {
+          question: "What can I ask?",
+          answer: [
+            "Anything about Arsenal's 2003-04 and 2025-26 league seasons: shots and xG, goals, passes and heatmaps for 2003-04, results and the table, FPL points for 2025-26, and comparisons between players and between the two eras.",
+          ],
+        },
+        {
+          question: "Do I need to know football stats or SQL?",
+          answer: [
+            "No. Ask in plain English and the analyst writes the query. If you are not sure where to start, each card above has a question you can try with one click.",
+          ],
+        },
+        {
+          question: "Can I ask a follow-up question?",
+          answer: [
+            'Yes. Ask in the same conversation, for example "Now show his whole season", and the analyst keeps the context of the answer before.',
+          ],
+        },
+        {
+          question: "How many questions can I ask?",
+          answer: [
+            "Up to 10 a day. Highbury is free, and every answer costs money to run, so each visitor has a daily allowance. It resets at midnight UTC.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "The data",
+      items: [
+        {
+          question: "Which matches does it cover?",
+          answer: [
+            "2003-04: Arsenal's 38 league matches, from StatsBomb Open Data. 2025-26: Arsenal's shots with Understat xG, and the FPL numbers of every Premier League player.",
+            "For both seasons it also has every league result and the table, from football-data.co.uk.",
+          ],
+        },
+        {
+          question: "Why can't it show passes for 2025-26?",
+          answer: [
+            "Understat records shots, not passes. Highbury says so instead of guessing, and offers a shot map.",
+          ],
+        },
+        {
+          question: "Why is xG different between the two seasons?",
+          answer: [
+            "The seasons come from two xG models: StatsBomb for 2003-04 and Understat for 2025-26. Every comparison names both, so you know the numbers are close but not identical in method.",
+          ],
+        },
+        {
+          question: "Can it answer about other seasons or other clubs?",
+          answer: [
+            "Not other seasons. Other clubs only through the league table, the results, and the 2025-26 FPL numbers. When a question is out of scope, it tells you.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Trust and privacy",
+      items: [
+        {
+          question: "How do I know a number is right?",
+          answer: [
+            'Plain code checks every number in an answer against the read-only query that produced it. A claim with no support is removed before you see it. Open "Show the working" to see each query and its rows.',
+          ],
+        },
+        {
+          question: "Can it still be wrong?",
+          answer: [
+            "Yes. It can misread a question or choose a different measure than you meant. The check proves that each number matches the data, not that it understood you, so read the working when it matters.",
+          ],
+        },
+        {
+          question: "What happens to my question?",
+          answer: [
+            "Your question goes to the AI model provider, currently Google Gemini, to write the answer. Highbury's own logs record counts and cost for each question, never its text.",
+          ],
+        },
+        {
+          question: "Is this an official Arsenal product?",
+          answer: [
+            "No. Highbury is an unofficial fan project, not affiliated with or endorsed by Arsenal FC or the Premier League.",
+          ],
+        },
+      ],
+    },
+  ],
+};

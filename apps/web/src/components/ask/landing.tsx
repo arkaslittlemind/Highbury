@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { AskPill } from "@/components/ask/ask-pill";
 import { Capabilities } from "@/components/ask/capabilities";
 import { ClosingAsk } from "@/components/ask/closing-ask";
+import { Faq } from "@/components/ask/faq";
 import { Gallery } from "@/components/ask/gallery";
 import { Hero } from "@/components/ask/hero";
 import { ProofBand } from "@/components/ask/proof-band";
@@ -94,6 +95,7 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
               onAsk={onAsk}
             />
           </ClosingAsk>
+          <Faq />
         </div>
       </main>
     </div>

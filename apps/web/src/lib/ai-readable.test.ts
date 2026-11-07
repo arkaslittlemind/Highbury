@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { renderHomeMarkdown, renderLlmsFullTxt, renderLlmsTxt } from "@/lib/ai-readable";
-import { HOW_IT_WORKS, NOTICE, SEASONS } from "@/lib/landing-content";
+import { FAQ, HOW_IT_WORKS, NOTICE, SEASONS } from "@/lib/landing-content";
 import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
 // Every URL of a Markdown link, for example [Home](https://...).
@@ -30,6 +30,16 @@ describe("renderHomeMarkdown", () => {
     expect(markdown).toContain(SEASONS.now.note.text);
     expect(markdown).toContain(SEASONS.then.note.lead);
     expect(markdown).toContain(SEASONS.note);
+  });
+
+  it("holds all 12 FAQ questions with their answers", () => {
+    const items = FAQ.groups.flatMap((group) => group.items);
+    expect(items).toHaveLength(12);
+    for (const group of FAQ.groups) expect(markdown).toContain(`### ${group.title}`);
+    for (const item of items) {
+      expect(markdown).toContain(`**${item.question}**`);
+      for (const paragraph of item.answer) expect(markdown).toContain(paragraph);
+    }
   });
 
   it("links only absolute HTML URLs on the site", () => {

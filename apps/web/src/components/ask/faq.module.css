@@ -1,0 +1,96 @@
+/* The open motion of the FAQ and its plus/minus control. These rules need
+   pseudo-elements (::details-content, ::before, ::after), so they live here and
+   not in Tailwind classes. */
+
+/* Lets a details body animate to height: auto in a browser that supports it. Other
+   browsers open the answer at once, which is still correct. The property is
+   inherited, so the section sets it for each item. */
+.faq {
+  interpolate-size: allow-keywords;
+}
+
+.qa summary {
+  list-style: none;
+}
+.qa summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Closed: a filled circle with a plus. Open: an outlined circle with a minus. The
+   vertical stroke folds flat, so the plus turns into the minus. */
+.pm {
+  flex: none;
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--paper);
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 160ms var(--ease-out-strong);
+}
+.pm::before,
+.pm::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.75px;
+  border-radius: 1px;
+  background: var(--background);
+  translate: -50% -50%;
+  transition:
+    background-color 200ms ease,
+    transform 220ms var(--ease-out-strong);
+}
+.pm::after {
+  transform: rotate(90deg);
+}
+.qa[open] .pm {
+  background: transparent;
+}
+.qa[open] .pm::before,
+.qa[open] .pm::after {
+  background: var(--paper);
+}
+.qa[open] .pm::after {
+  transform: rotate(0deg);
+}
+.qa summary:active .pm {
+  transform: scale(0.94);
+}
+@media (hover: hover) and (pointer: fine) {
+  .qa summary:hover .pm {
+    background: var(--primary-foreground);
+    border-color: var(--primary-foreground);
+  }
+  .qa[open] summary:hover .pm {
+    background: transparent;
+    border-color: var(--paper);
+  }
+}
+
+.qa::details-content {
+  block-size: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    block-size 260ms var(--ease-out-strong),
+    opacity 200ms ease,
+    content-visibility 260ms allow-discrete;
+}
+.qa[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+/* Reduced motion keeps only the fade: the answer does not slide open. */
+@media (prefers-reduced-motion: reduce) {
+  .qa::details-content {
+    transition:
+      opacity 200ms ease,
+      content-visibility 200ms allow-discrete;
+  }
+}

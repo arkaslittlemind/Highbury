@@ -1,0 +1,37 @@
+/* The stadium painting at the foot of the footer panel. Two fades: from the top it
+   melts into the panel, and a light one from the bottom keeps the edge of the
+   page calm. The fades are pseudo-elements, so they live here. */
+
+/* The whole painting shows: 3:2 squashed to 75% of its height is 2:1. */
+.art {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  margin-top: -24px;
+}
+.art img {
+  object-fit: fill;
+}
+.art::before,
+.art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.art::before {
+  background: linear-gradient(
+    180deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--card) 50%, transparent) 12%,
+    transparent 30%
+  );
+}
+.art::after {
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--background) 70%, transparent) 0%,
+    color-mix(in srgb, var(--background) 25%, transparent) 30%,
+    transparent 60%
+  );
+}
