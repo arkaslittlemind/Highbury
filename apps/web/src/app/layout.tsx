@@ -52,7 +52,8 @@ export const metadata: Metadata = {
 };
 
 // Who runs the site and what the site is, for search engines and AI agents.
-// No logo, contact, or social links: the project publishes none.
+// No logo and no sameAs: the site has no logo of its own beyond the favicon, and
+// the author's GitHub and LinkedIn links live in the footer, not in this data.
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [

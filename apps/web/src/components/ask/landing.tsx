@@ -12,7 +12,6 @@ import { Gallery } from "@/components/ask/gallery";
 import { Hero } from "@/components/ask/hero";
 import { LANDING_COLUMN, PaintedBand } from "@/components/ask/painted-band";
 import { ProofBand } from "@/components/ask/proof-band";
-import { SampleAnswer } from "@/components/ask/sample-answer";
 import { Seasons } from "@/components/ask/seasons";
 import { SiteHeader } from "@/components/ask/site-header";
 import { SuggestionChips } from "@/components/ask/suggestion-chips";
@@ -50,7 +49,6 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
     bar.current?.focus({ preventScroll: true });
   }
   const questions = suggestions.status === "ready" ? suggestions.questions : [];
-  const [first] = questions;
 
   return (
     // The header lies on the hero, so that the two have one piece of grass.
@@ -95,7 +93,13 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
         <div className={LANDING_COLUMN}>
           <Gallery onTry={fillBar} />
           <ProofBand />
-          <SampleAnswer onSeeAnswer={first ? () => onAsk(first) : undefined} />
+        </div>
+        <PaintedBand painting={faqPainting} fit="top">
+          <Faq />
+        </PaintedBand>
+        {/* After the FAQ, so a visitor who read to the end can ask at once. A phone
+            has no Ask button in the header, so this bar is the one near the end. */}
+        <div className={LANDING_COLUMN}>
           <ClosingAsk>
             <AskPill
               label="Your question"
@@ -104,9 +108,6 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
             />
           </ClosingAsk>
         </div>
-        <PaintedBand painting={faqPainting} fit="top">
-          <Faq />
-        </PaintedBand>
       </main>
     </div>
   );

@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { href: "#how", label: "How it works" },
   { href: "#seasons", label: "Seasons" },
-  { href: "#sample", label: "Sample answer" },
 ];
 
 type SiteHeaderProps = {
