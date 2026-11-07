@@ -22,7 +22,7 @@ export function SampleAnswer({ onSeeAnswer }: SampleAnswerProps) {
         <SectionTag>Sample answer</SectionTag>
         <h2
           id="sample-title"
-          className="font-display text-[40px] leading-none font-semibold text-balance sm:text-[64px]"
+          className="font-display text-[32px] leading-[1.02] font-semibold font-stretch-semi-expanded text-balance sm:text-[48px]"
         >
           The chart is <em>the answer.</em>
         </h2>

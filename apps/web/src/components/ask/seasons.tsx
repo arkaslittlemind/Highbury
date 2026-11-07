@@ -17,7 +17,7 @@ function SeasonCard({ season, now = false }: { season: Season; now?: boolean }) 
       <div className="relative flex flex-wrap items-baseline justify-between gap-3">
         <h3
           className={cn(
-            "font-display text-[44px] leading-none font-bold sm:text-[56px]",
+            "font-display text-[36px] leading-none font-bold sm:text-[44px]",
             now && "text-brand-soft",
           )}
         >
@@ -29,7 +29,7 @@ function SeasonCard({ season, now = false }: { season: Season; now?: boolean }) 
       </div>
       <p
         className={cn(
-          "relative font-display text-[22px] font-medium italic sm:text-[26px]",
+          "relative font-display text-[18px] font-medium italic sm:text-[21px]",
           now ? "text-now-text" : "text-on-grass",
         )}
       >
@@ -72,7 +72,7 @@ export function Seasons() {
         <SectionTag>Seasons</SectionTag>
         <h2
           id="seasons-title"
-          className="font-display text-[40px] leading-none font-semibold text-balance sm:text-[64px]"
+          className="font-display text-[32px] leading-[1.02] font-semibold font-stretch-semi-expanded text-balance sm:text-[48px]"
         >
           {`${SEASONS.headline[0]} `}<em>{SEASONS.headline[1]}</em>
         </h2>

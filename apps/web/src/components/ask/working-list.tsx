@@ -22,7 +22,7 @@ export function WorkingList({ working, totals, detailsRef }: WorkingListProps) {
     <details ref={detailsRef} className="group rounded-panel border bg-surface-sunken">
       <summary className="flex min-h-target cursor-pointer list-none items-center gap-3 px-6 py-4.5">
         <span className="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <span className="font-display text-[22px] font-bold tracking-[0.08em] uppercase">
+          <span className="font-display text-lg font-bold tracking-[0.08em] uppercase">
             Show the working
           </span>
           <span className="font-mono text-[13px] text-muted-foreground">{totals}</span>

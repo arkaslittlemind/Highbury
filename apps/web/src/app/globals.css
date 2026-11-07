@@ -79,9 +79,9 @@
   --color-now-text: var(--now-text);
   --color-now-muted: var(--now-muted);
 
-  --font-sans: var(--font-source-sans), sans-serif;
-  --font-display: var(--font-barlow-condensed), sans-serif;
-  --font-heading: var(--font-barlow-condensed), sans-serif;
+  --font-sans: var(--font-figtree), sans-serif;
+  --font-display: var(--font-archivo), sans-serif;
+  --font-heading: var(--font-archivo), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -285,6 +285,15 @@
   h2,
   h3 {
     @apply font-heading;
+  }
+  /* The display face is set in the wide cut of Archivo. The rule sits in the
+     base layer, so a font-stretch utility on a component still wins. */
+  h1,
+  h2,
+  h3,
+  .font-display,
+  .font-heading {
+    font-stretch: 125%;
   }
   :focus-visible {
     outline: 2px solid var(--ring);

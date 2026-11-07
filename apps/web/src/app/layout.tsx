@@ -1,20 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { Archivo, Figtree, JetBrains_Mono } from "next/font/google";
 import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-// Barlow Condensed is not a variable font, so each weight is named. The
-// headlines of the landing screen have words in italic. Without the italic
-// files the browser slants the upright letters, which looks wrong.
-const barlowCondensed = Barlow_Condensed({
-  variable: "--font-barlow-condensed",
+// Archivo is the display face. Its width axis gives the wide cut of the
+// headlines, which globals.css selects with font-stretch. The headlines of the
+// landing screen have words in italic. Without the italic files the browser
+// slants the upright letters, which looks wrong.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  axes: ["wdth"],
   style: ["normal", "italic"],
 });
 
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
 });
 
@@ -88,7 +89,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // The page has one dark theme. The class makes the dark: variants of shadcn match it.
     <html
       lang="en"
-      className={`${barlowCondensed.variable} ${sourceSans.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
+      className={`${archivo.variable} ${figtree.variable} ${jetbrainsMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {/* The browser does not run a JSON-LD script, so the CSP does not apply.

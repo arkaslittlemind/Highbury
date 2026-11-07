@@ -17,7 +17,7 @@ export function HowItWorks() {
           <SectionTag>How it works</SectionTag>
           <h2
             id="how-title"
-            className="font-display text-[40px] leading-none font-semibold sm:text-[64px]"
+            className="font-display text-[32px] leading-[1.02] font-semibold font-stretch-semi-expanded sm:text-[48px]"
           >
             {`${HOW_IT_WORKS.headline[0]} `}<em className="block">{HOW_IT_WORKS.headline[1]}</em>
           </h2>
@@ -51,7 +51,7 @@ export function HowItWorks() {
                 >
                   {index + 1}
                 </span>
-                <h3 className="font-display text-[28px] leading-[1.05] font-semibold sm:text-[32px]">
+                <h3 className="font-display text-[22px] leading-[1.1] font-semibold sm:text-[24px]">
                   {title}
                 </h3>
                 <p className={light ? "text-paper-muted" : "text-foreground-2"}>{text}</p>

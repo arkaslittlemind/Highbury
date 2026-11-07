@@ -19,7 +19,7 @@ export function QuestionHeading({ turn, titleRef, children }: QuestionHeadingPro
       <h1
         ref={titleRef}
         tabIndex={-1}
-        className="max-w-[960px] font-display text-4xl leading-[1.05] font-bold wrap-break-word sm:text-5xl"
+        className="max-w-[960px] font-display text-3xl leading-[1.08] font-bold font-stretch-semi-expanded wrap-break-word sm:text-4xl"
       >
         {turn.question}
       </h1>

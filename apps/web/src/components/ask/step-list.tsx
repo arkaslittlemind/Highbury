@@ -39,7 +39,7 @@ export function StepList({ steps, startedAt, checking, onStop }: StepListProps) 
       <div className="mb-4.5 flex items-center justify-between">
         <h2
           id="steps-title"
-          className="font-display text-xl font-bold tracking-[0.12em] uppercase"
+          className="font-display text-lg font-bold tracking-[0.12em] uppercase"
         >
           Analyst at work
         </h2>

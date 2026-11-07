@@ -141,7 +141,7 @@ function SampleCard({ className }: { className?: string }) {
       </div>
       <div className="flex gap-5 rounded-b-[14px] border border-t-0 border-white/16 bg-[#0C1E12]/55 p-5 backdrop-blur-lg">
         <div className="flex w-[132px] shrink-0 flex-col gap-1.5">
-          <span className="font-display text-lg leading-tight font-semibold text-on-grass italic">
+          <span className="font-display text-base leading-tight font-semibold text-on-grass italic">
             Henry v Liverpool
           </span>
           {/* The penalty area of the sample chart. */}
@@ -174,7 +174,7 @@ function SampleCard({ className }: { className?: string }) {
           </svg>
           <span className="text-xs text-on-grass-muted">9 April 2004 · StatsBomb</span>
         </div>
-        <ul className="flex flex-col justify-center gap-2.5 font-display text-[17px] leading-tight font-medium italic">
+        <ul className="flex flex-col justify-center gap-2.5 font-display text-[15px] leading-tight font-medium font-stretch-semi-expanded italic">
           {PROOFS.map((proof) => (
             <li key={proof} className="flex items-center gap-2.5">
               <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-paper" />
@@ -210,7 +210,7 @@ export function Hero({ intro, children }: HeroProps) {
             id="hero-title"
             className={cn(
               RISE,
-              "font-display text-[clamp(52px,7.2vw,104px)] leading-[0.95] font-semibold text-balance delay-[60ms]",
+              "font-display text-[clamp(34px,3.9vw,56px)] leading-[1.02] font-semibold font-stretch-semi-expanded text-balance delay-[60ms]",
             )}
           >
             {HERO.headline[0]}
@@ -229,7 +229,7 @@ export function Hero({ intro, children }: HeroProps) {
           <div className={cn(RISE, "flex items-center gap-3 delay-[240ms]")}>
             <div
               aria-hidden="true"
-              className="flex font-display text-[15px] font-extrabold *:flex *:size-11 *:items-center *:justify-center *:rounded-full *:border-2 *:not-first:-ml-3"
+              className="flex font-display text-[14px] font-extrabold font-stretch-normal *:flex *:size-11 *:items-center *:justify-center *:rounded-full *:border-2 *:not-first:-ml-3"
             >
               <span className="border-grass-800 bg-paper text-background">03</span>
               <span className="border-grass-800 bg-primary text-primary-foreground">26</span>

@@ -39,7 +39,7 @@ export function StateCard({ tone, tag, title, alert, children }: StateCardProps)
       >
         {tag}
       </span>
-      {title && <h2 className="font-display text-[32px] leading-[1.1] font-bold">{title}</h2>}
+      {title && <h2 className="font-display text-[26px] leading-[1.1] font-bold">{title}</h2>}
       {children}
     </section>
   );

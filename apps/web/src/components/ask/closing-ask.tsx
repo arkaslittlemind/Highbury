@@ -23,7 +23,7 @@ export function ClosingAsk({ children }: { children: ReactNode }) {
         <div className="flex max-w-[760px] flex-col gap-6">
           <h2
             id="closing-title"
-            className="font-display text-[40px] leading-[0.98] font-semibold text-balance sm:text-[72px]"
+            className="font-display text-[32px] leading-[1.02] font-semibold font-stretch-semi-expanded text-balance sm:text-[52px]"
           >
             What do you want to know <em>about these two sides?</em>
           </h2>

@@ -15,14 +15,14 @@ import { cn } from "@/lib/utils";
 // The first player is on the left and the second one is on the right. The
 // metric label is between them. The columns are narrower in a narrow panel.
 const ROW = "grid grid-cols-[minmax(0,1fr)_5.5rem_minmax(0,1fr)] items-center gap-2 @md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] @md:gap-4";
-const VALUE = "w-11 shrink-0 font-display text-xl font-bold @md:w-16 @md:text-[26px]";
+const VALUE = "w-11 shrink-0 font-display text-lg font-bold font-stretch-normal tabular-nums @md:w-16 @md:text-2xl";
 
 function PlayerHeader({ series, side }: { series: Series; side: "left" | "right" }) {
   return (
     <div role="columnheader" className={cn(side === "left" && "text-right")}>
       <div
         className={cn(
-          "font-display text-[26px] leading-none font-extrabold uppercase @md:text-[44px]",
+          "font-display text-[22px] leading-none font-extrabold font-stretch-normal uppercase wrap-break-word @md:text-[36px]",
           side === "right" && "text-brand",
         )}
       >
