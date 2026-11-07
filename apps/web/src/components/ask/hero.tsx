@@ -1,5 +1,7 @@
+import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
 
+import seasonsPainting from "@/assets/seasons-painting.webp";
 import { Pitch } from "@/components/charts/pitch";
 import { ShotMark } from "@/components/charts/shot-map";
 import { HERO } from "@/lib/landing-content";
@@ -32,25 +34,23 @@ function order(index: number): CSSProperties {
   return { animationDelay: `${index * STAGGER_MS}ms` };
 }
 
-/** The grass behind the hero. It is a picture: its chalk lines hold no data. */
-function Grass() {
+/**
+ * The painting behind the hero: old Highbury on the left and the Emirates on the
+ * right, the two eras of the headline. It is decorative. The shade keeps the
+ * text readable and fades the painting into the page at the bottom.
+ */
+function Painting() {
   return (
-    <div aria-hidden="true" className="absolute inset-0 -z-10 hero-grass">
-      <div className="absolute inset-0 mown [--mown-angle:90deg] [--mown:120px]" />
-      {/* The halfway line and the centre circle sit behind the headline: the
-          page starts where a match starts. */}
-      <svg
-        viewBox="0 0 1440 1000"
-        preserveAspectRatio="xMidYMin slice"
-        className="absolute inset-0 size-full"
-      >
-        <g className="fill-none stroke-paper/13" strokeWidth="3">
-          <line x1="-20" y1="330" x2="1460" y2="330" />
-          <circle cx="720" cy="330" r="230" />
-        </g>
-        <circle cx="720" cy="330" r="7" className="fill-paper/18" />
-      </svg>
-      <div className="absolute inset-0 hero-shade" />
+    <div aria-hidden="true" className="absolute inset-0 -z-10">
+      <Image
+        src={seasonsPainting}
+        alt=""
+        fill
+        loading="eager"
+        sizes="100vw"
+        className="object-cover object-[50%_70%]"
+      />
+      <div className="absolute inset-0 hero-painting-shade" />
     </div>
   );
 }
@@ -154,7 +154,7 @@ export function Hero({ intro, bar, chips }: HeroProps) {
       data-intro={intro ? "" : undefined}
       className="relative isolate overflow-hidden"
     >
-      <Grass />
+      <Painting />
       {/* The top padding holds the header, which lies on the hero. */}
       <div className="mx-auto max-w-[1200px] px-gutter pt-34 sm:pt-46">
         <div className="flex flex-col items-center gap-5 pb-10 text-center sm:gap-6 sm:pb-16">
@@ -195,7 +195,7 @@ export function Hero({ intro, bar, chips }: HeroProps) {
           <SampleCard />
         </div>
       </div>
-      {/* The grass and the card fade into the page together, so the hero has no edge. */}
+      {/* The painting and the card fade into the page together, so the hero has no edge. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[140px] bg-linear-to-b from-transparent to-background"
