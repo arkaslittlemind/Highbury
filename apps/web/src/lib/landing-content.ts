@@ -61,45 +61,52 @@ export const HOW_IT_WORKS: {
 };
 
 export type Season = {
-  label: string;
+  label: "2003-04" | "2025-26";
   source: string;
   line: string;
   // What the season holds. The data catalog of the service is the source.
   has: string[];
-  lacks?: string;
+  // The box under the list: what is special about the season's data. The lead is bold.
+  note: { lead: string; text: string };
 };
 
 export const SEASONS: {
   headline: [string, string];
+  lead: string;
   then: Season;
   now: Season;
   note: string;
 } = {
   headline: ["Two seasons.", "Honest about the gaps."],
+  lead: "What each season holds, and what it does not. The analyst reads this before every query.",
   then: {
     label: "2003-04",
     source: "StatsBomb Open Data",
-    line: "The Invincibles · 26 W 12 D 0 L",
+    line: "The Invincibles",
     has: [
       "Shots with StatsBomb xG and coordinates",
       "Passes and pressures, with coordinates",
       "Player stats for each match and for the season",
-      "Every league match and the table, from football-data.co.uk",
+      "Every league match and the table",
     ],
+    note: { lead: "All 38 league matches", text: "of Arsenal, event by event." },
   },
   now: {
     label: "2025-26",
-    source: "Understat",
-    line: "The current side, shot by shot",
+    source: "Understat · FPL",
+    line: "The 2025-26 side, shot by shot",
     has: [
       "Shots with Understat xG and coordinates",
       "Player stats for each match and for the season",
-      "Every league match and the table, from football-data.co.uk",
-      "FPL points, saves, clean sheets, and bonus for each match",
+      "Every league match and the table",
+      "FPL points, saves, clean sheets and bonus",
     ],
-    lacks: "No pass data. Highbury says so and offers a shot map.",
+    note: {
+      lead: "No pass data.",
+      text: "Understat records shots only. Highbury says so and offers a shot map.",
+    },
   },
-  note: "A comparison of the two seasons uses only the metrics that both have, and says that the two xG models are different.",
+  note: "A comparison of the two seasons uses only the metrics both hold, and names the two xG models: StatsBomb for 2003-04, Understat for 2025-26.",
 };
 
 // The footer lines of the page.

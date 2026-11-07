@@ -1,0 +1,74 @@
+/* The build-up of each gallery tile. As in the capability cards, the rest styles
+   are the finished frame, and .play replays the build-up once. Each mark has its
+   own delay in --d, so a chart of 200 marks still ends in about two seconds. */
+
+.mark,
+.pop,
+.barStart,
+.barEnd {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.barStart {
+  transform-origin: right center;
+}
+.barEnd {
+  transform-origin: left center;
+}
+
+.play .mark {
+  animation: land 420ms var(--ease-out-strong) both;
+  animation-delay: var(--d);
+}
+.play .pop {
+  animation: pop 360ms var(--ease-out-strong) both;
+  animation-delay: var(--d);
+}
+/* A line with pathLength="1" draws from its start. */
+.play .draw {
+  stroke-dasharray: 1;
+  animation: draw 700ms var(--ease-out-strong) both;
+  animation-delay: var(--d);
+}
+.play .trace {
+  stroke-dasharray: 1;
+  animation: draw 1300ms var(--ease-out-strong) both;
+  animation-delay: var(--d);
+}
+.play .barStart,
+.play .barEnd {
+  animation: grow 620ms var(--ease-out-strong) both;
+  animation-delay: var(--d);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play * {
+    animation: none !important;
+  }
+}
+
+@keyframes land {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}

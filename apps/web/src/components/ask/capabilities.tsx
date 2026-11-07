@@ -1,19 +1,15 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent,
-  type ReactNode,
-} from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import styles from "@/components/ask/capabilities.module.css";
-import { Reveal } from "@/components/ask/reveal";
+import { SectionHead } from "@/components/ask/section-head";
+import { TryLink } from "@/components/ask/try-link";
+import { usePlayOnce } from "@/components/ask/use-play-once";
 import { Pitch } from "@/components/charts/pitch";
 import { ShotMark } from "@/components/charts/shot-map";
-import { barShare } from "@/lib/compare-bars";
+import { barShare, metricLabel } from "@/lib/compare-bars";
+import { LANDING_DATA, compareTile } from "@/lib/landing-data";
 import { HOW_IT_WORKS } from "@/lib/landing-content";
 import { toPitchPoint } from "@/lib/pitch";
 import { SAMPLE_SHOT_MAP } from "@/lib/sample-shots";
@@ -30,60 +26,6 @@ function step(index: number): CSSProperties {
   return { "--i": index } as CSSProperties;
 }
 
-/**
- * Plays the build-up of a card once: a mouse that enters it, a focus that
- * comes into it, or, on a touch screen, the card half in view. A play that
- * runs is not restarted, so a pointer that crosses a card twice does not make
- * it flicker. With reduced motion nothing plays.
- */
-function usePlayOnce() {
-  const ref = useRef<HTMLElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const busy = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const play = () => {
-    if (busy.current || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    busy.current = true;
-    setPlaying(true);
-    timer.current = setTimeout(() => {
-      busy.current = false;
-      setPlaying(false);
-    }, PLAY_MS);
-  };
-
-  useEffect(() => {
-    const element = ref.current;
-    let observer: IntersectionObserver | undefined;
-    // A touch screen has no hover: the card plays once when it comes into view.
-    if (element && !matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      observer = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry.isIntersecting) return;
-          play();
-          observer?.disconnect();
-        },
-        { threshold: 0.5 },
-      );
-      observer.observe(element);
-    }
-    return () => {
-      observer?.disconnect();
-      clearTimeout(timer.current);
-    };
-    // play reads only refs and a stable setter, so the effect runs once.
-  }, []);
-
-  return {
-    ref,
-    playing,
-    onPointerEnter: (event: PointerEvent) => {
-      if (event.pointerType === "mouse") play();
-    },
-    onFocus: play,
-  };
-}
-
 type CardProps = {
   index: number;
   icon: ReactNode;
@@ -93,7 +35,7 @@ type CardProps = {
 
 function Card({ index, icon, children, onTry }: CardProps) {
   const { title, text, try: tryIt } = HOW_IT_WORKS.cards[index];
-  const { ref, playing, onPointerEnter, onFocus } = usePlayOnce();
+  const { ref, playing, onPointerEnter, onFocus } = usePlayOnce(PLAY_MS);
   return (
     <article
       ref={ref}
@@ -112,19 +54,7 @@ function Card({ index, icon, children, onTry }: CardProps) {
           {title}
         </h3>
         <p className="max-w-[48ch] text-[15.5px] leading-[1.55] text-muted-foreground">{text}</p>
-        <button
-          type="button"
-          onClick={() => onTry(tryIt.question)}
-          className="group mt-0.5 inline-flex min-h-target cursor-pointer items-center gap-2 self-end justify-self-start px-0.5 text-[15px] font-semibold underline decoration-line-strong underline-offset-[5px] transition-[text-decoration-color,scale] duration-150 ease-out-strong hover:decoration-foreground active:scale-[0.97]"
-        >
-          Try: {tryIt.label}
-          <span
-            aria-hidden="true"
-            className="transition-transform duration-200 ease-out-strong group-hover:translate-x-[3px]"
-          >
-            →
-          </span>
-        </button>
+        <TryLink label={tryIt.label} question={tryIt.question} onTry={onTry} className="mt-0.5" />
       </div>
       {/* The live picture of the card. The text above carries the meaning. */}
       <div
@@ -243,14 +173,19 @@ function MapMini() {
   );
 }
 
-// Card 3: league season totals from v_player_season, checked against the
-// local database on 2026-11-07 (Henry 3,330 minutes, Saka 2,239 minutes, both
-// full seasons). The data module of item 32c will generate these.
-const COMPARE: { label: string; henry: number; saka: number; digits: number }[] = [
-  { label: "Goals", henry: 30, saka: 7, digits: 0 },
-  { label: "Goals per 90", henry: 0.81, saka: 0.28, digits: 2 },
-  { label: "xG per 90", henry: 0.65, saka: 0.35, digits: 2 },
-];
+// Card 3: the compare bars of the gallery (golden question q02), from the landing
+// data that `python -m analyst.landing_data` writes. Henry is the first series.
+const COMPARE = compareTile().metrics.map(({ name, values: [henry, saka] }) => ({
+  label: metricLabel(name),
+  henry,
+  saka,
+}));
+
+/** A whole number as it is; a rate with two places, as the season views round it. */
+function figure(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
 // The longer bar of a row leaves room for its value in the cell.
 const BAR_ROOM = 0.78;
 
@@ -272,7 +207,7 @@ function CompareMini() {
           </small>
         </span>
       </div>
-      {COMPARE.map(({ label, henry, saka, digits }, index) => {
+      {COMPARE.map(({ label, henry, saka }, index) => {
         const max = Math.max(henry, saka);
         return (
           <div key={label} className="grid grid-cols-[1fr_76px_1fr] items-center gap-2">
@@ -298,7 +233,7 @@ function CompareMini() {
                     side === 0 && "text-right",
                   )}
                 >
-                  {value.toFixed(digits)}
+                  {figure(value)}
                 </span>
               </div>
             ))}
@@ -313,13 +248,15 @@ function CompareMini() {
   );
 }
 
-// Card 4: an example check. The three passed numbers are the checked values of
-// card 3 and Saka's minutes. The removed claim is false: Saka scored 7.
+// Card 4: an example check, from the landing data. The three passed numbers are
+// real. The removed claim must be false, so it is two more than Saka's real goals.
+const { sakaMinutes, sakaGoalsPer90, henryGoalsPer90 } = LANDING_DATA.capabilities;
+const SAKA_GOALS = compareTile().metrics.find((metric) => metric.name === "goals")?.values[1] ?? 0;
 const CLAIMS: { text: ReactNode; call: string; removed?: boolean }[] = [
-  { text: <>Saka played <b>2,239</b> minutes</>, call: "call_02" },
-  { text: <>He scored <b>0.28</b> goals per 90</>, call: "call_02" },
-  { text: <>Henry scored <b>0.81</b> per 90 in 2003-04</>, call: "call_03" },
-  { text: <>Saka scored <b>9</b> goals</>, call: "no source", removed: true },
+  { text: <>Saka played <b>{sakaMinutes.toLocaleString("en-GB")}</b> minutes</>, call: "call_02" },
+  { text: <>He scored <b>{figure(sakaGoalsPer90)}</b> goals per 90</>, call: "call_02" },
+  { text: <>Henry scored <b>{figure(henryGoalsPer90)}</b> per 90 in 2003-04</>, call: "call_03" },
+  { text: <>Saka scored <b>{SAKA_GOALS + 2}</b> goals</>, call: "no source", removed: true },
 ];
 
 function CheckMini() {
@@ -391,16 +328,7 @@ export function Capabilities({ onTry }: CapabilitiesProps) {
       aria-labelledby="how-title"
       className="mx-auto w-full max-w-[1200px] scroll-mt-6 pt-28 pb-30 max-[860px]:pt-18 max-[860px]:pb-22"
     >
-      <Reveal className="mx-auto mb-14 grid max-w-[640px] gap-4 text-center max-[860px]:mb-10">
-        <h2
-          id="how-title"
-          className="font-display text-[clamp(32px,3.6vw,48px)] leading-[1.04] font-semibold font-stretch-semi-expanded text-balance"
-        >
-          {HOW_IT_WORKS.headline[0]}
-          <em className="block">{HOW_IT_WORKS.headline[1]}</em>
-        </h2>
-        <p className="text-[17px] text-muted-foreground">{HOW_IT_WORKS.hint}</p>
-      </Reveal>
+      <SectionHead id="how-title" headline={HOW_IT_WORKS.headline} lead={HOW_IT_WORKS.hint} />
       <div className="grid auto-rows-fr grid-cols-2 gap-5 max-[860px]:auto-rows-auto max-[860px]:grid-cols-1">
         <Card
           index={0}

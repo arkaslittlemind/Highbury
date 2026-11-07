@@ -5,7 +5,9 @@ import { useRef, useState } from "react";
 import { AskPill } from "@/components/ask/ask-pill";
 import { Capabilities } from "@/components/ask/capabilities";
 import { ClosingAsk } from "@/components/ask/closing-ask";
+import { Gallery } from "@/components/ask/gallery";
 import { Hero } from "@/components/ask/hero";
+import { ProofBand } from "@/components/ask/proof-band";
 import { SampleAnswer } from "@/components/ask/sample-answer";
 import { Seasons } from "@/components/ask/seasons";
 import { SiteHeader } from "@/components/ask/site-header";
@@ -34,6 +36,15 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
   const bar = useRef<HTMLInputElement>(null);
   // The text of the hero bar. A Try link of a capability card sets it.
   const [question, setQuestion] = useState(draft);
+
+  // A Try link puts its question into the hero bar and moves the visitor there. The
+  // scroll is smooth unless the visitor asks for reduced motion (scroll-behavior in
+  // globals.css), and the focus must not jump the page.
+  function fillBar(text: string) {
+    setQuestion(text);
+    bar.current?.scrollIntoView({ block: "center" });
+    bar.current?.focus({ preventScroll: true });
+  }
   const questions = suggestions.status === "ready" ? suggestions.questions : [];
   const [first] = questions;
 
@@ -71,16 +82,10 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
           }
         />
         <div className="mx-auto flex w-full max-w-[1360px] flex-col px-4 sm:px-10">
-          <Capabilities
-            onTry={(text) => {
-              setQuestion(text);
-              // The scroll is smooth unless the visitor asks for reduced motion
-              // (scroll-behavior in globals.css). The focus must not jump the page.
-              bar.current?.scrollIntoView({ block: "center" });
-              bar.current?.focus({ preventScroll: true });
-            }}
-          />
+          <Capabilities onTry={fillBar} />
           <Seasons />
+          <Gallery onTry={fillBar} />
+          <ProofBand />
           <SampleAnswer onSeeAnswer={first ? () => onAsk(first) : undefined} />
           <ClosingAsk>
             <AskPill

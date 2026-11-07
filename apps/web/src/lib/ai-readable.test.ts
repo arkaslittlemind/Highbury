@@ -27,7 +27,8 @@ describe("renderHomeMarkdown", () => {
     }
     expect(markdown).toContain(SEASONS.then.label);
     expect(markdown).toContain(SEASONS.now.label);
-    expect(markdown).toContain(SEASONS.now.lacks);
+    expect(markdown).toContain(SEASONS.now.note.text);
+    expect(markdown).toContain(SEASONS.then.note.lead);
     expect(markdown).toContain(SEASONS.note);
   });
 

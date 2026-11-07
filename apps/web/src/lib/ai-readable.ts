@@ -15,7 +15,7 @@ function seasonSection(season: Season): string {
     "",
     ...season.has.map((item) => `- ${item}`),
   ];
-  if (season.lacks) lines.push(`- Not available: ${season.lacks}`);
+  lines.push("", `**${season.note.lead}** ${season.note.text}`);
   return lines.join("\n");
 }
 
@@ -38,6 +38,8 @@ export function renderHomeMarkdown(): string {
     ),
     "",
     `## Seasons: ${SEASONS.headline.join(" ")}`,
+    "",
+    SEASONS.lead,
     "",
     seasonSection(SEASONS.then),
     "",
