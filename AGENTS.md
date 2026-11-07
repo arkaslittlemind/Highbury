@@ -131,3 +131,8 @@ command, and CI.
   commit messages.
 - Conventional commit messages (`feat:`, `fix:`, `chore:`), one focused change
   per commit. Ask before committing.
+- `CHANGELOG.md` records each change a visitor of the site can see or use. The
+  work commit of such a change adds its entry under `## [Unreleased]`. Before a
+  push to `main` (which deploys), turn Unreleased into a dated version and
+  update the compare links at the end. The file's header defines the format and
+  the version rules.

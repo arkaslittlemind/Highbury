@@ -12,7 +12,7 @@ Click an example question to see a verified answer.
 Built by Arkadipta Mojumder ([GitHub](https://github.com/arkaslittlemind),
 [LinkedIn](https://www.linkedin.com/in/arkadipta-mojumder/)). MIT licensed.
 
-![The Highbury landing page: "Two Arsenal eras. Every number checked."](docs/landing.jpg)
+![The Highbury landing page: the headline "Two Arsenal eras. Every number checked." on a painting of Highbury and the Emirates, with the question bar, example questions, and a checked sample answer](docs/landing.jpg)
 
 ## New to football data?
 
@@ -84,7 +84,7 @@ both of its runs, and it failed the conversation follow-up 2 times in 9 earlier 
 Flash has failed neither, so production stays on Flash. The full reasoning is in
 the results file.
 
-The suite has **1,050 Python tests** and **335 web unit tests**.
+The suite has **1,058 Python tests** and **359 web unit tests**.
 
 ## Architecture
 
@@ -176,7 +176,8 @@ verification, and the judgement.
 
 The plans are in [`project-requirement-docs/`](project-requirement-docs/), and a
 study document for every finished feature and fix is in
-[`design-docs/`](design-docs/README.md).
+[`design-docs/`](design-docs/README.md). What changed for visitors in each
+release is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Run it locally
 
@@ -286,7 +287,9 @@ licenses and terms of its sources, listed below.
 ## Data and disclaimer
 
 **Unofficial fan project.** Not affiliated with or endorsed by Arsenal FC or the
-Premier League. No club crests, logos, or player photos are used.
+Premier League. The site uses no club crest or logo as its branding and shows no
+player photos. Its original paintings of the grounds and of the 2025-26 title
+parade show club logos incidentally.
 
 Data:
 
