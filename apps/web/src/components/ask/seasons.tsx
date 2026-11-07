@@ -10,12 +10,14 @@ function SeasonCard({ season, now = false }: { season: Season; now?: boolean }) 
   return (
     <article
       className={cn(
-        "relative isolate grid h-full grid-rows-[auto_auto_auto_1fr_auto] gap-4.5 overflow-hidden rounded-[18px] p-8 max-[600px]:px-5 max-[600px]:py-6",
+        // One column that never grows past the card, whatever a row holds.
+        "relative isolate grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_auto_1fr_auto] gap-4.5 overflow-hidden rounded-[18px] p-8 max-[600px]:px-5 max-[600px]:py-6",
         // 2003-04 on paper; 2025-26 in the dark red of that season.
         now ? "border border-now-line bg-now-950 text-now-text" : "bg-paper text-paper-muted",
       )}
     >
-      <div className="flex items-center justify-between gap-3">
+      {/* The badge goes under the season when the two do not fit on one line. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
         <h3
           className={cn(
             "font-display text-[clamp(36px,4vw,52px)] leading-[0.95] font-extrabold font-stretch-semi-expanded",
