@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 
 import faqPainting from "@/assets/faq-painting.webp";
-import seasonsPainting from "@/assets/seasons-painting.webp";
+import paradePainting from "@/assets/parade-painting.webp";
 import { AskPill } from "@/components/ask/ask-pill";
 import { Capabilities } from "@/components/ask/capabilities";
 import { ClosingAsk } from "@/components/ask/closing-ask";
@@ -86,8 +86,9 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
         <div className={LANDING_COLUMN}>
           <Capabilities onTry={fillBar} />
         </div>
-        {/* The two eras side by side; a phone keeps the seam between them. */}
-        <PaintedBand painting={seasonsPainting}>
+        {/* The 2025-26 title parade. The cards cover the bus, so the crowd and the
+            smoke around them carry the painting. */}
+        <PaintedBand painting={paradePainting} focus="object-[50%_40%]">
           <Seasons />
         </PaintedBand>
         <div className={LANDING_COLUMN}>

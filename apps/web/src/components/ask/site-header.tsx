@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { href: "#how", label: "How it works" },
   { href: "#seasons", label: "Seasons" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 type SiteHeaderProps = {
@@ -36,7 +37,9 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
           onAsk && "max-[600px]:pr-5",
         )}
       >
-        <div className="flex items-center gap-3">
+        {/* The name and the button take equal sides, so the links sit on the
+            centre line of the page, whatever the widths of the two. */}
+        <div className="flex flex-1 items-center gap-3">
           {/* The football of the site icon. The site uses no crest or club logo as its branding. */}
           <Image src={logo} alt="" width={32} height={32} unoptimized className="rounded-lg" />
           <span className="font-display text-xl leading-none font-extrabold tracking-[0.06em] uppercase">
@@ -44,12 +47,17 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
           </span>
         </div>
         {onAsk && (
-          <nav aria-label="Primary" className="flex gap-7 text-[15px] max-[960px]:hidden">
+          // Equal outer columns put the middle link, not the block, on the centre line:
+          // "How it works" is much wider than "FAQ".
+          <nav
+            aria-label="Primary"
+            className="grid grid-cols-[1fr_auto_1fr] gap-7 text-[15px] max-[960px]:hidden"
+          >
             {SECTIONS.map(({ href, label }) => (
               <a
                 key={href}
                 href={href}
-                className="flex min-h-target items-center text-on-grass transition-colors duration-150 hover:text-white"
+                className="flex min-h-target items-center text-on-grass transition-colors duration-150 first:justify-self-end last:justify-self-start hover:text-white"
               >
                 {label}
               </a>
@@ -57,13 +65,11 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
           </nav>
         )}
         {onAsk && (
-          <button
-            type="button"
-            onClick={onAsk}
-            className={cn(pill, "min-h-11 text-[15px] max-[600px]:hidden")}
-          >
-            Ask the Analyst
-          </button>
+          <div className="flex flex-1 justify-end max-[600px]:hidden">
+            <button type="button" onClick={onAsk} className={cn(pill, "min-h-11 text-[15px]")}>
+              Ask the Analyst
+            </button>
+          </div>
         )}
         {onNewQuestion && (
           <button type="button" onClick={onNewQuestion} className={pill}>

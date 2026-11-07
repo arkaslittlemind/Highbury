@@ -1,7 +1,9 @@
 /* The painting behind a landing band and the shade that keeps text on it
    readable. The shade and the fades are one ::after layer over the image, in the
    page colour, so the painting melts into the page at its edges and stays dark
-   behind the text. The contrast sweep of feature 32e set the alphas. */
+   behind the text. The contrast sweep of feature 32e set the alphas of "top";
+   "cover" was set again for the brighter parade painting, with the grey text at
+   4.5:1 or more against the brightest pixel behind it. */
 
 .art {
   position: absolute;
@@ -17,7 +19,9 @@
   pointer-events: none;
 }
 
-/* Fills the band. Solid page colour at both edges, a dark shade in the middle. */
+/* Fills the band. Solid page colour at both edges, dark where the heading and
+   the footnote lie on the painting, and light in the middle, where the opaque
+   cards are, so a bright painting keeps its colour. */
 .cover {
   bottom: 0;
 }
@@ -25,9 +29,10 @@
   background: linear-gradient(
     180deg,
     var(--background) 0%,
-    color-mix(in srgb, var(--background) 82%, transparent) 18%,
-    color-mix(in srgb, var(--background) 78%, transparent) 50%,
-    color-mix(in srgb, var(--background) 82%, transparent) 82%,
+    color-mix(in srgb, var(--background) 86%, transparent) 20%,
+    color-mix(in srgb, var(--background) 48%, transparent) 36%,
+    color-mix(in srgb, var(--background) 48%, transparent) 70%,
+    color-mix(in srgb, var(--background) 88%, transparent) 84%,
     var(--background) 100%
   );
 }

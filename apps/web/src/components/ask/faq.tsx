@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 export function Faq() {
   return (
     <section
+      id="faq"
       aria-labelledby="faq-title"
-      className={cn(styles.faq, "mx-auto w-full max-w-[960px] pt-10 pb-32 max-[600px]:pb-24")}
+      className={cn(styles.faq, "mx-auto w-full max-w-[960px] scroll-mt-6 pt-10 pb-32 max-[600px]:pb-24")}
     >
       <Reveal className="mb-6 grid gap-3.5 text-center">
         <h2
