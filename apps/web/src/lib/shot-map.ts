@@ -161,3 +161,24 @@ export function nextIndex(key: string, index: number, count: number): number | n
       return null;
   }
 }
+
+export type Claim = { label: string; value: string };
+
+/**
+ * The numbers of the sample card. Each comes from the shots, so the card
+ * cannot show a number that its chart does not hold. The xG is summed from
+ * the two-place values of the shots, as the checked answer does.
+ */
+export function shotClaims(shots: Shot[]): Claim[] {
+  const goals = shots.filter((shot) => outcomeKind(shot.outcome) === "goal").length;
+  const xg = shots.reduce((sum, shot) => sum + shot.xg, 0);
+  // Rounded first, so that a difference of -0.001 does not show as -0.00.
+  const difference = Number((goals - xg).toFixed(2));
+  const sign = difference > 0 ? "+" : difference < 0 ? "−" : "";
+  return [
+    { label: "Goals", value: String(goals) },
+    { label: "Shots", value: String(shots.length) },
+    { label: "Total xG", value: xg.toFixed(2) },
+    { label: "Goals minus xG", value: `${sign}${Math.abs(difference).toFixed(2)}` },
+  ];
+}

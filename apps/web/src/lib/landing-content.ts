@@ -7,7 +7,7 @@ export const HERO = {
   // The component puts the second line in italic.
   headline: ["Two Arsenal eras.", "Every number checked."],
   intro:
-    "An AI football analyst for Arsenal's 2003-04 Invincibles and the 2025-26 side. Ask in plain English: Highbury queries the data, draws the pitch chart, and checks every number before you see it. When the data cannot answer, it says so.",
+    "An AI football analyst for the 2003-04 Invincibles and the 2025-26 side. It queries the data, draws the pitch chart, and checks every number before you see it.",
 };
 
 export const HOW_IT_WORKS = {

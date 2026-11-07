@@ -7,12 +7,22 @@ type SuggestionChipsProps = {
   lead?: string;
   // The chips arrive one by one. For chips that come after the page is in view.
   stagger?: boolean;
+  // For the row and for each chip, where a place needs its own look.
+  className?: string;
+  chipClassName?: string;
 };
 
-export function SuggestionChips({ questions, onPick, lead, stagger = false }: SuggestionChipsProps) {
+export function SuggestionChips({
+  questions,
+  onPick,
+  lead,
+  stagger = false,
+  className,
+  chipClassName,
+}: SuggestionChipsProps) {
   if (questions.length === 0 && !lead) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <div className={cn("flex flex-wrap items-center gap-2.5", className)}>
       {lead && (
         <span className="mr-1.5 font-display text-sm font-semibold tracking-[0.18em] text-muted-foreground uppercase">
           {lead}
@@ -29,6 +39,7 @@ export function SuggestionChips({ questions, onPick, lead, stagger = false }: Su
             "min-h-target cursor-pointer rounded-full border border-line-strong px-4 py-2 text-left text-[15px] transition-[scale,border-color,background-color] duration-150 ease-out hover:border-foreground-2 hover:bg-white/5 active:scale-[0.97]",
             stagger &&
               "animate-in fill-mode-both duration-300 ease-out-strong fade-in slide-in-from-bottom-2",
+            chipClassName,
           )}
         >
           {question}

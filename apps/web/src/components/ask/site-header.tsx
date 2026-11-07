@@ -1,3 +1,6 @@
+import Image from "next/image";
+
+import logo from "@/app/icon.svg";
 import { pill } from "@/components/ask/pill";
 import { cn } from "@/lib/utils";
 
@@ -21,30 +24,28 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
       // The header has the width of the content below it: the hero is narrower
       // than the other screens.
       className={cn(
-        "mx-auto w-full px-4 pt-3 sm:px-10 sm:pt-8",
-        onAsk ? "absolute inset-x-0 top-0 z-10 max-w-[1280px]" : "max-w-[1360px]",
+        "mx-auto w-full",
+        onAsk
+          ? "absolute inset-x-0 top-0 z-10 max-w-[1200px] px-gutter pt-5"
+          : "max-w-[1360px] px-4 pt-3 sm:px-10 sm:pt-8",
       )}
     >
-      <div className="flex min-h-15 items-center justify-between gap-4 rounded-full border border-white/18 bg-white/8 py-1.5 pr-1.5 pl-5 backdrop-blur-lg sm:min-h-18.5 sm:py-3 sm:pr-3 sm:pl-7">
-        <div className="flex items-center gap-2.5">
-          {/* A plain football. The page has no crest and no logo of a club. */}
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="size-6.5 fill-none stroke-foreground"
-            strokeWidth={1.6}
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="9.5" />
-            <path d="M12 7.2l3.6 2.6-1.4 4.2H9.8L8.4 9.8z" />
-            <path d="M12 7.2V2.6M15.6 9.8l4.3-1.5M14.2 14l2.7 3.7M9.8 14l-2.7 3.7M8.4 9.8L4.1 8.3" />
-          </svg>
-          <span className="font-display text-[26px] leading-none font-extrabold tracking-[0.06em] uppercase">
+      <div
+        className={cn(
+          "flex min-h-15 items-center justify-between gap-4 rounded-full border border-white/14 bg-[rgb(10_18_14/0.4)] py-1.5 pr-2 pl-5 backdrop-blur-md",
+          // A phone has no button on the landing screen, so the name is not off centre.
+          onAsk && "max-[600px]:pr-5",
+        )}
+      >
+        <div className="flex items-center gap-3">
+          {/* The football of the site icon. The page has no crest and no logo of a club. */}
+          <Image src={logo} alt="" width={32} height={32} unoptimized className="rounded-lg" />
+          <span className="font-display text-xl leading-none font-extrabold tracking-[0.06em] uppercase">
             Highbury
           </span>
         </div>
         {onAsk && (
-          <nav aria-label="Primary" className="flex gap-8 max-lg:hidden">
+          <nav aria-label="Primary" className="flex gap-7 text-[15px] max-[960px]:hidden">
             {SECTIONS.map(({ href, label }) => (
               <a
                 key={href}
@@ -57,11 +58,12 @@ export function SiteHeader({ onNewQuestion, onAsk }: SiteHeaderProps) {
           </nav>
         )}
         {onAsk && (
-          <button type="button" onClick={onAsk} className={pill}>
-            {/* A phone has room for the first word only. */}
-            <span>
-              Ask<span className="max-sm:sr-only"> the Analyst</span>
-            </span>
+          <button
+            type="button"
+            onClick={onAsk}
+            className={cn(pill, "min-h-11 text-[15px] max-[600px]:hidden")}
+          >
+            Ask the Analyst
           </button>
         )}
         {onNewQuestion && (

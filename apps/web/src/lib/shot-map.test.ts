@@ -5,6 +5,7 @@ import {
   isDrawn,
   nextIndex,
   outcomeKind,
+  shotClaims,
   shotLabel,
   shotRadius,
   summaryText,
@@ -14,6 +15,7 @@ import {
   type OutcomeKind,
   type Shot,
 } from "@/lib/shot-map";
+import { SAMPLE_SHOT_MAP } from "@/lib/sample-shots";
 import { SHOT } from "@/lib/test-fixtures";
 
 function shot(changes: Partial<Shot> = {}): Shot {
@@ -244,5 +246,29 @@ describe("nextIndex", () => {
   it("gives null for a key that does not move", () => {
     expect(nextIndex("Enter", 1, 5)).toBeNull();
     expect(nextIndex("Tab", 1, 5)).toBeNull();
+  });
+});
+
+describe("shotClaims", () => {
+  it("gives the four numbers of the sample card", () => {
+    expect(shotClaims(SAMPLE_SHOT_MAP.shots)).toEqual([
+      { label: "Goals", value: "3" },
+      { label: "Shots", value: "9" },
+      { label: "Total xG", value: "1.43" },
+      { label: "Goals minus xG", value: "+1.57" },
+    ]);
+  });
+
+  it("puts a minus sign before a negative difference", () => {
+    const shots = [shot({ outcome: "saved", xg: 0.4 }), shot({ outcome: "goal", xg: 0.2 })];
+    expect(shotClaims(shots).at(-1)).toEqual({ label: "Goals minus xG", value: "+0.40" });
+    expect(shotClaims([shot({ outcome: "saved", xg: 0.4 })]).at(-1)).toEqual({
+      label: "Goals minus xG",
+      value: "−0.40",
+    });
+  });
+
+  it("shows no sign for no difference", () => {
+    expect(shotClaims([]).at(-1)).toEqual({ label: "Goals minus xG", value: "0.00" });
   });
 });

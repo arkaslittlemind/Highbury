@@ -1,168 +1,82 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
+import { Pitch } from "@/components/charts/pitch";
 import { ShotMark } from "@/components/charts/shot-map";
 import { HERO } from "@/lib/landing-content";
-import { PENALTY_AREA, PITCH_WIDTH, SIX_YARD_BOX, toPitchPoint } from "@/lib/pitch";
+import { toPitchPoint } from "@/lib/pitch";
 import { SAMPLE_SHOT_MAP } from "@/lib/sample-shots";
-import { drawOrder, outcomeKind, shotRadius, summaryText } from "@/lib/shot-map";
-import { cn } from "@/lib/utils";
+import {
+  OUTCOME_LABELS,
+  drawOrder,
+  outcomeKind,
+  shotClaims,
+  shotRadius,
+  summaryText,
+  type OutcomeKind,
+} from "@/lib/shot-map";
+import { cn, keepSeasonsWhole } from "@/lib/utils";
 
 // The enter motion of the hero. It plays only with data-intro on the section:
 // the first view of the page. A visitor who comes back for a new question
-// wants the bar at once.
+// wants the bar at once. Each part rises a little, in order, and the sample
+// card lifts in last from further down. With reduced motion, the global rule
+// in globals.css takes the movement out, so each part only fades.
 const RISE =
-  "fill-mode-both duration-700 ease-out-strong in-data-intro:animate-in in-data-intro:fade-in in-data-intro:slide-in-from-bottom-3";
-// A mark of the picture lands on the grass after the text is in place.
-const LAND =
-  "origin-center fill-mode-both duration-500 ease-out-strong [transform-box:fill-box] in-data-intro:animate-in in-data-intro:fade-in in-data-intro:zoom-in-75";
+  "fill-mode-both duration-[640ms] ease-out-strong in-data-intro:animate-in in-data-intro:fade-in in-data-intro:slide-in-from-bottom-3";
+const LIFT =
+  "fill-mode-both duration-[900ms] ease-out-strong in-data-intro:animate-in in-data-intro:fade-in in-data-intro:slide-in-from-bottom-[40px]";
+// The step between two parts. Short, so the hero is complete in under a second.
+const STAGGER_MS = 60;
 
-/** The grass behind the hero. It is a picture: its lines and marks hold no data. */
+function order(index: number): CSSProperties {
+  return { animationDelay: `${index * STAGGER_MS}ms` };
+}
+
+/** The grass behind the hero. It is a picture: its chalk lines hold no data. */
 function Grass() {
   return (
     <div aria-hidden="true" className="absolute inset-0 -z-10 hero-grass">
-      <div className="absolute inset-0 mown" />
-      <svg className="absolute inset-0 size-full opacity-55 mix-blend-overlay">
-        <filter id="hero-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
-          <feColorMatrix values="0 0 0 0 0.6  0 0 0 0 0.9  0 0 0 0 0.5  0 0 0 0.9 0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#hero-grain)" />
-      </svg>
-      <div className="absolute -inset-20 hero-shadows" />
+      <div className="absolute inset-0 mown [--mown-angle:90deg] [--mown:120px]" />
+      {/* The halfway line and the centre circle sit behind the headline: the
+          page starts where a match starts. */}
       <svg
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1440 1000"
+        preserveAspectRatio="xMidYMin slice"
         className="absolute inset-0 size-full"
       >
-        <filter id="hero-chalk">
-          <feGaussianBlur stdDeviation="1.6" />
-        </filter>
-        <g
-          filter="url(#hero-chalk)"
-          strokeLinecap="round"
-          className="fill-none stroke-[#F2F5EE]/78"
-        >
-          <path d="M-40 838 L1480 668" strokeWidth="13" />
-          <path d="M760 752 L1180 520" strokeWidth="9" />
-          <path d="M1180 520 L1480 492" strokeWidth="7" />
-          <path d="M928 660 C 990 690, 1090 680, 1150 640" strokeWidth="7" />
+        <g className="fill-none stroke-paper/13" strokeWidth="3">
+          <line x1="-20" y1="330" x2="1460" y2="330" />
+          <circle cx="720" cy="330" r="230" />
         </g>
-        {/* The marks are above the place of the sample card at each width. On a
-            narrow screen they are behind the text, so they are not drawn. */}
-        <g className="max-lg:hidden">
-          <ellipse cx="1000" cy="515" rx="34" ry="13" className="fill-black/28" />
-          <ellipse
-            cx="996"
-            cy="505"
-            rx="30"
-            ry="12"
-            strokeWidth="2"
-            className={cn(LAND, "fill-brand stroke-background delay-[450ms]")}
-          />
-          <ellipse
-            cx="1092"
-            cy="480"
-            rx="20"
-            ry="8"
-            strokeWidth="2"
-            className={cn(LAND, "fill-brand stroke-background delay-[520ms]")}
-          />
-          <ellipse
-            cx="900"
-            cy="545"
-            rx="16"
-            ry="6.5"
-            strokeWidth="3"
-            className={cn(LAND, "fill-none stroke-paper delay-[590ms]")}
-          />
-          <ellipse
-            cx="1150"
-            cy="509"
-            rx="13"
-            ry="5.5"
-            strokeWidth="3"
-            className={cn(LAND, "fill-none stroke-paper delay-[660ms]")}
-          />
-          <path
-            d="M1040 555 l14 -24 l14 24 z"
-            strokeWidth="3"
-            strokeLinejoin="round"
-            className={cn(LAND, "fill-none stroke-foreground-2 delay-[730ms]")}
-          />
-          {/* The xG of the first goal of the sample chart. */}
-          <g className={cn(RISE, "delay-[900ms]")}>
-            <rect
-              x="1020"
-              y="425"
-              width="126"
-              height="30"
-              rx="15"
-              className="fill-background/60 stroke-white/22"
-            />
-            <text
-              x="1083"
-              y="444.5"
-              textAnchor="middle"
-              className="fill-paper font-mono text-xs"
-            >
-              Goal · xG 0.31
-            </text>
-          </g>
-        </g>
+        <circle cx="720" cy="330" r="7" className="fill-paper/18" />
       </svg>
       <div className="absolute inset-0 hero-shade" />
     </div>
   );
 }
 
-const CENTRE = PITCH_WIDTH / 2;
-const AREA_LINE = { strokeWidth: 1, vectorEffect: "non-scaling-stroke" } as const;
-const PROOFS = [
-  "Read-only SQL",
-  "Every claim traced to data",
-  "Chart from a validated spec",
-  "Honest when data is missing",
-];
+// The legend of the card, in the order of the chart. The outcome is the shape.
+const LEGEND: OutcomeKind[] = ["goal", "saved", "blocked", "off_target"];
 
-/** A small copy of an answer: the sample chart, and what the page promises for each answer. */
-function SampleCard({ className }: { className?: string }) {
+/** A checked answer, as the page draws one: the sample chart and the numbers that passed the check. */
+function SampleCard() {
   const shots = SAMPLE_SHOT_MAP.shots;
-  const goals = shots.filter((shot) => outcomeKind(shot.outcome) === "goal").length;
+  const claims = shotClaims(shots);
+  const [goals, total] = claims;
   return (
-    <aside
-      aria-label="Sample answer"
-      className={cn("w-full max-w-[400px] overflow-hidden rounded-[14px] shadow-float", className)}
-    >
-      <div className="flex items-center justify-between gap-3 bg-paper px-5 py-3.5 text-background">
-        <span className="font-bold">Checked answer</span>
+    <aside aria-label="Sample answer" className="overflow-hidden rounded-[14px] shadow-float">
+      <div className="flex items-center justify-between gap-3 bg-paper px-4.5 py-3 text-sm text-paper-muted">
+        <strong className="font-semibold text-background">Checked answer</strong>
         <span className="font-bold text-verified-on-paper">
-          {goals} goals · {shots.length} shots
+          {goals.value} goals · {total.value} shots
         </span>
       </div>
-      <div className="flex gap-5 rounded-b-[14px] border border-t-0 border-white/16 bg-[#0C1E12]/55 p-5 backdrop-blur-lg">
-        <div className="flex w-[132px] shrink-0 flex-col gap-1.5">
-          <span className="font-display text-base leading-tight font-semibold text-on-grass italic">
+      <div className="grid items-start gap-5 rounded-b-[14px] border border-t-0 border-white/12 bg-grass-card/88 p-5 backdrop-blur-md sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div>
+          <p className="mb-2 font-display text-[17px] leading-tight font-semibold font-stretch-semi-expanded italic">
             Henry v Liverpool
-          </span>
-          {/* The penalty area of the sample chart. */}
-          <svg role="img" aria-label={summaryText(shots)} viewBox="14 -2 52 30" className="block w-full">
-            <g className="fill-none stroke-white/45">
-              <rect x="0" y="0" width={PITCH_WIDTH} height="60" className="fill-white/4" {...AREA_LINE} />
-              <rect
-                x={CENTRE - PENALTY_AREA.width / 2}
-                y="0"
-                width={PENALTY_AREA.width}
-                height={PENALTY_AREA.depth}
-                {...AREA_LINE}
-              />
-              <rect
-                x={CENTRE - SIX_YARD_BOX.width / 2}
-                y="0"
-                width={SIX_YARD_BOX.width}
-                height={SIX_YARD_BOX.depth}
-                {...AREA_LINE}
-              />
-            </g>
+          </p>
+          <Pitch view="attacking-half" role="img" aria-label={summaryText(shots)} className="rounded-lg">
             {drawOrder(shots).map((shot) => {
               const point = toPitchPoint(shot.x, shot.y);
               return (
@@ -171,17 +85,53 @@ function SampleCard({ className }: { className?: string }) {
                 </g>
               );
             })}
-          </svg>
-          <span className="text-xs text-on-grass-muted">9 April 2004 · StatsBomb</span>
+          </Pitch>
+          <ul
+            aria-label="Legend"
+            className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-on-grass-muted"
+          >
+            {LEGEND.map((kind) => (
+              <li key={kind} className="flex items-center gap-1.5">
+                <svg aria-hidden="true" viewBox="-6 -6 12 12" className="size-2.5 overflow-visible">
+                  <ShotMark kind={kind} r={4} />
+                </svg>
+                {OUTCOME_LABELS[kind]}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-on-grass-muted">9 April 2004 · StatsBomb Open Data</p>
         </div>
-        <ul className="flex flex-col justify-center gap-2.5 font-display text-[15px] leading-tight font-medium font-stretch-semi-expanded italic">
-          {PROOFS.map((proof) => (
-            <li key={proof} className="flex items-center gap-2.5">
-              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-paper" />
-              {proof}
-            </li>
-          ))}
-        </ul>
+        <div className="grid content-start gap-3.5">
+          <p className="text-[15px] text-on-grass-muted">
+            You asked{" "}
+            <q className="text-foreground">Show Henry&apos;s shots in the 4-2 win over Liverpool.</q>
+          </p>
+          <span className="inline-flex items-center gap-2 justify-self-start rounded-full border border-verified-line bg-verified-bg py-1.5 pr-3 pl-2.5 text-sm font-semibold text-verified">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-4 fill-none stroke-current"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            {claims.length} of {claims.length} numbers checked
+          </span>
+          <ul>
+            {claims.map(({ label, value }) => (
+              <li
+                key={label}
+                className="flex justify-between gap-4 border-t border-white/10 py-2.5 text-[15px] text-on-grass"
+              >
+                {label}
+                <b className="font-display text-lg leading-none font-bold tabular-nums">{value}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </aside>
   );
@@ -191,11 +141,13 @@ type HeroProps = {
   // The first view of the page plays the enter motion.
   intro: boolean;
   // The question bar.
-  children: ReactNode;
+  bar: ReactNode;
+  // The example questions under the bar. Null when they did not load.
+  chips: ReactNode;
 };
 
-/** The top of the first screen: what Highbury is, and the bar to ask it. */
-export function Hero({ intro, children }: HeroProps) {
+/** The top of the first screen: what Highbury is, the bar to ask it, and a checked answer below. */
+export function Hero({ intro, bar, chips }: HeroProps) {
   return (
     <section
       aria-labelledby="hero-title"
@@ -203,49 +155,51 @@ export function Hero({ intro, children }: HeroProps) {
       className="relative isolate overflow-hidden"
     >
       <Grass />
-      {/* The top padding is the room of the header, which lies on the hero. */}
-      <div className="mx-auto grid min-h-[min(900px,100svh)] w-full max-w-[1280px] gap-10 px-4 pt-27 pb-10 sm:px-10 sm:pt-36 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-12 lg:pb-0">
-        <div className="flex max-w-[700px] flex-col gap-5 self-center sm:gap-6.5 lg:pb-15">
+      {/* The top padding holds the header, which lies on the hero. */}
+      <div className="mx-auto max-w-[1200px] px-gutter pt-34 sm:pt-46">
+        <div className="flex flex-col items-center gap-5 pb-10 text-center sm:gap-6 sm:pb-16">
           <h1
             id="hero-title"
+            style={order(1)}
             className={cn(
               RISE,
-              "font-display text-[clamp(34px,3.9vw,56px)] leading-[1.02] font-semibold font-stretch-semi-expanded text-balance delay-[60ms]",
+              "font-display text-[clamp(36px,5vw,68px)] leading-[1.02] font-semibold tracking-[-0.01em] font-stretch-semi-expanded text-balance",
             )}
           >
             {HERO.headline[0]}
-            <br />
-            <em>{HERO.headline[1]}</em>
+            <em className="block">{HERO.headline[1]}</em>
           </h1>
           <p
-            className={cn(
-              RISE,
-              "max-w-[520px] text-lg leading-[1.55] text-on-grass delay-[120ms] sm:text-xl",
-            )}
+            style={order(2)}
+            className={cn(RISE, "max-w-[46ch] text-[17px] leading-[1.55] text-on-grass sm:text-[19px]")}
           >
-            {HERO.intro}
+            {keepSeasonsWhole(HERO.intro)}
           </p>
-          <div className={cn(RISE, "mt-1.5 max-w-[620px] delay-[180ms]")}>{children}</div>
-          <div className={cn(RISE, "flex items-center gap-3 delay-[240ms]")}>
-            <div
-              aria-hidden="true"
-              className="flex font-display text-[14px] font-extrabold font-stretch-normal *:flex *:size-11 *:items-center *:justify-center *:rounded-full *:border-2 *:not-first:-ml-3"
-            >
-              <span className="border-grass-800 bg-paper text-background">03</span>
-              <span className="border-grass-800 bg-primary text-primary-foreground">26</span>
-              <span className="border-white/35 bg-background/60 font-mono text-[11px] font-normal text-paper">
-                SQL
-              </span>
-            </div>
-            <p className="text-[15px] leading-[1.3] text-on-grass">
-              Two seasons
-              <br />
-              Read-only data
-            </p>
+          <div style={order(3)} className={cn(RISE, "mt-2 w-full max-w-[640px]")}>
+            {bar}
           </div>
+          {chips && (
+            <div style={order(4)} className={cn(RISE, "w-full max-w-[880px]")}>
+              {chips}
+            </div>
+          )}
         </div>
-        <SampleCard className={cn(RISE, "delay-[320ms] lg:mb-18 lg:self-end")} />
+        {/* The card is cut at the bottom of the hero: the answer goes on below the fold. */}
+        <div
+          style={order(5)}
+          className={cn(
+            LIFT,
+            "mx-auto h-[300px] w-full max-w-[860px] overflow-hidden sm:h-[360px]",
+          )}
+        >
+          <SampleCard />
+        </div>
       </div>
+      {/* The grass and the card fade into the page together, so the hero has no edge. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[140px] bg-linear-to-b from-transparent to-background"
+      />
     </section>
   );
 }

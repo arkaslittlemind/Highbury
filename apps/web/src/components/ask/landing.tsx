@@ -21,6 +21,14 @@ type LandingProps = {
   onAsk: (question: string) => void;
 };
 
+// On a phone the chips are one row that scrolls in its own box. The row runs
+// to the edge of the screen, so a cut chip shows that there are more.
+const CHIP_ROW =
+  "min-h-target sm:min-h-[98px] max-[600px]:-mr-gutter max-[600px]:w-[calc(100%+var(--spacing-gutter))]";
+// The chips lie on the grass, as glass, like the bar above them.
+const CHIP =
+  "border-white/16 bg-[rgb(10_18_14/0.35)] text-sm text-on-grass hover:border-white/40 hover:bg-[rgb(10_18_14/0.6)] max-[600px]:flex-none max-[600px]:whitespace-nowrap";
+
 /** The screen before a question: what Highbury is, why its numbers hold, and the bar to ask it. */
 export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
   const bar = useRef<HTMLInputElement>(null);
@@ -32,25 +40,33 @@ export function Landing({ suggestions, draft, intro, onAsk }: LandingProps) {
     <div className="relative flex flex-1 flex-col">
       <SiteHeader onAsk={() => bar.current?.focus()} />
       <main>
-        <Hero intro={intro}>
-          <AskPill
-            label="Ask the Analyst"
-            placeholder="e.g. Show me Thierry Henry's shots in 2003-04"
-            initialQuestion={draft}
-            inputRef={bar}
-            onAsk={onAsk}
-          />
-        </Hero>
+        <Hero
+          intro={intro}
+          bar={
+            <AskPill
+              label="Ask the Analyst"
+              placeholder="e.g. Show me Thierry Henry's shots in 2003-04"
+              initialQuestion={draft}
+              inputRef={bar}
+              onAsk={onAsk}
+            />
+          }
+          chips={
+            // The row has its place before the chips come, so the card below it does not jump.
+            suggestions.status !== "failed" && (
+              <div className={CHIP_ROW}>
+                <SuggestionChips
+                  questions={questions}
+                  onPick={onAsk}
+                  stagger
+                  className="justify-center max-[600px]:flex-nowrap max-[600px]:justify-start max-[600px]:overflow-x-auto max-[600px]:pr-gutter max-[600px]:[scrollbar-width:none]"
+                  chipClassName={CHIP}
+                />
+              </div>
+            )
+          }
+        />
         <div className="mx-auto flex w-full max-w-[1360px] flex-col px-4 sm:px-10">
-          {/* The row has its place before the chips come, so the page below it does not jump. */}
-          {suggestions.status !== "failed" && (
-            <section
-              aria-label="Example questions"
-              className="flex min-h-27 items-center border-b py-7 sm:min-h-29 sm:py-9"
-            >
-              <SuggestionChips lead="Try asking" questions={questions} onPick={onAsk} stagger />
-            </section>
-          )}
           <HowItWorks />
           <Seasons />
           <SampleAnswer onSeeAnswer={first ? () => onAsk(first) : undefined} />
