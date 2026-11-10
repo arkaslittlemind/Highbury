@@ -65,6 +65,12 @@ def test_the_prompt_holds_each_view_with_each_column_and_its_comment(text):
         "does not give the 35, which no claim backs",
         "exist for 2003-04 only",
         "never the mean of the match % values",
+        "takes the list from v_player_similarity",
+        "Never compute or scale a distance",
+        "In 2003-04 a player of another club has no row because that season compares Arsenal"
+        " players only",
+        "Otherwise he played fewer minutes",
+        "A similarity across the two seasons is unavailable",
     ],
 )
 def test_the_prompt_holds_each_rule(text, rule):

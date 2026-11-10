@@ -69,7 +69,9 @@ RULES = (
     " the minutes of ten full league matches or more, and names only the group of the"
     " season of the question: Arsenal players for 2003-04, every league player for 2025-26."
     " Do not write the minutes rule as a number: no row holds it. When the player of the"
-    " question has no row, say that he played fewer minutes and make no claim.",
+    " question has no row, make no claim and say why. In 2003-04 a player of another club"
+    " has no row because that season compares Arsenal players only, so say that and offer"
+    " his 2003-04 stats against Arsenal instead. Otherwise he played fewer minutes.",
     "A similarity across the two seasons is unavailable: the two seasons have different"
     " metrics and different xG models. Put in alternative the list of each season on its"
     " own, or a compare_bars of the two players on metrics that both seasons have.",
