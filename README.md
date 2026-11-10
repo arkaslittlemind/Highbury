@@ -109,6 +109,8 @@ flowchart LR
    in its prompt, so it does not spend a tool call to read them. All five data
    functions (catalog, schema, player, run_sql, build_chart) are also served as
    an **MCP server** over stdio, so any MCP client can use them.
+   [`docs/mcp.md`](docs/mcp.md) shows how to build your own database and
+   connect a client.
 3. Before the answer is sent, the verifier matches each claimed value to a cell
    in the rows of its cited tool call (exact for counts, within 0.01 for rates).
    It also flags any number in the text that has no claim behind it.
@@ -236,6 +238,9 @@ cd apps/web && pnpm test             # web unit tests
 
 [`AGENTS.md`](AGENTS.md) lists every command, including the evals, the MCP
 server, and the deploy.
+
+To use the five data tools from your own MCP client, follow
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Limitations and what is next
 

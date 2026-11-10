@@ -1,4 +1,5 @@
 import asyncio
+from importlib.metadata import entry_points
 
 import pytest
 
@@ -119,3 +120,11 @@ def test_main_stops_and_names_the_variable_that_is_missing(analyst_url, runs):
 
     assert stopped.value.code == "ANALYST_DATABASE_URL is not set"
     assert runs == []
+
+
+def test_the_installed_command_starts_the_server():
+    # The docs and the client configs name this command, so it must keep its target.
+    found = entry_points(group="console_scripts", name="highbury-mcp")
+
+    assert [entry.value for entry in found] == ["analyst.mcp_server:main"]
+    assert next(iter(found)).load() is mcp_server.main

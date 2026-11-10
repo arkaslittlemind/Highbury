@@ -22,6 +22,7 @@ dependencies = [
 [project.scripts]
 ask = "analyst.cli:main"
 evals = "analyst.evals:main"
+highbury-mcp = "analyst.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]

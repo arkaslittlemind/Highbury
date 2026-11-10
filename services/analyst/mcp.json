@@ -2,7 +2,7 @@
   "mcpServers": {
     "highbury": {
       "command": "uv",
-      "args": ["run", "--env-file", ".env", "python", "-m", "analyst.mcp_server"]
+      "args": ["run", "--env-file", ".env", "highbury-mcp"]
     }
   }
 }
