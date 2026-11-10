@@ -139,6 +139,16 @@ CATALOG = (
         " minutes, goals, and assists of 2003-04, or the duels and chances created of"
         " v_player_match_advanced, instead.",
     ),
+    (
+        "2003-04",
+        "similarity",
+        True,
+        STATSBOMB,
+        "v_player_similarity: Arsenal players with 900 league minutes or more, on 8 per-90"
+        " metrics (chances created, duels won, aerial duels won, passes completed, accurate"
+        " long balls, goals, shots, xG). Opponents are not in it. Not comparable with the"
+        " 2025-26 scores.",
+    ),
     ("2025-26", "results", True, UNDERSTAT, "All 38 Arsenal league matches: date, teams, score."),
     ("2025-26", "shots", True, UNDERSTAT, "Every shot of both teams, with pitch coordinates."),
     (
@@ -223,6 +233,16 @@ CATALOG = (
         f" defensive contributions, {FPL_DEFENSIVE}, FPL points, and FPL price by"
         " gameweek. No FPL xG: use"
         " the Understat xG of v_player_match.",
+    ),
+    (
+        "2025-26",
+        "similarity",
+        True,
+        FPL,
+        "v_player_similarity: every league player with 900 league minutes or more, on 6"
+        " per-90 FPL metrics (goals, assists, tackles, recoveries, clearances-blocks-"
+        "interceptions, saves). No xG: Understat covers only Arsenal's matches. Not"
+        " comparable with the 2003-04 scores.",
     ),
 )
 

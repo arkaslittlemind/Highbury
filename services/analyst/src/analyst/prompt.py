@@ -62,6 +62,17 @@ RULES = (
     " pass accuracy, long balls) exist for 2003-04 only. A season % is"
     " round(100.0 * sum(won) / NULLIF(sum(total), 0), 1) in SQL, as the example does, never"
     " the mean of the match % values.",
+    "A question of who is most like a player takes the list from v_player_similarity,"
+    " within one season, ordered by rank. Each claim cites the distance as the row has it:"
+    " lower is more alike, and it is not a percentage. Never compute or scale a distance."
+    " The summary says in words that the list compares per 90 profiles of players with"
+    " the minutes of ten full league matches or more, and names only the group of the"
+    " season of the question: Arsenal players for 2003-04, every league player for 2025-26."
+    " Do not write the minutes rule as a number: no row holds it. When the player of the"
+    " question has no row, say that he played fewer minutes and make no claim.",
+    "A similarity across the two seasons is unavailable: the two seasons have different"
+    " metrics and different xG models. Put in alternative the list of each season on its"
+    " own, or a compare_bars of the two players on metrics that both seasons have.",
     "When a tool returns an error, read it, correct the call, and try again. The number of"
     " tool calls for one question is small, so plan them.",
     "The summary has 2 to 4 sentences.",

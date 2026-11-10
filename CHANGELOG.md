@@ -15,6 +15,13 @@ version below is a production release, and the Git tag of the same name (such as
 
 ## [Unreleased]
 
+### Added
+
+- The analyst answers "who is most like this player?" within one season: a ranked
+  list of Arsenal players for 2003-04, or of every league player for 2025-26, with
+  each similarity score checked against the data. A question that compares the two
+  seasons gets an honest "not available" and an alternative.
+
 ## [1.4.1] - 2026-11-08
 
 ### Changed

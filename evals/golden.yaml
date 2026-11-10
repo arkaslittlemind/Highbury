@@ -342,3 +342,37 @@
   note: >-
     StatsBomb counts the 2003-04 chances and Understat the 2025-26 ones, so the answer
     also needs the caveat on the two providers. The chart is not scored.
+
+- id: q33
+  question: Which Arsenal 2003-04 players were most like Patrick Vieira?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2003-04' AND player = 'Patrick Vieira' AND rank = 1) AS first_distance,
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2003-04' AND player = 'Patrick Vieira' AND rank = 2) AS second_distance,
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2003-04' AND player = 'Patrick Vieira' AND rank = 3) AS third_distance
+  note: Similarity within 2003-04, Arsenal players with 900 minutes or more.
+
+- id: q34
+  question: Which Premier League players were most like Declan Rice in 2025-26?
+  status: answered
+  chart: null
+  sql: >-
+    SELECT
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2025-26' AND player = 'Declan Rice' AND rank = 1) AS first_distance,
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2025-26' AND player = 'Declan Rice' AND rank = 2) AS second_distance,
+    (SELECT distance FROM v_player_similarity
+    WHERE season = '2025-26' AND player = 'Declan Rice' AND rank = 3) AS third_distance
+  note: Similarity within 2025-26, every league player, on the FPL metrics.
+
+- id: q35
+  question: Which 2025-26 player is most like Thierry Henry in 2003-04?
+  status: unavailable
+  chart: null
+  note: A similarity across the two seasons is declined; the metrics and xG models differ.

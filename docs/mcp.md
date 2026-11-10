@@ -172,7 +172,8 @@ validation message instead.
 
 The views are `v_matches`, `v_shots`, `v_player_match`, `v_player_season`,
 `v_passes`, `v_substitutions`, `v_league_matches`, `v_league_table`,
-`v_fpl_player_match`, `v_player_match_advanced`, and `v_touches`. For example:
+`v_fpl_player_match`, `v_player_match_advanced`, `v_touches`, and
+`v_player_similarity`. For example:
 
 ```sql
 SELECT player, count(*) AS shots, sum(xg) AS xg

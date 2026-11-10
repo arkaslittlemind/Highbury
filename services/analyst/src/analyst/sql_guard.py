@@ -24,6 +24,7 @@ AGENT_VIEWS = (
     "v_fpl_player_match",
     "v_player_match_advanced",
     "v_touches",
+    "v_player_similarity",
 )
 
 # Each row goes into the model's context. 500 holds one player's shots of a season.
