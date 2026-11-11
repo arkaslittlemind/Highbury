@@ -1,4 +1,4 @@
-/* The stadium painting at the foot of the page. It spans the full width and
+/* The trophy painting at the foot of the page. It spans the full width and
    rises out of the page background: a long fade from the top, and a light one
    from the bottom that keeps the edge of the page calm. The fades are
    pseudo-elements, so they live here. */
@@ -15,7 +15,8 @@
 }
 .art img {
   object-fit: cover;
-  object-position: 50% 70%;
+  /* The trophy and the faces sit in the upper half of the painting. */
+  object-position: 50% 30%;
 }
 .art::before,
 .art::after {

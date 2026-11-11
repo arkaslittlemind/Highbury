@@ -15,6 +15,11 @@ version below is a production release, and the Git tag of the same name (such as
 
 ## [Unreleased]
 
+### Changed
+
+- The footer shows a new painting: the team lifting the Premier League trophy
+  in a fall of red and white confetti, in place of the stadium painting.
+
 ## [1.5.0] - 2026-11-10
 
 ### Added

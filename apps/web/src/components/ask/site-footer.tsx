@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 
 import logo from "@/app/icon.svg";
-import stadium from "@/assets/footer-stadium.webp";
+import trophy from "@/assets/footer-trophy.webp";
 import { ApiStatus } from "@/components/ask/api-status";
 import styles from "@/components/ask/site-footer.module.css";
 import { VisitCount } from "@/components/ask/visit-count";
@@ -124,7 +124,7 @@ export function SiteFooter({ apiUrl }: { apiUrl: string | undefined }) {
         </div>
       </div>
       <div aria-hidden="true" className={styles.art}>
-        <Image src={stadium} alt="" fill sizes="100vw" />
+        <Image src={trophy} alt="" fill sizes="100vw" />
       </div>
     </footer>
   );
