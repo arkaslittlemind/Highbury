@@ -15,6 +15,8 @@ version below is a production release, and the Git tag of the same name (such as
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-12
+
 ### Changed
 
 - The footer shows a new painting: the team lifting the Premier League trophy
@@ -209,7 +211,8 @@ The first release: ask a question, get a checked answer.
 - A limit of 5 questions a minute for each address, and a size limit on each
   request.
 
-[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.3.0...v1.4.0
