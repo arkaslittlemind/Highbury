@@ -15,6 +15,13 @@ version below is a production release, and the Git tag of the same name (such as
 
 ## [Unreleased]
 
+### Changed
+
+- The xG timeline, in an answer and in the gallery, has a new look: stepped lines
+  with a soft fill, a dashed grid, and the axis running to the last shot of
+  stoppage time. Each shot still has its tooltip and its keyboard stop, and the
+  gallery loads the chart only when its tile comes near the screen.
+
 ## [1.5.1] - 2026-11-12
 
 ### Changed

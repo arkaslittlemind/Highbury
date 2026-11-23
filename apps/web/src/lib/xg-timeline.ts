@@ -1,82 +1,15 @@
-import { scaleLinear } from "d3-scale";
-
 import type { ChartSpec } from "@/lib/analyst-schema";
-import type { TooltipPlace } from "@/lib/pitch";
 
 export type XgTimelineSpec = Extract<ChartSpec, { type: "xg_timeline" }>;
 export type TimelineTeam = XgTimelineSpec["teams"][number];
 export type TimelineShot = TimelineTeam["shots"][number];
 
-/** The size of the drawing, in the units of its viewBox. */
-export const VIEW = { width: 600, height: 320 };
-// The marks need room at the edges, so the lines start and stop inside the drawing.
-const INSET = { x: 10, top: 14, bottom: 8 };
-
 export const MINUTE_TICKS = [0, 15, 30, 45, 60, 75, 90];
 export const HALF_TIME = 45;
-
-// The radius of the mark of a shot and of a goal, in the units of the viewBox.
-export const SHOT_RADIUS = 3.5;
-export const GOAL_RADIUS = 6.5;
 
 /** The last minute on the chart: 90, or the minute of a later shot. */
 export function endMinute(chart: XgTimelineSpec): number {
   return Math.max(90, ...chart.teams.flatMap((team) => team.shots.map((shot) => shot.minute)));
-}
-
-/**
- * The scales from minutes and xG to the viewBox. The xG axis goes to at least 1,
- * so a match with few chances does not look like a match with many.
- */
-export function scalesOf(chart: XgTimelineSpec) {
-  const x = scaleLinear()
-    .domain([0, endMinute(chart)])
-    .range([INSET.x, VIEW.width - INSET.x]);
-  const highest = Math.max(1, ...chart.teams.map((team) => team.xg));
-  const y = scaleLinear()
-    .domain([0, highest])
-    .nice(4)
-    .range([VIEW.height - INSET.bottom, INSET.top]);
-  return { x, y };
-}
-
-export type Scales = ReturnType<typeof scalesOf>;
-
-export type StepPoint = { minute: number; xg: number };
-
-/**
- * The corners of the step line of a team: flat until a shot, then up by its xG.
- * The heights are the totals of the spec, so the chart calculates no new number.
- */
-export function stepPoints(team: TimelineTeam, end: number): StepPoint[] {
-  const points = [{ minute: 0, xg: 0 }];
-  let total = 0;
-  for (const shot of team.shots) {
-    points.push({ minute: shot.minute, xg: total });
-    total = shot.total;
-    points.push({ minute: shot.minute, xg: total });
-  }
-  points.push({ minute: end, xg: total });
-  return points;
-}
-
-/** The SVG path of the corners. */
-export function linePath(points: StepPoint[], scales: Scales): string {
-  return points
-    .map(({ minute, xg }, index) => {
-      const command = index === 0 ? "M" : "L";
-      return `${command}${scales.x(minute)} ${scales.y(xg)}`;
-    })
-    .join("");
-}
-
-/** A place on the chart as a percentage of the drawing, for the labels and the tooltip. */
-export function percentX(minute: number, scales: Scales): number {
-  return (scales.x(minute) / VIEW.width) * 100;
-}
-
-export function percentY(xg: number, scales: Scales): number {
-  return (scales.y(xg) / VIEW.height) * 100;
 }
 
 export type Mark = { team: number; name: string; shot: TimelineShot };
@@ -126,14 +59,71 @@ export function tooltipLines(mark: Mark): string[] {
   ];
 }
 
-/** Where the tooltip of a shot goes: on the side of the mark that has more room. */
-export function tooltipPlace(mark: Mark, scales: Scales): TooltipPlace {
-  const x = scales.x(mark.shot.minute);
-  const y = scales.y(mark.shot.total);
-  const reach = mark.shot.is_goal ? GOAL_RADIUS : SHOT_RADIUS;
-  const side = y < VIEW.height / 2 ? "below" : "above";
-  const edge = side === "below" ? y + reach : y - reach;
-  return { left: (x / VIEW.width) * 100, top: (edge / VIEW.height) * 100, side };
+/** One row of the ECharts data: the minute (a category) and each team's total after it. */
+export type MinuteRow = { minute: string; t0: number; t1: number };
+
+/** The total of a team after the shots of a minute: the spec total of its last shot by then. */
+function totalAfter(team: TimelineTeam, minute: number): number {
+  let total = 0;
+  for (const shot of team.shots) if (shot.minute <= minute) total = shot.total;
+  return total;
+}
+
+/**
+ * One row for each minute from 0 to the end, for the category x axis of the area
+ * chart. The values are the totals of the spec, so the chart calculates no new number.
+ */
+export function minuteRows(chart: XgTimelineSpec): MinuteRow[] {
+  const [first, second] = chart.teams;
+  return Array.from({ length: endMinute(chart) + 1 }, (_, minute) => ({
+    minute: String(minute),
+    t0: totalAfter(first, minute),
+    t1: totalAfter(second, minute),
+  }));
+}
+
+export type MarkPoint = { team: number; minute: number; total: number; isGoal: boolean };
+
+/** The marks in markOrder order, so a keyboard index is also the index of the mark in the chart. */
+export function markPoints(chart: XgTimelineSpec): MarkPoint[] {
+  return markOrder(chart).map(({ team, shot }) => ({
+    team,
+    minute: shot.minute,
+    total: shot.total,
+    isGoal: shot.is_goal,
+  }));
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+/**
+ * The tooltip of a shot as HTML, for the ECharts tooltip. A player name is data and
+ * ECharts renders the formatter as HTML, so every line is escaped.
+ */
+export function tooltipHtml(mark: Mark): string {
+  const [heading, ...rest] = tooltipLines(mark).map(escapeHtml);
+  return [
+    `<div class="font-medium text-foreground">${heading}</div>`,
+    ...rest.map((line) => `<div>${line}</div>`),
+  ].join("");
+}
+
+/**
+ * The top and the step of the xG axis. The top is at least 1, so a match with few
+ * chances does not look like a match with many.
+ */
+export function xgAxis(chart: XgTimelineSpec): { max: number; interval: number } {
+  const highest = Math.max(1, ...chart.teams.map((team) => team.xg));
+  if (highest <= 1) return { max: 1, interval: 0.25 };
+  if (highest <= 3) return { max: Math.ceil(highest * 2) / 2, interval: 0.5 };
+  return { max: Math.ceil(highest), interval: 1 };
 }
 
 function teamSentence(team: TimelineTeam): string {

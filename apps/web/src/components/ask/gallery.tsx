@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import styles from "@/components/ask/gallery.module.css";
 import { SectionHead } from "@/components/ask/section-head";
@@ -55,16 +56,15 @@ import {
   type ShotMapSpec,
 } from "@/lib/shot-map";
 import { cn } from "@/lib/utils";
-import {
-  GOAL_RADIUS,
-  endMinute,
-  linePath as timelinePath,
-  scalesOf as timelineScales,
-  stepPoints,
-  summaryText as timelineSummary,
-  VIEW as TIMELINE_VIEW,
-  type XgTimelineSpec,
-} from "@/lib/xg-timeline";
+import { summaryText as timelineSummary, type XgTimelineSpec } from "@/lib/xg-timeline";
+
+// The same ECharts chart as an answer, in its own chunk and in the client only.
+// The tile is far down the page, so the chunk loads only when the tile comes near.
+const NEAR_VIEW = "400px";
+const XgTimelineCanvas = dynamic(() => import("@/components/charts/xg-timeline-canvas"), {
+  ssr: false,
+  loading: () => null,
+});
 
 // The longest build-up (the xG timeline and the pass map) ends at about 2 s.
 const PLAY_MS = 2200;
@@ -245,45 +245,37 @@ function NetworkTile({ chart }: { chart: PassNetworkSpec }) {
   );
 }
 
-const TEAM_STROKE = ["stroke-brand", "stroke-foreground"];
-const TEAM_FILL = ["fill-brand", "fill-foreground"];
-
 function TimelineTile({ chart }: { chart: XgTimelineSpec }) {
-  const scales = timelineScales(chart);
-  const end = endMinute(chart);
-  const goals = chart.teams.flatMap((team, teamIndex) =>
-    team.shots.filter((shot) => shot.is_goal).map((shot) => ({ shot, teamIndex })),
-  );
+  const ref = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setNear(true);
+        observer.disconnect();
+      },
+      { rootMargin: NEAR_VIEW },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // The name and summary are in the HTML of the page, so they need no JavaScript.
+  // The chart plays its own short draw-in once, when it comes into view, and none
+  // under reduced motion.
   return (
-    <svg
-      viewBox={`0 0 ${TIMELINE_VIEW.width} ${TIMELINE_VIEW.height}`}
+    <div
+      ref={ref}
       role="img"
       aria-label={`${chart.title}. ${timelineSummary(chart)}`}
-      className="block size-full bg-surface-chart"
+      className="size-full bg-surface-chart"
     >
-      {chart.teams.map((team, teamIndex) => (
-        <path
-          key={team.team}
-          d={timelinePath(stepPoints(team, end), scales)}
-          pathLength={1}
-          strokeWidth={2.5}
-          vectorEffect="non-scaling-stroke"
-          style={delay(teamIndex, chart.teams.length, 0, 120)}
-          className={cn(styles.trace, "fill-none", TEAM_STROKE[teamIndex])}
-        />
-      ))}
-      {goals.map(({ shot, teamIndex }, index) => (
-        <circle
-          key={index}
-          cx={scales.x(shot.minute)}
-          cy={scales.y(shot.total)}
-          r={GOAL_RADIUS * 1.6}
-          style={delay(index, goals.length, 900, 120)}
-          className={cn(styles.pop, TEAM_FILL[teamIndex], "stroke-surface-chart")}
-          strokeWidth={3}
-        />
-      ))}
-    </svg>
+      {near && <XgTimelineCanvas chart={chart} compact />}
+    </div>
   );
 }
 
