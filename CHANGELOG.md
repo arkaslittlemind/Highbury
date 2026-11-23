@@ -15,6 +15,8 @@ version below is a production release, and the Git tag of the same name (such as
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-23
+
 ### Changed
 
 - The xG timeline, in an answer and in the gallery, has a new look: stepped lines
@@ -218,7 +220,8 @@ The first release: ask a question, get a checked answer.
 - A limit of 5 questions a minute for each address, and a size limit on each
   request.
 
-[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/arkaslittlemind/Highbury/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/arkaslittlemind/Highbury/compare/v1.4.0...v1.4.1
